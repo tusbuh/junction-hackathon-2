@@ -46,6 +46,23 @@ def ask(a: Ask):
                                  cost=dict(seconds=0, total_eur=0, cpu_eur=0, llm_eur=0, llm_calls=0, vlm_baseline_eur=0)))
 
 
+@app.get('/api/scoreboard')
+def scoreboard():
+    import json, glob, statistics
+    out = []
+    for f in sorted(glob.glob(os.path.join(ROOT, 'data/eval/*.json'))):
+        res = json.load(open(f))
+        g = [r for r in res if r['correct'] is not None]
+        ok = sum(bool(r['correct']) for r in g)
+        vlm = sum(engine.vlm_baseline(None) for _ in res)
+        out.append(dict(source=os.path.basename(f)[:-5], total=len(res), graded=len(g), correct=ok,
+                        eur=sum(r['eur'] or 0 for r in res), median_ms=round(1000 * statistics.median([r['secs'] for r in res]), 1) if res else 0,
+                        p95_ms=round(1000 * sorted(r['secs'] for r in res)[int(0.95 * (len(res) - 1))], 1) if res else 0,
+                        llm_calls=0, vlm_eur=vlm, by_type={t: [sum(bool(r['correct']) for r in g if r['type'] == t), sum(1 for r in g if r['type'] == t)]
+                                                         for t in sorted({r['type'] for r in g})}))
+    return JSONResponse(out)
+
+
 @app.get('/api/sheet')
 def sheet(path: str = Query(...), page: int = 0):
     full = safe(path)

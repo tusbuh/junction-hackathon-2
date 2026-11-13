@@ -52,6 +52,7 @@ function selectFile(f) {
   });
   $('#q').value = f.questions[0]?.q || '';
   clearResult();
+  $('#auditList').hidden = true; $('#auditSum').textContent = '';
   // show the drawing immediately (before any question)
   const isIfc = f.path.endsWith('.ifc');
   $('#tabs [data-t=sheet]').disabled = false;
@@ -455,5 +456,45 @@ function showPick(e) {
   const p = $('#pick'); p.hidden = false;
   p.innerHTML = `<b>${esc(e.cls)}</b> ${esc(e.name || '')}<br><code>GlobalId ${esc(e.gid)}</code>${e.storey ? `<br><span class="muted">storey: ${esc(e.storey)}</span>` : ''}`;
 }
+
+// ============================================================ audit: run every dataset question on this drawing
+$('#auditBtn').onclick = async () => {
+  const f = S.file; if (!f) return;
+  const L = $('#auditList'); L.hidden = false; L.innerHTML = '';
+  let ok = 0, n = 0, eur = 0; const t0 = performance.now();
+  for (const q of f.questions) {
+    const r = await (await fetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: f.path, question: q.q }) })).json();
+    if (S.file !== f) return;
+    n++; ok += r.correct === true; eur += r.cost?.total_eur || 0;
+    const d = el('span', r.correct === true ? 'ok' : r.correct === false ? 'bad' : 'na');
+    d.title = `${q.q}\n→ ${fmtVal(r.value)} (truth ${fmtVal(r.truth)})`;
+    d.onclick = () => { $('#q').value = q.q; S.last = r; show(r); };
+    L.append(d);
+    $('#auditSum').innerHTML = `<b>${ok}/${n}</b> correct · ${fmtEur(eur)} total · ${Math.round(performance.now() - t0)} ms`;
+  }
+};
+
+// ============================================================ scoreboard
+$('#sbBtn').onclick = async () => {
+  const d = await (await fetch('/api/scoreboard')).json();
+  const tot = d.reduce((a, x) => ({ g: a.g + x.graded, c: a.c + x.correct, e: a.e + x.eur, v: a.v + x.vlm_eur, n: a.n + x.total }), { g: 0, c: 0, e: 0, v: 0, n: 0 });
+  const names = { swiss_dwellings: ['Swiss CAD floors', 'DXF + vector PDF · EN/DE/FR/IT'], ifc_models: ['IFC building models', 'IFC2x3/IFC4 · EN/ET/DA/DE'],
+    cubicasa5k: ['Finnish raster plans', 'PNG scans · EN/FI'], opening_design: ['US drawing sets', 'PDF schedules'], ifc_bench: ['IFC-Bench v2', 'free-text BIM questions'] };
+  let h = `<div class="sbtot"><div><label>auto-graded accuracy</label><b style="color:var(--ok)">${(100 * tot.c / Math.max(tot.g, 1)).toFixed(1)}%</b></div>
+    <div><label>questions answered</label><b>${tot.n.toLocaleString('en')}</b></div>
+    <div><label>total cost (PINPOINT)</label><b style="color:var(--ok)">${fmtEur(tot.e)}</b></div>
+    <div><label>frontier VLM, same questions (est.)</label><b style="color:var(--ink2)">${fmtEur(tot.v)}</b></div></div>`;
+  d.forEach(x => {
+    const p = 100 * x.correct / Math.max(x.graded, 1), nm = names[x.source] || [x.source, ''];
+    h += `<div class="sbrow"><div class="src"><b>${nm[0]}</b><small>${nm[1]}</small></div>
+      <div><div class="bar"><i style="width:${p}%"></i></div><small class="muted">${Object.entries(x.by_type).map(([t, [a, b]]) => `${t} ${a}/${b}`).join(' · ')}</small></div>
+      <div class="pct">${p.toFixed(1)}%</div><div class="k"><b>${x.correct}/${x.graded}</b>correct</div><div class="k"><b>${x.median_ms} ms</b>median (warm)<br>€${(x.eur / Math.max(x.total, 1)).toExponential(1)} / question</div></div>`;
+  });
+  h += `<p class="sbnote">Counts must match exactly; areas, lengths and volumes within 2% (Stoa's rule). Cost = measured CPU time × €0.04/vCPU-hour, plus LLM tokens when the template-only router is used (0 calls in these runs).
+    The VLM estimate prices each sheet at ~1.6k image tokens per 1.15 MP at 200 dpi + prompt/answer tokens at $3/$15 per Mtok. Misses are kept visible: unmatched IFC questions refer to a model (FZK-Haus) whose IFC file is not in the preview set.</p>`;
+  $('#sbBody').innerHTML = h; $('#sb').hidden = false;
+};
+$('#sbX').onclick = () => $('#sb').hidden = true;
+$('#sb').onclick = e => { if (e.target.id === 'sb') $('#sb').hidden = true; };
 
 boot();

@@ -10,6 +10,9 @@ the per-class thresholds tuned on a held-out split of the training data
 """
 import json
 import threading
+
+import cv2
+import numpy as np
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,6 +20,7 @@ WEIGHTS = ROOT / "data/models/cubicasa_yolo.pt"
 THRESH = ROOT / "data/models/cubicasa_thresholds.json"
 IMGSZ = 1024
 FLOOR_CONF = 0.05
+TTA = True  # 4-rotation test-time augmentation (set per thresholds file)
 
 _model = None
 _lock = threading.Lock()
@@ -44,18 +48,69 @@ def thresholds():
     return _thr
 
 
-def detect(png_path, conf=FLOOR_CONF, imgsz=IMGSZ):
-    """Run the detector on one image. bbox is in original image pixels."""
+def _predict(im, conf, imgsz):
     m = model()
     with _lock:
-        r = m.predict(str(png_path), imgsz=imgsz, conf=conf, iou=0.5, device=_device(),
+        r = m.predict(im, imgsz=imgsz, conf=conf, iou=0.5, device=_device(),
                       verbose=False, max_det=600)[0]
-    names = r.names
+    return r.names, r.boxes.xyxy.cpu().numpy(), r.boxes.conf.cpu().numpy(), r.boxes.cls.cpu().numpy().astype(int)
+
+
+def _iou(a, b):
+    x0, y0 = np.maximum(a[0], b[:, 0]), np.maximum(a[1], b[:, 1])
+    x1, y1 = np.minimum(a[2], b[:, 2]), np.minimum(a[3], b[:, 3])
+    inter = np.clip(x1 - x0, 0, None) * np.clip(y1 - y0, 0, None)
+    ua = (a[2] - a[0]) * (a[3] - a[1]) + (b[:, 2] - b[:, 0]) * (b[:, 3] - b[:, 1]) - inter
+    return inter / np.maximum(ua, 1e-9)
+
+
+def detect(png_path, conf=FLOOR_CONF, imgsz=IMGSZ, tta=None):
+    """Run the detector on one image. bbox is in original image pixels.
+
+    tta=True runs the model on 4 rotations (0/90/180/270 deg) and fuses the boxes:
+    a fused box's conf is the mean over rotations (0 where a rotation missed it),
+    which makes counts robust to how the plan is oriented.
+    """
+    tta = TTA if tta is None else tta
+    im = cv2.imread(str(png_path), cv2.IMREAD_COLOR)
+    H, W = im.shape[:2]
+    if not tta:
+        names, b, c, k = _predict(im, conf, imgsz)
+        return [{"cls": names[int(kk)], "conf": round(float(cc), 4), "bbox": [round(float(v), 1) for v in bb]}
+                for bb, cc, kk in zip(b, c, k)]
+    allb, allc, allk, alla = [], [], [], []
+    for r in range(4):
+        names, b, c, k = _predict(np.ascontiguousarray(np.rot90(im, r)), conf, imgsz)
+        allb.append(_unrotate_k(b, r, W, H)); allc.append(c); allk.append(k); alla.append(np.full(len(c), r))
+    b, c, k, a = np.concatenate(allb), np.concatenate(allc), np.concatenate(allk), np.concatenate(alla)
     out = []
-    for b, c, k in zip(r.boxes.xyxy.tolist(), r.boxes.conf.tolist(), r.boxes.cls.tolist()):
-        out.append({"cls": names[int(k)], "conf": round(float(c), 4),
-                    "bbox": [round(v, 1) for v in b]})
+    used = np.zeros(len(c), bool)
+    for i in np.argsort(-c):
+        if used[i]:
+            continue
+        cand = np.where(~used & (k == k[i]))[0]
+        ious = _iou(b[i], b[cand])
+        grp = cand[ious >= 0.45]
+        used[grp] = True
+        score = sum(c[grp][a[grp] == r].max() for r in set(a[grp].tolist())) / 4.0
+        w = c[grp][:, None]
+        box = (b[grp] * w).sum(0) / w.sum()
+        out.append({"cls": names[int(k[i])], "conf": round(float(score), 4),
+                    "bbox": [round(float(v), 1) for v in box]})
     return out
+
+
+def _unrotate_k(b, r, W, H):
+    """Boxes predicted on np.rot90(img, r) (CCW) -> original image frame (W x H)."""
+    if r == 0:
+        return b
+    x0, y0, x1, y1 = b.T
+    if r == 1:   # rotated frame is H x W (width H). orig x = W - y', orig y = x'
+        return np.stack([W - y1, x0, W - y0, x1], 1)
+    if r == 2:   # orig x = W - x', orig y = H - y'
+        return np.stack([W - x1, H - y1, W - x0, H - y0], 1)
+    # r == 3: orig x = y', orig y = H - x'
+    return np.stack([y0, H - x1, y1, H - x0], 1)
 
 
 def class_counts(dets, thr=None):
