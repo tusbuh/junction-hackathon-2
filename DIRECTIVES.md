@@ -1,3 +1,18 @@
+# THE BAR (user, Sat 01:56): AMAZING, not just good enough to win
+- Accuracy: as close to 100% as possible on EVERY source, Finnish scans included.
+- Visuals: something judges remember.
+- Creativity: something no other team has (e.g. catching real errors in drawings).
+- Cost: show the gap with frontier models vividly.
+
+# CHALLENGE RULES (user, Sat 01:55; from the dataset README and challenge page)
+1. Strict scoring: counts must be EXACT; area/length/volume must be within 2%; text is free-form. Grade our eval exactly this way, and show the tolerance on the receipt (e.g. "80.33 vs 80.34 m2, within 0.01%").
+2. The data is for non-commercial Junction use only. Each file's licence and credit is in data/<source>/LICENSE.md. Show the credit UNDER EVERY DRAWING displayed in the demo, in screenshots and in the video.
+3. CubiCasa is CC BY-NC-SA: adaptations keep the same licence. ND files stay unchanged (show them as-is with overlays only, no edited copies). Questions inherit their drawing's licence. Add a LICENSES section to the README.
+4. Pitch: Stoa calls this one of the hardest unsolved problems in construction tech. General AI fails on complex drawings, and site engineers lose hours a day hunting for information. Speak to that pain.
+5. The judges are Stoa's founding tech team plus a construction engineer, so use real construction terms and a workflow a site engineer finds credible.
+6. The full set has ~14k drawings in ~30 languages (PDF/DWG/DXF/IFC/SVG/PNG/JPEG) and ~120k questions. Types: count, area, length, volume, text, other. Handle "other" gracefully.
+7. The same name with a different extension is the same drawing in another format: use the best format (vector over raster). ifc_models plan PDFs are rendered from <model>.ifc, so link them.
+
 # DIRECTIVES FROM THE USER (Sat 01:48) - read before every step
 Good is not enough: keep getting better all night in visuals, accuracy and overall impressiveness.
 
