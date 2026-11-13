@@ -168,7 +168,8 @@ aside.right { border-left: 1px solid var(--line); background: #0a1020aa; }
 .auditList { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 8px; max-height: 64px; overflow: auto; }
 .auditList span { width: 14px; height: 14px; border-radius: 3px; cursor: pointer; background: var(--line2); animation: pop .3s both; }
 .auditList span.ok { background: var(--ok); } .auditList span.bad { background: var(--bad); } .auditList span.na { background: var(--ink3); }
-.sbBtn { background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 8px 14px; color: var(--ink); font-weight: 600; margin-left: auto; }
+.sbBtn { background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 8px 14px; color: var(--ink); font-weight: 600; }
+#tourBtn { margin-left: auto; background: linear-gradient(135deg, #1b2a4a, var(--panel)); border-color: #38d6ff55; color: var(--cy); }
 .sbBtn:hover { border-color: var(--acc); }
 .modal { position: fixed; inset: 0; background: #03060ccc; backdrop-filter: blur(6px); display: grid; place-items: center; z-index: 50; animation: rise .25s ease; }
 .modal .card { width: min(1100px, 94vw); max-height: 88vh; overflow: auto; background: var(--bg2); border: 1px solid var(--line2); border-radius: 18px; padding: 22px 26px; box-shadow: 0 30px 120px #000; }

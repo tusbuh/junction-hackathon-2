@@ -443,7 +443,14 @@ function place3dLabels() {
   T.hl.forEach(h => { if (!h.lab) return; const v = toWorld(...h.c).project(T.camera);
     h.lab.style.display = v.z > 1 ? 'none' : ''; h.lab.style.left = ((v.x + 1) / 2 * r.width) + 'px'; h.lab.style.top = ((1 - v.y) / 2 * r.height) + 'px'; });
 }
-function hot3d(n) { /* label emphasis handled in hot(); keep hook for future per-element glow */ }
+function hot3d(n) {
+  if (T.hotMesh) { T.root.remove(T.hotMesh); T.hotMesh.geometry.dispose(); T.hotMesh = null; }
+  const h = n == null ? null : T.hl.find(h => h.it.n == n);
+  if (!h) return;
+  const { geo } = subset(h.els, T.I);
+  T.hotMesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xff2d55, transparent: true, opacity: .9, depthTest: false }));
+  T.hotMesh.renderOrder = 5; T.root.add(T.hotMesh);
+}
 function focus3d(it) { const h = T.hl.find(h => h.it.n === it.n); if (h) { fit3d(true, h.box); showPick(h.els[0]); } }
 function pick3d(e) {
   const r = e.target.getBoundingClientRect();
@@ -499,5 +506,32 @@ $('#sbBtn').onclick = async () => {
 };
 $('#sbX').onclick = () => $('#sb').hidden = true;
 $('#sb').onclick = e => { if (e.target.id === 'sb') $('#sb').hidden = true; };
+
+// ============================================================ guided tour (one showcase per source)
+const TOUR = [
+  ['data/swiss_dwellings/site1000_bldg2082_floor9385.pdf', 'Wie viele WCs sind auf diesem Grundriss eingezeichnet?'],
+  ['data/swiss_dwellings/site1000_bldg2082_floor9385.pdf', 'What is the net floor area of apartment A in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?'],
+  ['data/ifc_models/bsc-esplanades_1807-ep-ar-v18_plan-04-4-korrus.pdf', "Mitu ust on näidatud korruse „4.korrus“ plaanil?", 'sheet'],
+  ['data/ifc_models/bsc-esplanades_1807-ep-ar-v18_plan-04-4-korrus.pdf', "How many doors are shown on the floor plan of '4.korrus'?", 'model'],
+  ['data/ifc_bench/duplex_arc.ifc', 'How many bedrooms are there?'],
+  ['data/opening_design/Sports_Complex/Sheets - Current Set/A-801 - Door and Finish Schedules & Wall Types.pdf', 'On sheet A-801 of the Xcel Sports Complex drawings, how many doors in the door schedule are door type B2 (double aluminium door with glazing)?'],
+  ['data/cubicasa5k/colorful-11400.png', 'Kuinka monta ikkunaa pohjapiirustuksessa on?'],
+];
+S.touring = false;
+async function tour() {
+  if (S.touring) { S.touring = false; $('#tourBtn').textContent = '▶ Tour'; return; }
+  S.touring = true; $('#tourBtn').textContent = '■ Stop tour';
+  for (const [path, q, view] of TOUR) {
+    if (!S.touring) break;
+    const f = S.cat.find(x => x.path === path); if (!f) continue;
+    selectFile(f); $('#q').value = '';
+    for (const ch of q) { if (!S.touring) break; $('#q').value += ch; await new Promise(r => setTimeout(r, 14)); }
+    await ask();
+    if (view) setTimeout(() => setView(view), 900);
+    await new Promise(r => setTimeout(r, 7000));
+  }
+  S.touring = false; $('#tourBtn').textContent = '▶ Tour';
+}
+$('#tourBtn').onclick = tour;
 
 boot();
