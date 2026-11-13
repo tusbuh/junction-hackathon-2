@@ -108,7 +108,7 @@ function selectFile(f) {
   if (f.plan) loadSheet(f.plan.url, 0, 0, true);
   else if (!isIfc) loadSheet(`/api/sheet?path=${encodeURIComponent(f.path)}`);
   else { SV.url = null; showSheet(false); S.has.sheet = false; }
-  if (S.has.model) loadModel(ifcFor(f.path));
+  if (S.has.model) loadModel(ifcFor(f.path))?.then(() => { if (!T.H && S.file === f && S.has.sheet) { S.has.model = false; updateModeButtons(); setMode('sheet'); } });
   setMode(S.has.sheet && S.has.model ? (S.userMode || 'split') : S.has.model ? 'model' : 'sheet');
   updateModeButtons();
 }
@@ -199,6 +199,7 @@ async function show(r) {
     else { SV.url = null; showSheet(false); }
     setMode(v.sheet ? (S.userMode || 'split') : 'model');
     await Promise.all(jobs);
+    if (!T.H && S.has.sheet) { S.has.model = false; setMode('sheet'); }
   }
   updateModeButtons();
   if (run !== S.run) return;
@@ -237,7 +238,7 @@ async function reveal(r, run) {
   const isNum = typeof r.value === 'number' && r.unit !== 'text';
   const sumMode = isNum && r.unit !== 'count' && S.items.length && S.items.every(i => typeof i.value === 'number');
   const final = () => { if (isNum) val.textContent = fmtVal(r.value); A.classList.remove('counting'); };
-  if (!S.items.length) { final(); return; }
+  if (!S.items.length) { final(); S.revealed = true; return; }
   const by2d = new Map(SV.items.map(it => [it.n, it]));
   const order = [...S.items].map(it => {
     const b = by2d.get(it.n)?.bbox; const h = T.hl.find(h => h.it.n === it.n);
@@ -649,7 +650,15 @@ async function loadModel(path) {
   T.path = path; $('#modelEmpty').style.display = 'none';
   $('#load3d').hidden = false;
   T.loading = (async () => {
-    const buf = await (await fetch(`/api/mesh?path=${encodeURIComponent(path)}`)).arrayBuffer();
+    const resp = await fetch(`/api/mesh?path=${encodeURIComponent(path)}`);
+    if (T.path !== path) return;
+    if (!resp.ok) {  // e.g. FZK-Haus: plan sheets ship without their IFC in the preview split
+      $('#load3d').hidden = true; T.root.clear(); T.H = null; T.hl = []; $('#labels3d').innerHTML = '';
+      $('#modelEmpty').style.display = ''; $('#modelEmpty span').textContent = 'The IFC model for this drawing is not in the dataset split.';
+      S.has.model = false; updateModeButtons(); if (S.mode !== 'sheet') setMode('sheet');
+      return;
+    }
+    const buf = await resp.arrayBuffer();
     if (T.path !== path) return;
     const hl = new DataView(buf).getUint32(0, true);
     const H = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, hl)));
@@ -890,5 +899,5 @@ async function tour() {
 }
 $('#tourBtn').onclick = tour;
 
-window.PP = { S, SV, T, select, setMode, ask, hot, clearSel };
+window.PP = { S, SV, T, select, setMode, ask, hot, clearSel, selectFile, show };
 boot();
