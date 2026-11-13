@@ -70,8 +70,15 @@ def sheet(path: str = Query(...), page: int = 0):
         return FileResponse(full, headers={'Cache-Control': 'max-age=86400'})
     key = hashlib.md5(f'{full}:{page}'.encode()).hexdigest()
     out = os.path.join(CACHE, key + '.svg')
+    png = os.path.join(CACHE, key + '.png')
+    if os.path.exists(png):
+        return FileResponse(png, media_type='image/png', headers={'Cache-Control': 'max-age=86400'})
     if not os.path.exists(out):
-        svg = pymupdf.open(full)[page].get_svg_image(text_as_path=False)
+        pg = pymupdf.open(full)[page]
+        svg = pg.get_svg_image(text_as_path=False)
+        if len(svg) > 1_200_000:   # dense sheets: a 2.2x PNG is lighter for the browser than megabytes of vector paths
+            pg.get_pixmap(matrix=pymupdf.Matrix(2.2, 2.2)).save(png)
+            return FileResponse(png, media_type='image/png', headers={'Cache-Control': 'max-age=86400'})
         with open(out, 'w') as f:
             f.write(svg)
     return FileResponse(out, media_type='image/svg+xml', headers={'Cache-Control': 'max-age=86400'})

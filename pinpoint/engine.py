@@ -1,6 +1,7 @@
 """PINPOINT dispatcher: path + question -> answer with a receipt (evidence mapped to the drawing, steps, cost)."""
 import os, re, json, time, functools, threading
 import numpy as np
+from urllib.parse import quote
 import pymupdf
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -124,7 +125,7 @@ def plan_view(path, storey=None):
     d = os.path.dirname(abspath(base))
     stem = os.path.basename(base)
     if path.endswith('.svg'):
-        return dict(url=f'/api/sheet?path={path}', inline=True)
+        return dict(url=f'/api/sheet?path={quote(path)}', inline=True)
     cands = sorted(f for f in os.listdir(d) if f.startswith(stem + '_plan-') and f.endswith('.svg')) if os.path.isdir(d) else []
     if path.endswith('.pdf') and os.path.exists(abspath(path[:-4] + '.svg')):
         cands = [os.path.basename(path[:-4] + '.svg')] + cands
@@ -135,7 +136,7 @@ def plan_view(path, storey=None):
     if not cands:
         return None
     rel = os.path.relpath(os.path.join(d, cands[0]), DATA)
-    return dict(url=f'/api/sheet?path={rel}', inline=True, name=cands[0])
+    return dict(url=f'/api/sheet?path={quote(rel)}', inline=True, name=cands[0])
 
 
 def ask_ifc(path, q):
@@ -155,12 +156,26 @@ def ask_ifc(path, q):
                 r = text_answer(m, q)
         r['storey'] = getattr(m, 'last_storey', None) if r.get('unit') != 'text' else None
     r['model'] = ifc
-    r['view'] = dict(kind='model', mesh=f'/api/mesh?path={ifc}')
+    r['view'] = dict(kind='model', mesh=f'/api/mesh?path={quote(ifc)}')
     pv = plan_view(path, r.get('storey'))
     if pv:
         r['view']['sheet'] = pv
         r['steps'].append(f"Linked 2D plan {pv['name'] if 'name' in pv else ''}: plan elements carry IFC GlobalIds, so the same items light up in 2D and 3D")
     r['inputs'] = [os.path.basename(ifc)]
+    return r
+
+
+# ---------------------------------------------------------------- raster plans (CubiCasa-style PNG)
+def ask_raster(path, q):
+    from PIL import Image
+    w, h = Image.open(abspath(path)).size
+    view = dict(kind='sheet', url=f'/api/sheet?path={quote(path)}', w=w, h=h, raster=True)
+    try:
+        from .raster import qa
+    except Exception as e:
+        return dict(value=None, unit=None, items=[], method='raster detector not available', steps=[f'Raster adapter not loaded: {e}'], view=view)
+    r = qa.answer(abspath(path), q)
+    r['view'] = view
     return r
 
 
@@ -172,6 +187,12 @@ def ask(path, q):
         r = ask_swiss(path, q)
     elif src in ('ifc_models', 'ifc_bench') or path.endswith('.ifc'):
         r = ask_ifc(path, q)
+    elif path.lower().endswith('.pdf'):
+        from . import schedule
+        r = schedule.answer(abspath(path), q)
+        r['view'] = schedule.view(abspath(path), path)
+    elif source_of(path) == 'cubicasa5k':
+        r = ask_raster(path, q)
     else:
         r = dict(value=None, unit=None, items=[], method='unsupported source', steps=[f'No adapter for {src} yet'])
     dt = time.perf_counter() - t
