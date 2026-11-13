@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PINPOINT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2213%22 fill=%22none%22 stroke=%22%23ffb020%22 stroke-width=%223%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%224%22 fill=%22%23ffb020%22/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/static/style.css">
 <script type="importmap">{"imports":{"three":"/static/vendor/three.module.js"}}</script>
 </head>
@@ -15,83 +16,113 @@
     <svg class="logo" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="2" fill="currentColor"/><path d="M16 0v7M16 25v7M0 16h7M25 16h7" stroke="currentColor" stroke-width="2"/></svg>
     <div><b>PINPOINT</b><span>every answer comes with a receipt</span></div>
   </div>
-  <button class="sbBtn" id="tourBtn">▶ Tour</button>
-  <button class="sbBtn" id="sbBtn" style="margin-left:8px">▦ Scoreboard</button>
-  <div class="meter" id="meter">
-    <div class="m"><label>this answer</label><b id="mLast">€0</b></div>
-    <div class="m"><label>latency</label><b id="mLat">–</b></div>
-    <div class="m"><label>LLM calls</label><b id="mLlm">0</b></div>
-    <div class="m"><label>session · <span id="mN">0</span> questions</label><b id="mTot">€0</b></div>
-    <div class="m vs"><label>frontier VLM would cost</label><b id="mVlm">–</b></div>
+
+  <button class="docBtn" id="docBtn" title="Choose a drawing (⌘K)">
+    <span class="srcTag" id="srcTag">—</span>
+    <span class="docName" id="docName">pick a drawing</span>
+    <span class="caret">▾</span>
+  </button>
+
+  <form class="ask" id="askForm" autocomplete="off">
+    <svg class="qi" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="q" placeholder="Ask anything about this drawing, in any language…" spellcheck="false">
+    <button type="submit" id="go"><span>Ask</span><kbd>↵</kbd></button>
+    <div class="sugg" id="sugg" hidden>
+      <div class="sh">Questions from the dataset for this drawing <span id="suggN"></span></div>
+      <div class="sl" id="chips"></div>
+    </div>
+  </form>
+
+  <div class="meter" id="meter" title="Measured CPU time × €0.04/vCPU-h + LLM tokens (0 by default)">
+    <div class="m"><label>cost</label><b id="mLast">€0</b></div>
+    <div class="m"><label>time</label><b id="mLat">–</b></div>
+    <div class="m"><label>LLM</label><b id="mLlm">0</b></div>
+    <div class="m vs"><label>frontier VLM</label><b id="mVlm">–</b></div>
     <div class="m save"><label>cheaper</label><b id="mSave">–</b></div>
   </div>
+  <button class="tbtn" id="tourBtn">▶ Tour</button>
+  <button class="tbtn" id="sbBtn">▦ Scoreboard</button>
 </header>
 
-<main>
-  <aside class="left">
-    <div class="srcs" id="srcs"></div>
-    <input id="filter" class="filter" placeholder="Filter drawings…">
-    <div class="files" id="files"></div>
-  </aside>
-
-  <section class="center">
-    <form class="ask" id="askForm">
-      <div class="doc" id="docName">pick a drawing</div>
-      <div class="row">
-        <input id="q" autocomplete="off" placeholder="Ask anything about this drawing — in any language…">
-        <button type="submit" id="go"><span>Ask</span><kbd>↵</kbd></button>
-      </div>
-      <div class="chips" id="chips"></div>
-      <div class="audit"><button type="button" id="auditBtn">▶ Run all questions on this drawing</button><span id="auditSum"></span></div>
-      <div class="auditList" id="auditList" hidden></div>
-    </form>
-
-    <div class="answer" id="answer" hidden>
-      <div class="val"><b id="aVal"></b><span id="aUnit"></span></div>
-      <div class="meta">
-        <div id="aMethod"></div>
-        <div class="badges" id="aBadges"></div>
-      </div>
-    </div>
-
-    <div class="stage" id="stage">
-      <div class="tabs" id="tabs">
-        <button data-t="sheet" class="on">2D sheet</button>
-        <button data-t="model">3D model</button>
-        <span class="sp"></span>
-        <button id="tglTheme" title="Toggle blueprint / paper">◐ blueprint</button>
-        <button id="fitBtn" title="Zoom to evidence">⤢ fit</button>
-      </div>
-      <div class="view sheetv" id="sheetv">
+<main id="main">
+  <section class="stage" id="stage" data-mode="sheet">
+    <div class="views" id="views">
+      <div class="view sheetv blue" id="sheetv">
         <div class="pan" id="pan">
           <img id="sheetImg" alt="">
-          <svg id="ov" class="ov"></svg>
+          <svg id="ov" class="ov"><defs>
+            <linearGradient id="scanG" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#38d6ff" stop-opacity="0"/><stop offset=".85" stop-color="#38d6ff" stop-opacity=".18"/><stop offset="1" stop-color="#bff3ff" stop-opacity=".9"/></linearGradient>
+          </defs><g id="ovItems"></g><g id="ovFx"></g></svg>
         </div>
-        <div class="empty" id="sheetEmpty">Pick a drawing on the left and ask a question.</div>
-        <div class="hint">scroll to zoom · drag to pan · hover the receipt to locate</div>
+        <div id="labels2d" class="labels"></div>
+        <div class="empty" id="sheetEmpty"><div class="ring"></div><span>Pick a drawing and ask a question.</span></div>
+        <canvas class="minimap" id="minimap" width="200" height="140" hidden></canvas>
+        <div class="vtag">2D · drawing</div>
       </div>
       <div class="view modelv" id="modelv" hidden>
         <canvas id="three"></canvas>
-        <div id="labels3d" class="labels3d"></div>
-        <div class="empty" id="modelEmpty">3D model appears for IFC questions.</div>
+        <div id="labels3d" class="labels"></div>
+        <div class="empty" id="modelEmpty"><span>The 3D model appears for IFC questions.</span></div>
         <div class="pick" id="pick" hidden></div>
         <div class="load" id="load3d" hidden><div class="spin"></div><span>tessellating IFC…</span></div>
-        <div class="hint">drag to orbit · right-drag to pan · click an element to inspect</div>
+        <div class="vtag">3D · IFC model <span id="cutTag"></span></div>
       </div>
+    </div>
+
+    <div class="answer" id="answer" hidden>
+      <div class="aq" id="aQ"></div>
+      <div class="val"><b id="aVal"></b><span id="aUnit"></span></div>
+      <div class="am" id="aMethod"></div>
+      <div class="badges" id="aBadges"></div>
+      <div class="stepper" id="stepper" hidden>
+        <button id="prevBtn" title="Previous item (←)">‹</button>
+        <span id="stepTxt">all</span>
+        <button id="nextBtn" title="Next item (→)">›</button>
+        <button id="allBtn" class="all" title="Show all (Esc)">⤢ all</button>
+      </div>
+    </div>
+
+    <div class="dock" id="dock">
+      <div class="seg" id="modes">
+        <button data-m="sheet" class="on">2D</button>
+        <button data-m="split">2D ⇆ 3D</button>
+        <button data-m="model">3D</button>
+      </div>
+      <button id="tglTheme" title="Blueprint / paper">◐</button>
+      <button id="fitBtn" title="Fit evidence">⤢</button>
+      <span class="hint" id="hint">scroll to zoom · drag to pan · ← → step through items</span>
     </div>
   </section>
 
-  <aside class="right">
-    <h3>Receipt</h3>
-    <ol class="steps" id="steps"><li class="muted">How the answer was derived appears here, step by step.</li></ol>
-    <h3>Evidence <span id="evN" class="pill"></span></h3>
+  <aside class="receipt" id="side">
+    <div id="receipt">
+    <div class="rh"><h3>Receipt</h3><span class="rsub" id="rSub">how the answer was derived</span></div>
+    <ol class="steps" id="steps"><li class="muted">Every step of the derivation appears here.</li></ol>
+    <div class="rh"><h3>Evidence <span id="evN" class="pill"></span></h3><span class="rsub">hover to locate · click to zoom</span></div>
     <div class="ev" id="ev"></div>
+    </div>
+    <div class="audit">
+      <button type="button" id="auditBtn">▶ Grade every dataset question on this drawing</button>
+      <div class="auditSum" id="auditSum"></div>
+      <div class="auditList" id="auditList" hidden></div>
+    </div>
   </aside>
 </main>
+
+<div class="drawer" id="lib" hidden>
+  <div class="dcard">
+    <div class="dh"><b>Drawings</b><span class="muted">preview set · grouped by source</span><button id="libX">✕</button></div>
+    <div class="srcs" id="srcs"></div>
+    <input id="filter" class="filter" placeholder="Filter drawings…">
+    <div class="files" id="files"></div>
+  </div>
+</div>
+
 <div class="modal" id="sb" hidden><div class="card">
   <div class="mh"><h2>Scoreboard <small>preview set · every question auto-graded against ground truth</small></h2><button id="sbX">✕</button></div>
   <div id="sbBody"></div>
 </div></div>
+<footer class="credits">Drawings: Stoa Junction 2026 dataset · Swiss Dwellings CC BY 4.0 · CubiCasa5K CC BY-NC-SA 4.0 · opening_design CC BY-SA 4.0 · three.js MIT</footer>
 <script type="module" src="/static/app.js"></script>
 </body>
 </html>
