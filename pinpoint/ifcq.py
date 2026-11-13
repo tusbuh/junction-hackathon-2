@@ -57,6 +57,7 @@ class Model:
         storey = None
         for name, s in self.storeys.items():
             if name and any(name == x for x in quoted): storey = s
+        self.last_storey = storey.Name if storey is not None else None
         st0 = [f"Opened {self.f.schema} model: {len(self.f.by_type('IfcProduct'))} products on {len(self.storeys)} storeys"]
         if storey is not None: st0.append(f"Filtered to storey “{storey.Name}” (IfcRelContainedInSpatialStructure)")
         it = lambda els, val=None: [dict(gid=e.GlobalId, label=self.label(e), cls=e.is_a(), value=val(e) if val else None,

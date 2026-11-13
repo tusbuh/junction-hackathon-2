@@ -16,7 +16,7 @@ async function boot() {
   const first = S.cat.find(f => f.path === P.get('path')) || S.cat.find(f => f.path.includes('site1000_bldg2082_floor9385')) || S.cat[0];
   $('#sheetv').classList.toggle('blue', S.blue);
   selectFile(first);
-  if (P.get('q')) { $('#q').value = P.get('q'); ask(); }
+  if (P.get('q')) { $('#q').value = P.get('q'); await ask(); if (P.get('view')) setTimeout(() => setView(P.get('view')), 300); }
 }
 function renderSources() {
   const counts = {};
@@ -54,8 +54,10 @@ function selectFile(f) {
   clearResult();
   // show the drawing immediately (before any question)
   const isIfc = f.path.endsWith('.ifc');
-  if (!isIfc) { loadSheet(`/api/sheet?path=${encodeURIComponent(f.path)}`); setView('sheet'); }
-  else { $('#sheetEmpty').textContent = 'This source is a 3D model — see the 3D tab.'; showSheet(false); setView('model'); loadModel(f.path); }
+  $('#tabs [data-t=sheet]').disabled = false;
+  if (f.plan) { loadSheet(f.plan.url, 0, 0, true); setView('sheet'); }
+  else if (!isIfc) { loadSheet(`/api/sheet?path=${encodeURIComponent(f.path)}`); setView('sheet'); }
+  else { $('#sheetEmpty').textContent = 'This source is a 3D model — see the 3D tab.'; showSheet(false); SV.url = null; setView('model'); loadModel(f.path); }
   $('#tabs [data-t=model]').disabled = !(isIfc || f.source === 'ifc_models');
   if (f.source === 'ifc_models' && !isIfc) loadModel(ifcFor(f.path));
 }
@@ -71,6 +73,7 @@ function clearResult() {
 // ============================================================ ask
 $('#askForm').onsubmit = e => { e.preventDefault(); ask(); };
 async function ask() {
+  S.asked = true;
   const q = $('#q').value.trim(); if (!q || !S.file) return;
   const go = $('#go'); go.classList.add('busy');
   const t0 = performance.now();
@@ -136,34 +139,52 @@ function show(r) {
   if (v.kind === 'sheet') { loadSheet(v.url, v.w, v.h).then(() => { drawOverlay(r.items); fitEvidence(); }); setView('sheet'); }
   else if (v.kind === 'model') {
     $('#tabs [data-t=model]').disabled = false;
-    if (v.sheet) loadSheet(v.sheet.url, v.sheet.w, v.sheet.h).then(() => drawOverlay([]));
-    loadModel(r.model).then(() => highlight3d(r.items));
+    if (v.sheet) { $('#tabs [data-t=sheet]').disabled = false; loadSheet(v.sheet.url, v.sheet.w, v.sheet.h, v.sheet.inline).then(() => drawOverlay(r.items)); }
+    else { $('#tabs [data-t=sheet]').disabled = true; drawOverlay([]); }
+    loadModel(r.model).then(() => highlight3d(r.items, r.storey));
     setView('model');
   } else drawOverlay([]);
 }
 
 // ============================================================ 2D sheet viewer
-const SV = { s: 1, x: 0, y: 0, w: 0, h: 0, url: null, items: [] };
+// Content lives in "user units" (PDF points, image pixels, or the plan SVG's viewBox units).
+// SV.vb = [x0, y0, w, h] in user units; SV.k = CSS px per unit inside the pan layer; SV.s/x/y = zoom + pan.
+const SV = { s: 1, x: 0, y: 0, vb: [0, 0, 1, 1], k: 1, url: null, items: [], inline: false };
+const U2P = (ux, uy) => [SV.x + (ux - SV.vb[0]) * SV.k * SV.s, SV.y + (uy - SV.vb[1]) * SV.k * SV.s];
 function showSheet(on) { $('#pan').style.display = on ? '' : 'none'; $('#sheetEmpty').style.display = on ? 'none' : ''; }
-function loadSheet(url, w, h) {
-  return new Promise(res => {
+function sizeLayers() {
+  const W = SV.vb[2] * SV.k, H = SV.vb[3] * SV.k;
+  const host = SV.inline ? $('#svgHost') : $('#sheetImg');
+  host.style.width = W + 'px'; host.style.height = H + 'px';
+  const ov = $('#ov'); ov.setAttribute('viewBox', SV.vb.join(' ')); ov.style.width = W + 'px'; ov.style.height = H + 'px';
+}
+async function loadSheet(url, w, h, inline) {
+  if (SV.url === url) { showSheet(true); return; }
+  SV.url = url; SV.inline = !!inline;
+  let host = $('#svgHost');
+  if (!host) { host = el('div'); host.id = 'svgHost'; host.className = 'svghost'; $('#pan').prepend(host); }
+  host.style.display = inline ? '' : 'none'; $('#sheetImg').style.display = inline ? 'none' : '';
+  if (inline) {
+    host.innerHTML = await (await fetch(url)).text();
+    const svg = host.querySelector('svg'); svg.removeAttribute('width'); svg.removeAttribute('height');
+    svg.style.width = '100%'; svg.style.height = '100%';
+    SV.vb = svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);
+    SV.k = 1600 / Math.max(SV.vb[2], SV.vb[3]);
+  } else {
     const img = $('#sheetImg');
-    const done = () => {
-      SV.w = w || img.naturalWidth; SV.h = h || img.naturalHeight;
-      img.style.width = SV.w + 'px'; img.style.height = SV.h + 'px';
-      const ov = $('#ov'); ov.setAttribute('viewBox', `0 0 ${SV.w} ${SV.h}`); ov.style.width = SV.w + 'px'; ov.style.height = SV.h + 'px';
-      showSheet(true); res();
-    };
-    if (SV.url === url) { if (w) { SV.w = w; SV.h = h; } return done(); }
-    SV.url = url; img.onload = () => { done(); fitBox([0, 0, SV.w, SV.h], 0); }; img.src = url;
-  });
+    await new Promise(res => { img.onload = res; img.src = url; });
+    SV.vb = [0, 0, w || img.naturalWidth, h || img.naturalHeight];
+    SV.k = 1;
+  }
+  sizeLayers(); showSheet(true); fitBox([SV.vb[0], SV.vb[1], SV.vb[0] + SV.vb[2], SV.vb[1] + SV.vb[3]], 20, false);
 }
 function applyT() { $('#pan').style.transform = `translate(${SV.x}px,${SV.y}px) scale(${SV.s})`; placeLabels2d(); }
 function fitBox(b, pad = 40, anim = true) {
-  const V = $('#sheetv').getBoundingClientRect();
-  const bw = Math.max(b[2] - b[0], 1), bh = Math.max(b[3] - b[1], 1);
-  const s = Math.min((V.width - 2 * pad) / bw, (V.height - 2 * pad) / bh, 12);
-  const tx = V.width / 2 - s * (b[0] + bw / 2), ty = V.height / 2 - s * (b[1] + bh / 2);
+  const V = $('#sheetv').getBoundingClientRect(); if (!V.width) return;
+  const bw = Math.max(b[2] - b[0], 1e-6) * SV.k, bh = Math.max(b[3] - b[1], 1e-6) * SV.k;
+  const s = Math.min((V.width - 2 * pad) / bw, (V.height - 2 * pad) / bh, 14);
+  const cx = (b[0] - SV.vb[0]) * SV.k + bw / 2, cy = (b[1] - SV.vb[1]) * SV.k + bh / 2;
+  const tx = V.width / 2 - s * cx, ty = V.height / 2 - s * cy;
   if (!anim) { Object.assign(SV, { s, x: tx, y: ty }); return applyT(); }
   const a = { s: SV.s, x: SV.x, y: SV.y }, t0 = performance.now(), D = 650;
   const ease = t => 1 - Math.pow(1 - t, 3);
@@ -174,9 +195,10 @@ function fitBox(b, pad = 40, anim = true) {
   })(t0);
 }
 function fitEvidence() {
-  if (!SV.items.length) return fitBox([0, 0, SV.w, SV.h]);
-  const b = SV.items.reduce((a, it) => [Math.min(a[0], it.bbox[0]), Math.min(a[1], it.bbox[1]), Math.max(a[2], it.bbox[2]), Math.max(a[3], it.bbox[3])], [1e9, 1e9, -1e9, -1e9]);
-  const m = Math.max(b[2] - b[0], b[3] - b[1]) * 0.12 + 10;
+  const full = [SV.vb[0], SV.vb[1], SV.vb[0] + SV.vb[2], SV.vb[1] + SV.vb[3]];
+  if (!SV.items.length) return fitBox(full);
+  const b = SV.items.reduce((a, it) => [Math.min(a[0], it.bbox[0]), Math.min(a[1], it.bbox[1]), Math.max(a[2], it.bbox[2]), Math.max(a[3], it.bbox[3])], [1e12, 1e12, -1e12, -1e12]);
+  const m = Math.max(b[2] - b[0], b[3] - b[1]) * 0.12 + Math.max(SV.vb[2], SV.vb[3]) * 0.01;
   fitBox([b[0] - m, b[1] - m, b[2] + m, b[3] + m]);
 }
 $('#fitBtn').onclick = () => S.view === 'sheet' ? fitEvidence() : fit3d();
@@ -186,7 +208,7 @@ $('#tglTheme').onclick = () => { S.blue = !S.blue; $('#sheetv').classList.toggle
   v.addEventListener('wheel', e => {
     e.preventDefault();
     const r = v.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-    const k = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), s = Math.min(Math.max(SV.s * k, 0.05), 40);
+    const k = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), s = Math.min(Math.max(SV.s * k, 0.02), 60);
     SV.x = mx - (mx - SV.x) * s / SV.s; SV.y = my - (my - SV.y) * s / SV.s; SV.s = s; applyT();
   }, { passive: false });
   v.addEventListener('pointerdown', e => { if (e.target.closest('.it')) return; d = { x: e.clientX - SV.x, y: e.clientY - SV.y }; v.classList.add('drag'); v.setPointerCapture(e.pointerId); });
@@ -196,53 +218,76 @@ $('#tglTheme').onclick = () => { S.blue = !S.blue; $('#sheetv').classList.toggle
 const NS = 'http://www.w3.org/2000/svg';
 function drawOverlay(items) {
   const ov = $('#ov'); ov.innerHTML = '';
-  SV.items = items.filter(i => i.bbox && !i.gid);
+  document.querySelectorAll('#svgHost .gl').forEach(g => g.classList.remove('gl', 'hot'));
+  SV.items = [];
+  // IFC plan: highlight the plan's own elements by GlobalId (data-guid), no geometric fitting needed
+  if (SV.inline) {
+    items.filter(i => i.gid).forEach(it => {
+      const gs = [it.gid, ...(it.parts || [])].flatMap(g => [...document.querySelectorAll(`#svgHost [data-guid="${CSS.escape(g)}"]`)]);
+      if (!gs.length) return;
+      let b = [1e12, 1e12, -1e12, -1e12];
+      gs.forEach(g => { g.classList.add('gl'); g.dataset.n = it.n; const bb = g.getBBox(); b = [Math.min(b[0], bb.x), Math.min(b[1], bb.y), Math.max(b[2], bb.x + bb.width), Math.max(b[3], bb.y + bb.height)]; });
+      if (b[2] > b[0]) SV.items.push({ ...it, bbox: b, kind: it.cls === 'IfcSpace' ? 'room' : it.kind, plan: true });
+    });
+  } else SV.items = items.filter(i => i.bbox && !i.gid);
   let L = $('#labels2d'); if (!L) { L = el('div', 'labels3d'); L.id = 'labels2d'; $('#sheetv').append(L); }
   L.innerHTML = '';
+  const many = SV.items.length > 60;
   SV.items.forEach((it, i) => {
-    const g = document.createElementNS(NS, 'g');
     const warn = it.check && !it.check.ok;
-    g.setAttribute('class', `it ${it.kind || ''}${warn ? ' warn' : ''}`); g.dataset.n = it.n;
-    g.style.animationDelay = Math.min(i * 45, 1500) + 'ms';
-    let sh;
-    if (it.poly) { sh = document.createElementNS(NS, 'polygon'); sh.setAttribute('points', it.poly.map(p => p.join(',')).join(' ')); }
-    else {
-      const p = Math.max(1.2, Math.min(it.bbox[2] - it.bbox[0], it.bbox[3] - it.bbox[1]) * 0.12);
-      sh = document.createElementNS(NS, 'rect');
-      sh.setAttribute('x', it.bbox[0] - p); sh.setAttribute('y', it.bbox[1] - p);
-      sh.setAttribute('width', it.bbox[2] - it.bbox[0] + 2 * p); sh.setAttribute('height', it.bbox[3] - it.bbox[1] + 2 * p); sh.setAttribute('rx', 1.5);
+    if (!it.plan) {
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', `it ${it.kind || ''}${warn ? ' warn' : ''}`); g.dataset.n = it.n;
+      g.style.animationDelay = Math.min(i * 45, 1500) + 'ms';
+      let sh;
+      if (it.poly) { sh = document.createElementNS(NS, 'polygon'); sh.setAttribute('points', it.poly.map(p => p.join(',')).join(' ')); }
+      else {
+        const p = Math.max(Math.max(SV.vb[2], SV.vb[3]) * 0.001, Math.min(it.bbox[2] - it.bbox[0], it.bbox[3] - it.bbox[1]) * 0.12);
+        sh = document.createElementNS(NS, 'rect');
+        sh.setAttribute('x', it.bbox[0] - p); sh.setAttribute('y', it.bbox[1] - p);
+        sh.setAttribute('width', it.bbox[2] - it.bbox[0] + 2 * p); sh.setAttribute('height', it.bbox[3] - it.bbox[1] + 2 * p); sh.setAttribute('rx', p);
+      }
+      sh.setAttribute('class', 'shape'); g.append(sh);
+      g.onmouseenter = () => hot(it.n, true); g.onmouseleave = () => hot(it.n, false);
+      ov.append(g);
     }
-    sh.setAttribute('class', 'shape'); g.append(sh);
-    g.onmouseenter = () => hot(it.n, true); g.onmouseleave = () => hot(it.n, false);
-    ov.append(g);
-    const lab = el('div', '', it.kind === 'room' && it.value != null ? `${it.n} · ${fmtVal(it.value)} m²` : it.n);
+    const txt = it.kind === 'room' && it.value != null ? `${it.n} · ${fmtVal(it.value)} m²` : it.n;
+    const lab = el('div', many && it.kind !== 'room' ? 'dot' : '', txt);
     lab.dataset.n = it.n; lab.style.opacity = 0; lab.style.transition = 'opacity .3s'; lab.style.transitionDelay = Math.min(i * 45, 1500) + 200 + 'ms';
     if (warn) lab.style.background = 'var(--bad)';
     L.append(lab); requestAnimationFrame(() => lab.style.opacity = 1);
   });
   placeLabels2d();
 }
+// getBBox only works once the inline SVG is visible and laid out: retry for a few frames
+function redrawPlan(r, tries) {
+  requestAnimationFrame(() => {
+    drawOverlay(r.items);
+    const ok = SV.items.length && SV.items.some(it => it.bbox[2] > it.bbox[0]);
+    if (ok) { S.lastDrawn = r; fitEvidence(); } else if (tries < 30) redrawPlan(r, tries + 1);
+  });
+}
 function placeLabels2d() {
   const L = $('#labels2d'); if (!L) return;
   [...L.children].forEach((lab, i) => {
     const it = SV.items[i]; if (!it) return;
-    let x, y;
-    if (it.kind === 'room' && it.poly) { x = (it.bbox[0] + it.bbox[2]) / 2; y = (it.bbox[1] + it.bbox[3]) / 2; }
-    else { x = it.bbox[2]; y = it.bbox[1]; }
-    lab.style.left = (SV.x + x * SV.s) + 'px'; lab.style.top = (SV.y + y * SV.s) + 'px';
+    const room = it.kind === 'room';
+    const [x, y] = U2P(room ? (it.bbox[0] + it.bbox[2]) / 2 : it.bbox[2], room ? (it.bbox[1] + it.bbox[3]) / 2 : it.bbox[1]);
+    lab.style.left = x + 'px'; lab.style.top = y + 'px';
   });
 }
 function hot(n, on) {
-  document.querySelectorAll(`.ov .it[data-n="${n}"]`).forEach(g => g.classList.toggle('hot', on));
+  document.querySelectorAll(`.ov .it[data-n="${n}"], #svgHost .gl[data-n="${n}"]`).forEach(g => g.classList.toggle('hot', on));
   document.querySelectorAll(`#labels2d [data-n="${n}"], #labels3d [data-n="${n}"]`).forEach(g => g.classList.toggle('hot', on));
   document.querySelectorAll('#ev .e').forEach(r => r.classList.toggle('hot', on && r.querySelector('.n').textContent == n));
   if (S.view === 'model') hot3d(on ? n : null);
 }
 function focusItem(it) {
-  if (it.gid) { setView('model'); focus3d(it); return; }
-  if (!it.bbox) return;
+  const p2 = SV.items.find(x => x.n === it.n);
+  if (it.gid && (S.view === 'model' || !p2)) { setView('model'); focus3d(it); return; }
+  if (!p2) return;
   setView('sheet');
-  const b = it.bbox, m = Math.max(b[2] - b[0], b[3] - b[1]) * 1.2 + 20;
+  const b = p2.bbox, m = Math.max(b[2] - b[0], b[3] - b[1]) * 1.2 + Math.max(SV.vb[2], SV.vb[3]) * 0.01;
   fitBox([b[0] - m, b[1] - m, b[2] + m, b[3] + m]);
   const ov = $('#ov'); const p = document.createElementNS(NS, 'rect');
   p.setAttribute('class', 'pulse'); p.setAttribute('x', b[0]); p.setAttribute('y', b[1]); p.setAttribute('width', b[2] - b[0]); p.setAttribute('height', b[3] - b[1]);
@@ -257,6 +302,7 @@ function setView(t) {
   $('#sheetv').hidden = t !== 'sheet'; $('#modelv').hidden = t !== 'model';
   $('#tglTheme').style.display = t === 'sheet' ? '' : 'none';
   if (t === 'model') { T.resize(); }
+  if (t === 'sheet' && S.last && SV.inline && S.lastDrawn !== S.last) redrawPlan(S.last, 0);
 }
 
 // ============================================================ 3D model viewer
@@ -265,7 +311,7 @@ function init3d() {
   if (T.inited) return; T.inited = true;
   const canvas = $('#three');
   T.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  T.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  T.renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); T.renderer.localClippingEnabled = true;
   T.renderer.toneMapping = THREE.ACESFilmicToneMapping; T.renderer.toneMappingExposure = 1.05;
   T.scene = new THREE.Scene();
   T.scene.background = new THREE.Color(0x0a1222);
@@ -301,6 +347,10 @@ async function loadModel(path) {
     const P = new Float32Array(buf, 4 + hl, nV * 3), I = new Uint32Array(buf, 4 + hl + nV * 12, nI);
     T.root.clear();
     T.H = H; T.byGid = new Map(); H.elements.forEach((e, k) => { e.k = k; (T.byGid.get(e.gid) || T.byGid.set(e.gid, []).get(e.gid)).push(e); });
+    // per-storey floor level = 20th percentile of its elements' lowest z (robust to tall elements)
+    const st = {};
+    H.elements.forEach(e => { let z = 1e9; for (let v = e.v0; v < e.v0 + e.nv; v++) z = Math.min(z, P[v * 3 + 2]); if (e.storey) (st[e.storey] = st[e.storey] || []).push(z); });
+    T.levels = Object.fromEntries(Object.entries(st).map(([k, zs]) => { zs.sort((a, b) => a - b); return [k, zs[Math.floor(zs.length * 0.2)]]; }));
     const C = new Float32Array(nV * 3);
     H.elements.forEach(e => { const c = e.rgb; for (let v = e.v0; v < e.v0 + e.nv; v++) { C[v * 3] = c[0]; C[v * 3 + 1] = c[1]; C[v * 3 + 2] = c[2]; } });
     T.pos = new THREE.BufferAttribute(P, 3); T.col = new THREE.BufferAttribute(C, 3);
@@ -308,11 +358,12 @@ async function loadModel(path) {
     const base = H.elements.filter(e => e.cls !== 'IfcSpace');
     const { geo, map } = subset(base, I);
     T.baseMap = map; T.I = I;
-    T.baseMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .78, metalness: .02, flatShading: true, side: THREE.DoubleSide, transparent: true, opacity: 1 });
+    T.clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
+    T.baseMat = new THREE.MeshStandardMaterial({ clippingPlanes: [T.clip], vertexColors: true, roughness: .78, metalness: .02, flatShading: true, side: THREE.DoubleSide, transparent: true, opacity: 1 });
     T.base = new THREE.Mesh(geo, T.baseMat); T.root.add(T.base);
     T.edges = null;
     if (geo.index.count < 4e6) {  // crisp architectural outlines
-      T.edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), new THREE.LineBasicMaterial({ color: 0x0b1222, transparent: true, opacity: .35 }));
+      T.edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), new THREE.LineBasicMaterial({ color: 0x0b1222, transparent: true, opacity: .35, clippingPlanes: [T.clip] }));
       T.root.add(T.edges);
     }
     const bb = H.bbox; T.bbox = bb;
@@ -352,15 +403,25 @@ function fit3d(anim = true, box) {
   (function step(now) { const t = Math.min(1, (now - t0) / 900), e = 1 - Math.pow(1 - t, 3);
     T.camera.position.lerpVectors(p0, to, e); T.controls.target.lerpVectors(t0c, c, e); if (t < 1) requestAnimationFrame(step); })(t0);
 }
-function highlight3d(items) {
+function highlight3d(items, storey) {
   if (!T.inited || !T.H) { T.hl = []; return; }
+  // section cut: like an architectural floor plan, cut the building 1.2 m above the asked storey's floor
+  T.cutInfo = null;
+  if (T.clip) {
+    const z0 = storey != null ? T.levels[storey] : null;
+    if (z0 != null) {
+      const above = Object.values(T.levels).filter(z => z > z0 + 0.5).sort((a, b) => a - b)[0];
+      const cut = z0 + Math.min(1.2, above != null ? (above - z0) * 0.5 : 1.2);
+      T.clip.constant = cut; T.cutInfo = `section cut 1.2 m above “${storey}”`;
+    } else T.clip.constant = 1e6;
+  }
   if (T.hlMesh) { T.root.remove(T.hlMesh); T.hlMesh.geometry.dispose(); T.hlMesh = null; }
   if (T.hlEdges) { T.root.remove(T.hlEdges); T.hlEdges = null; }
   T.hl = items.filter(i => i.gid).map(it => ({ it, els: [it.gid, ...(it.parts || [])].flatMap(g => T.byGid.get(g) || []) })).filter(h => h.els.length);
   const L = $('#labels3d'); L.innerHTML = '';
   if (T.edges) { T.edges.material.color.set(T.hl.length ? 0x6f8fc7 : 0x0b1222); T.edges.material.opacity = T.hl.length ? .22 : .35; }
   if (!T.hl.length) { T.baseMat.opacity = 1; T.baseMat.depthWrite = true; T.hlMat = null; return; }
-  T.baseMat.opacity = 0.10; T.baseMat.depthWrite = false;
+  T.baseMat.opacity = T.cutInfo ? 0.28 : 0.10; T.baseMat.depthWrite = false;
   const els = T.hl.flatMap(h => h.els);
   const allSpaces = els.every(e => e.cls === 'IfcSpace');
   const { geo, map } = subset(els, T.I); T.hlMap = map;

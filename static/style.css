@@ -145,3 +145,17 @@ aside.right { border-left: 1px solid var(--line); background: #0a1020aa; }
 .ev .sum { display: flex; justify-content: space-between; padding: 8px 10px; border-top: 1px dashed var(--line2); margin-top: 4px; font-family: var(--mono); color: var(--acc); }
 
 @media (max-width: 1100px) { main { grid-template-columns: 210px 1fr 280px; } .meter .m:nth-child(3) { display: none; } }
+
+/* inline IFC plan SVG: elements highlighted by GlobalId. Blueprint mode restyles the SVG itself (no filter),
+   so highlight colours stay true. */
+.svghost { display: block; background: #fff; box-shadow: 0 20px 80px #000a; }
+.sheetv.blue .svghost svg > rect:first-child { fill: #0d1830; }
+.sheetv.blue .svghost .IfcSpace, .sheetv.blue .svghost .IfcSpace * { fill: #13284d; stroke: #3d5f95; }
+.sheetv.blue .svghost .IfcWall *, .sheetv.blue .svghost .IfcWallStandardCase * { fill: #a9c6f5; stroke: #a9c6f5; }
+.sheetv.blue .svghost .IfcDoor *, .sheetv.blue .svghost .IfcWindow * { stroke: #7fa8e8; }
+.sheetv.blue .svghost [fill="#ffffff"] { fill: #0d1830; }
+.sheetv.blue .svghost text { fill: #8fb0e0; }
+.sheetv.blue .svghost [stroke="#000000"], .sheetv.blue .svghost [stroke="#4a4a4a"] { stroke: #a9c6f5; }
+.svghost .gl, .svghost .gl * { fill: #ffb020 !important; fill-opacity: .9 !important; stroke: #ffd27a !important; stroke-width: .3 !important; }
+.svghost .IfcSpace.gl, .svghost .IfcSpace.gl * { fill-opacity: .55 !important; }
+.svghost .gl.hot, .svghost .gl.hot * { fill: #ff2d55 !important; stroke: #fff !important; }

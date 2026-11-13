@@ -94,17 +94,40 @@ def ifc_for(path):
     return re.sub(r'_plan-.*$', '', path.rsplit('.', 1)[0]) + '.ifc'
 
 
+def plan_view(path, storey=None):
+    """The IfcOpenShell-rendered plan SVG for this model (elements carry data-guid), preferring the asked storey."""
+    base = ifc_for(path)[:-4]
+    d = os.path.dirname(abspath(base))
+    stem = os.path.basename(base)
+    if path.endswith('.svg'):
+        return dict(url=f'/api/sheet?path={path}', inline=True)
+    cands = sorted(f for f in os.listdir(d) if f.startswith(stem + '_plan-') and f.endswith('.svg')) if os.path.isdir(d) else []
+    if path.endswith('.pdf') and os.path.exists(abspath(path[:-4] + '.svg')):
+        cands = [os.path.basename(path[:-4] + '.svg')] + cands
+    if storey:
+        norm = lambda x: re.sub(r'[^0-9a-zæøåäöüõ]', '', x.lower())
+        m = [c for c in cands if norm(storey) and norm(storey) in norm(c.split('_plan-')[1])]
+        cands = m + cands
+    if not cands:
+        return None
+    rel = os.path.relpath(os.path.join(d, cands[0]), DATA)
+    return dict(url=f'/api/sheet?path={rel}', inline=True, name=cands[0])
+
+
 def ask_ifc(path, q):
     ifc = ifc_for(path)
     if not os.path.exists(abspath(ifc)):
         return dict(value=None, unit=None, items=[], method='model not in dataset', steps=[f'{ifc} is not in this dataset split'])
     with _lock:
-        r = ifc_model(ifc).answer(q)
+        m = ifc_model(ifc)
+        r = m.answer(q)
+        r['storey'] = m.last_storey
     r['model'] = ifc
     r['view'] = dict(kind='model', mesh=f'/api/mesh?path={ifc}')
-    if path.endswith('.pdf'):
-        page = pymupdf.open(abspath(path))[0]
-        r['view']['sheet'] = dict(url=f'/api/sheet?path={path}', w=page.rect.width, h=page.rect.height)
+    pv = plan_view(path, r.get('storey'))
+    if pv:
+        r['view']['sheet'] = pv
+        r['steps'].append(f"Linked 2D plan {pv['name'] if 'name' in pv else ''}: plan elements carry IFC GlobalIds, so the same items light up in 2D and 3D")
     r['inputs'] = [os.path.basename(ifc)]
     return r
 
@@ -135,11 +158,16 @@ def ask(path, q):
 
 
 def vlm_baseline(view):
-    """What sending this sheet to a frontier VLM would cost: ~1.6k image tokens per 1.15 MP tile at sheet resolution."""
-    if not view or 'w' not in view and 'sheet' not in view:
-        return 0.012
-    v = view if 'w' in view else view['sheet']
-    px = (v['w'] * 200 / 72) * (v['h'] * 200 / 72)   # 200 dpi needed to read small symbols
+    """What sending this sheet to a frontier VLM would cost: ~1.6k image tokens per 1.15 MP tile at a
+    resolution where small symbols are legible (200 dpi), plus prompt and answer tokens."""
+    v = (view or {})
+    v = v if 'w' in v else (v.get('sheet') or {})
+    if not v.get('w'):
+        px = 4e6          # plan rendering / model screenshots: ~4 MP
+    elif v.get('raster'):
+        px = v['w'] * v['h']
+    else:
+        px = (v['w'] * 200 / 72) * (v['h'] * 200 / 72)
     toks = max(1, px / 1.15e6) * 1600 + 300
     return toks / 1e6 * VLM_EUR_PER_MTOK_IN + 400 / 1e6 * VLM_EUR_PER_MTOK_OUT
 
@@ -162,6 +190,7 @@ def catalog():
         by.setdefault(q['path'], []).append(q)
     out = []
     for p, qs in by.items():
-        out.append(dict(path=p, source=source_of(p), name=os.path.basename(p), n=len(qs),
+        pv = plan_view(p) if source_of(p) == 'ifc_models' else None
+        out.append(dict(path=p, source=source_of(p), name=os.path.basename(p), n=len(qs), plan=pv,
                         questions=[dict(q=x['question'], a=x['answer'], type=x['type']) for x in qs]))
     return out
