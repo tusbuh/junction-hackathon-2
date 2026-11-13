@@ -186,3 +186,6 @@ aside.right { border-left: 1px solid var(--line); background: #0a1020aa; }
 .sbtot div { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
 .sbtot label { font-size: 11px; color: var(--ink3); text-transform: uppercase; letter-spacing: .06em; } .sbtot b { display: block; font: 700 24px var(--mono); margin-top: 2px; }
 .sbnote { color: var(--ink3); font-size: 12px; margin-top: 14px; line-height: 1.6; }
+
+.answer.text { align-items: flex-start; flex-direction: column; gap: 8px; }
+.answer.text .val b { font-size: 14px; font-weight: 500; white-space: pre-wrap; background: none; color: var(--ink); -webkit-text-fill-color: var(--ink); display: block; max-height: 140px; overflow: auto; line-height: 1.5; font-family: var(--mono); }

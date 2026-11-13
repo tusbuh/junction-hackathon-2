@@ -145,8 +145,15 @@ def ask_ifc(path, q):
     with _lock:
         from .router import canonical_ifc
         m = ifc_model(ifc)
-        r = _reroute(m.answer(q), q, lambda x: canonical_ifc(x, set(m.storeys)), m.answer, 'BIM model')
-        r['storey'] = m.last_storey
+        if source_of(path) == 'ifc_bench':
+            from .ifctext import answer as text_answer
+            r = text_answer(m, q)
+        else:
+            r = _reroute(m.answer(q), q, lambda x: canonical_ifc(x, set(m.storeys)), m.answer, 'BIM model')
+            if r['method'] == 'not routed':
+                from .ifctext import answer as text_answer
+                r = text_answer(m, q)
+        r['storey'] = getattr(m, 'last_storey', None) if r.get('unit') != 'text' else None
     r['model'] = ifc
     r['view'] = dict(kind='model', mesh=f'/api/mesh?path={ifc}')
     pv = plan_view(path, r.get('storey'))

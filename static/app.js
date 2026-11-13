@@ -96,13 +96,16 @@ function show(r) {
   // answer card
   $('#answer').hidden = false;
   $('#answer').style.animation = 'none'; $('#answer').offsetHeight; $('#answer').style.animation = '';
+  const isText = r.unit === 'text';
+  $('#answer').classList.toggle('text', isText);
   $('#aVal').textContent = r.value == null ? 'no answer' : fmtVal(r.value);
-  $('#aUnit').textContent = r.unit && r.unit !== 'count' ? r.unit : (r.unit === 'count' ? 'found' : '');
+  $('#aUnit').textContent = isText ? '' : r.unit && r.unit !== 'count' ? r.unit : (r.unit === 'count' ? 'found' : '');
   $('#aMethod').textContent = r.method || '';
   const bd = $('#aBadges'); bd.innerHTML = '';
   if ('truth' in r) {
     if (r.correct === true) bd.append(el('span', 'badge ok', `✓ matches ground truth ${esc(fmtVal(r.truth))}`));
     else if (r.correct === false) bd.append(el('span', 'badge bad', `✗ ground truth ${esc(fmtVal(r.truth))}`));
+    else if (isText) { const b = el('span', 'badge', 'reference answer ▾'); b.title = String(r.truth); b.style.cursor = 'help'; bd.append(b); }
   }
   const checks = r.items.filter(i => i.check);
   const bad = checks.filter(i => !i.check.ok).length;
@@ -124,7 +127,7 @@ function show(r) {
     row.onclick = () => focusItem(it);
     ev.append(row);
   });
-  if (r.items.length > 1 && r.unit && r.unit !== 'count' && r.value != null) ev.append(el('div', 'sum', `<span>Σ ${r.items.length} items</span><b>${fmtVal(r.value)} ${esc(r.unit)}</b>`));
+  if (r.items.length > 1 && r.unit && r.unit !== 'count' && r.unit !== 'text' && r.value != null) ev.append(el('div', 'sum', `<span>Σ ${r.items.length} items</span><b>${fmtVal(r.value)} ${esc(r.unit)}</b>`));
   // cost meter
   const c = r.cost || {};
   S.total += c.total_eur || 0; S.n++;

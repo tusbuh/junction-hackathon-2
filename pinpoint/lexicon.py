@@ -5,7 +5,7 @@ import re, functools, unicodedata
 
 LEX = {
     'door': ['door', 'tür', 'tuer', 'porte', 'porta', 'porte', 'puerta', 'portas', 'deur', 'dörr', 'dør', 'dor ', 'ovi', 'ove', 'ovea', 'ovia', 'ovet',
-             'uks', 'ust', 'uste', 'durvis', 'durvju', 'durys', 'durų', 'drzwi', 'dveř', 'dveri', 'dvere', 'dvér', 'vrat', 'ajtó', 'ajtaj', 'uș', 'uş', 'врат', 'двер',
+             'uks', 'ust', 'uste', 'durvis', 'durvju', 'durys', 'durų', 'drzwi', 'dveř', 'dveri', 'dvere', 'dvér', 'vrat', 'ajtó', 'ajtaj', 'ușil', 'uşil', 'uși ', 'uşi ', 'врат', 'двер',
              'πόρτ', 'θύρ', 'kapı', 'kapi', 'porta', 'hurð', 'dora', 'doirse', 'bieb', 'durų'],
     'window': ['window', 'fenster', 'fenêtre', 'fenetre', 'finestr', 'ventana', 'janela', 'raam', 'ramen', 'fönst', 'vindu', 'vindue', 'ikkun', 'aken', 'akna', 'akend',
                'logs', 'logu', 'lang', 'okn', 'okien', 'okno', 'ablak', 'fereastr', 'prozor', 'прозор', 'прозорец', 'окн', 'окон', 'παράθυρ', 'pencere', 'gluggi', 'fuinneog', 'tieqa'],
