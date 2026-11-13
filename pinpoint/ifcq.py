@@ -29,6 +29,8 @@ class Model:
             try: out += self.f.by_type(c, include_subtypes=False) if c=='IfcWall' else self.f.by_type(c)
             except RuntimeError: pass
         out=list({e.id():e for e in out}.values())
+        # assemblies (e.g. a stair made of riser/flight sub-stairs) count once: drop parts aggregated into the same class
+        out=[e for e in out if not ((a:=ue.get_aggregate(e)) is not None and a.is_a(e.is_a()))]
         if storey is not None:
             out=[e for e in out if self._storey(e)==storey]
         return out
@@ -57,13 +59,15 @@ class Model:
             if name and any(name == x for x in quoted): storey = s
         st0 = [f"Opened {self.f.schema} model: {len(self.f.by_type('IfcProduct'))} products on {len(self.storeys)} storeys"]
         if storey is not None: st0.append(f"Filtered to storey “{storey.Name}” (IfcRelContainedInSpatialStructure)")
-        it = lambda els, val=None: [dict(gid=e.GlobalId, label=self.label(e), cls=e.is_a(), value=val(e) if val else None) for e in els]
+        it = lambda els, val=None: [dict(gid=e.GlobalId, label=self.label(e), cls=e.is_a(), value=val(e) if val else None,
+                                         parts=[c.GlobalId for c in ue.get_decomposition(e) if hasattr(c, 'GlobalId')][:400]) for e in els]
         m = re.search(r"['„«]([^'“»]+?)\s*\((?:Rum nr\. )?([^()]+)\)['“»]", question)
         if m and re.search(r'area|pind|areal|fläche', ql):
             long, num = m.group(1).strip(), m.group(2).strip()
             sp = self.elems(['IfcSpace'], storey)
-            cand = [s for s in sp if (s.Name or '').replace('Rum nr. ', '') == num and (s.LongName or '').strip() == long] \
-                or [s for s in sp if (s.Name or '').replace('Rum nr. ', '') == num]
+            norm = lambda x: re.sub(r'[^0-9a-zæøåäöüõšž]', '', (x or '').lower().replace('rum nr.', ''))
+            cand = [s for s in sp if norm(s.Name) == norm(num) and norm(s.LongName) == norm(long)] \
+                or [s for s in sp if norm(s.Name) == norm(num)]
             if cand:
                 a, how = self.space_area(cand[0])
                 steps = st0 + [f"Matched IfcSpace Name “{num}” / LongName “{long}” → {cand[0].GlobalId}", f"Area from {how}"]

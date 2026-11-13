@@ -49,17 +49,19 @@ class Plan:
                 L=max(b[2]-b[0],b[3]-b[1])
                 if 0.3<L<0.6: hinges.append(b)
         def touch(a,b,t=0.08): return a[0]-t<=b[2] and b[0]-t<=a[2] and a[1]-t<=b[3] and b[1]-t<=a[3]
-        for b in bowls:
-            h=[x for x in hinges if touch(b,x)]
-            (self.wc if h else self.basin).append(b)
         # showers: closed square tray containing a drain circle, not inside a tub
         drains=[(e.dxf.center.x,e.dxf.center.y) for e in fx if e.dxftype()=='CIRCLE' and e.dxf.radius<0.05]
-        for e in fx:
-            if e.dxftype()=='LWPOLYLINE' and e.closed:
-                b=bb(e); w=b[2]-b[0]; h=b[3]-b[1]
-                if 0.7<w<1.3 and 0.7<h<1.3 and max(w,h)/min(w,h)<1.4 and any(b[0]<x<b[2] and b[1]<y<b[3] for x,y in drains) \
-                   and not any(t[0]<=b[0]+.05 and t[2]>=b[2]-.05 for t in self.tub):
-                    self.shower.append(b)
+        # bowl with a drain circle inside = washbasin; bowl without = WC (130/130 on preview)
+        for b in bowls:
+            (self.basin if any(b[0]<x<b[2] and b[1]<y<b[3] for x,y in drains) else self.wc).append(b)
+        # showers: a free drain circle (r≈0.045 m; hob burners are 0.08) not inside a basin, WC or bathtub;
+        # evidence box = smallest closed tray outline around it, else a 0.9 m square
+        trays=[bb(e) for e in fx if e.dxftype()=='LWPOLYLINE' and e.closed]
+        inn=lambda x,y,b: b[0]<x<b[2] and b[1]<y<b[3]
+        for x,y in drains:
+            if any(inn(x,y,b) for b in self.basin+self.wc+self.tub): continue
+            t=sorted([b for b in trays if inn(x,y,b) and (b[2]-b[0])<1.6 and (b[3]-b[1])<1.6],key=lambda b:(b[2]-b[0])*(b[3]-b[1]))
+            self.shower.append(t[0] if t else (x-.45,y-.45,x+.45,y+.45))
         self._rooms()
     def _rooms(self):
         from ezdxf import path as epath
@@ -162,11 +164,11 @@ class Plan:
         if re.search(r'windows|fenster|fenêtres|finestre', ql):
             return syms(self.windows, 'window', 'one closed 4-vertex frame per window', 'WINDOW')
         if re.search(r'washbasin|lavabo|lavabi', ql):
-            return syms(self.basin, 'basin', 'bowl symbol (48-vertex) without a seat-hinge line = washbasin', 'FIXTURE')
+            return syms(self.basin, 'basin', 'bowl symbol (48-vertex) with a drain circle inside = washbasin', 'FIXTURE')
         if re.search(r'toilets|\bwc', ql):
-            return syms(self.wc, 'WC', 'bowl symbol (48-vertex) touching a 0.3–0.6 m seat-hinge line = WC', 'FIXTURE')
+            return syms(self.wc, 'WC', 'bowl symbol (48-vertex) with no drain circle = WC (basins have one)', 'FIXTURE')
         if re.search(r'bathtub|badewanne|baignoire|vasche|vasca', ql):
             return syms(self.tub, 'bathtub', 'bathtub outline (69-vertex polyline)', 'FIXTURE')
         if re.search(r'shower|dusche|douche|docce|doccia', ql):
-            return syms(self.shower, 'shower', 'square 0.7–1.3 m tray containing a drain circle, not inside a bathtub', 'FIXTURE')
+            return syms(self.shower, 'shower', 'free floor-drain circle (r≈4.5 cm) not inside a basin, WC or bathtub', 'FIXTURE')
         return dict(value=None, unit=None, items=[], method='not routed', steps=['No rule matched this question'])

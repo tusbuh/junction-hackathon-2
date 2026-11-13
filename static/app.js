@@ -311,6 +311,10 @@ async function loadModel(path) {
     T.baseMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .78, metalness: .02, flatShading: true, side: THREE.DoubleSide, transparent: true, opacity: 1 });
     T.base = new THREE.Mesh(geo, T.baseMat); T.root.add(T.base);
     T.edges = null;
+    if (geo.index.count < 4e6) {  // crisp architectural outlines
+      T.edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), new THREE.LineBasicMaterial({ color: 0x0b1222, transparent: true, opacity: .35 }));
+      T.root.add(T.edges);
+    }
     const bb = H.bbox; T.bbox = bb;
     T.grid.position.set(0, bb[2] - 0.02, 0);
     T.root.position.set(-(bb[0] + bb[3]) / 2, 0, (bb[1] + bb[4]) / 2);
@@ -354,8 +358,9 @@ function highlight3d(items) {
   if (T.hlEdges) { T.root.remove(T.hlEdges); T.hlEdges = null; }
   T.hl = items.filter(i => i.gid).map(it => ({ it, els: [it.gid, ...(it.parts || [])].flatMap(g => T.byGid.get(g) || []) })).filter(h => h.els.length);
   const L = $('#labels3d'); L.innerHTML = '';
+  if (T.edges) { T.edges.material.color.set(T.hl.length ? 0x6f8fc7 : 0x0b1222); T.edges.material.opacity = T.hl.length ? .22 : .35; }
   if (!T.hl.length) { T.baseMat.opacity = 1; T.baseMat.depthWrite = true; T.hlMat = null; return; }
-  T.baseMat.opacity = 0.13; T.baseMat.depthWrite = false;
+  T.baseMat.opacity = 0.10; T.baseMat.depthWrite = false;
   const els = T.hl.flatMap(h => h.els);
   const allSpaces = els.every(e => e.cls === 'IfcSpace');
   const { geo, map } = subset(els, T.I); T.hlMap = map;
@@ -364,7 +369,7 @@ function highlight3d(items) {
   T.hlEdges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), new THREE.LineBasicMaterial({ color: 0xfff1c9, transparent: true, opacity: .9 }));
   T.root.add(T.hlEdges);
   T.hl.forEach(h => { const b = elemBox(h.els); h.c = [(b[0] + b[3]) / 2, (b[1] + b[4]) / 2, b[5]]; h.box = b;
-    if (T.hl.length <= 300) { const d = el('div', '', h.it.n); d.dataset.n = h.it.n; L.append(d); h.lab = d; } });
+    if (T.hl.length <= 400) { const d = el('div', T.hl.length > 40 ? 'dot' : '', h.it.n); d.dataset.n = h.it.n; L.append(d); h.lab = d; } });
   fit3d(true);
 }
 function place3dLabels() {
