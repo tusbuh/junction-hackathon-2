@@ -3,7 +3,7 @@ Writes data/eval/<source>.json (per-question results) and prints accuracy per so
 import sys, os, re, json, time, collections
 from . import engine
 
-OUT = os.path.join(engine.ROOT, 'data/eval')
+OUT = os.environ.get('PINPOINT_EVAL_OUT', os.path.join(engine.ROOT, 'data/eval'))
 os.makedirs(OUT, exist_ok=True)
 
 

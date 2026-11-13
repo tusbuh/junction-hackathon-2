@@ -67,6 +67,8 @@ def _map_items(items, A):
             it['bbox'] = [min(p1[0], p2[0]), min(p1[1], p2[1]), max(p1[0], p2[0]), max(p1[1], p2[1])]
         if it.get('poly'):
             it['poly'] = [[round(v, 2) for v in T(x, y)] for x, y in it['poly']]
+        if it.get('holes'):
+            it['holes'] = [[[round(v, 2) for v in T(x, y)] for x, y in h] for h in it['holes']]
         out.append(it)
     return out
 

@@ -82,6 +82,17 @@ class Plan:
             pt=Point(x,y)
             cand=sorted([p for p in polys if p.contains(pt)],key=lambda p:p.area)
             poly=cand[0] if cand else None
+            holes=[]
+            if poly is not None:
+                # enclosed rooms (a lift shaft inside a stair hall) are islands: subtract them (550/550 printed labels agree)
+                inner=[p for p in polys if p.area<poly.area-1e-6 and poly.buffer(0.01).contains(p)]
+                if inner:
+                    from shapely.ops import unary_union
+                    cut=poly.difference(unary_union(inner))
+                    if not cut.is_empty and cut.geom_type=='Polygon':
+                        holes=[list(i.coords) for i in cut.interiors]; poly=cut
+                    elif not cut.is_empty:
+                        holes=[list(p.exterior.coords) for p in inner]; poly=Polygon(poly.exterior.coords, holes)
             near=[o for o in others if abs(o[1]-x)<0.05 and 0<o[2]-y<0.6 and not AREA_RE.match(o[0]) and not UNIT_RE.match(o[0])]
             near.sort(key=lambda o:o[2]-y)
             name=near[0][0] if near else None
@@ -93,8 +104,16 @@ class Plan:
                 for u,up in units:
                     if up.buffer(0.05).contains(poly.representative_point()): unit=u
             bbx=poly.bounds if poly else b
+            # an unlabelled (no name, no printed m²) strip under 1.3 m wide inside an apartment, with at most 2 doors and
+            # no sanitary fixture, is a loggia / service shaft drawn outside the facade line: not net floor area
+            shaft=False
+            if poly is not None and name is None and printed is None and unit and min(bbx[2]-bbx[0],bbx[3]-bbx[1])<1.3 and poly.area>=1.0:
+                g=poly.buffer(0.05)
+                nd=sum(box(*d).intersects(g) for d in self.doors)
+                nf=sum(box(*d).intersects(poly) for d in self.wc+self.basin+self.tub+self.shower)
+                shaft=nd<=2 and nf==0
             self.rooms.append(dict(num=num,name=name,area=geo if geo else printed,printed=printed,unit=unit,bbox=bbx,
-                                   poly=list(poly.exterior.coords) if poly else None))
+                                   poly=list(poly.exterior.coords) if poly else None,holes=holes,shaft=shaft))
 
     # ------------------------------------------------------------------ answering
     def answer(self, q):
@@ -104,7 +123,7 @@ class Plan:
         quoted = re.findall(r"[«“„]\s*([^»”“]+?)\s*[»”“]|'([^']+(?:'[a-zé][^']*)?)'", q)
         quoted = [a or b for a, b in quoted]
         is_area = re.search(r'm²|area|fläche|surface|superficie', ql)
-        indoor = lambda r: r['area'] and (r['name'] or '').lower() not in OUTDOOR
+        indoor = lambda r: r['area'] and (r['name'] or '').lower() not in OUTDOOR and not r.get('shaft')
 
         def rooms(lst, how):
             items = []
@@ -114,7 +133,7 @@ class Plan:
                     d = abs(r['printed'] - r['area'])
                     chk = dict(printed=r['printed'], computed=r['area'], ok=d <= max(0.02 * r['printed'], 0.06))
                 items.append(dict(kind='room', label=f"{r['num']} {r['name'] or ''}".strip(), value=r['area'],
-                                  bbox=r['bbox'], poly=r['poly'], check=chk))
+                                  bbox=r['bbox'], poly=r['poly'], holes=r.get('holes') or None, check=chk))
             steps = [f"Read {len(self.rooms)} numbered rooms from DXF layer ROOM_TEXT; each matched to the smallest ROOM_OUTLINE polygon around its label",
                      how]
             checks = [i['check'] for i in items if i['check']]
