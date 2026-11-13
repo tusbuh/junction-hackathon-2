@@ -70,9 +70,33 @@ def _map_items(items, A):
     return out
 
 
+def _reroute(r, q, canon, answer_fn, kind):
+    """Primary rules failed -> lexicon canonical form -> optional tiny-LLM canonical form."""
+    if r['method'] != 'not routed':
+        return r
+    from .router import llm_canonical
+    c = canon(q)
+    if c:
+        r2 = answer_fn(c)
+        if r2['method'] != 'not routed':
+            r2['router'] = 'lexicon'
+            r2['steps'].insert(0, f"Router: multilingual lexicon mapped the question to “{c}” (0 LLM calls)")
+            return r2
+    c, eur = llm_canonical(q, kind)
+    if c:
+        r2 = answer_fn(c)
+        r2['router'] = 'tiny LLM (template only)'
+        r2['llm_calls'] = 1; r2['llm_eur'] = eur
+        r2['steps'].insert(0, f"Router: small LLM rewrote the question as “{c}” — it never sees the drawing or gives the answer")
+        return r2
+    return r
+
+
 def ask_swiss(path, q):
+    from .router import canonical_swiss
     stem = os.path.splitext(os.path.basename(path))[0]
-    r = swiss_plan(stem).answer(q)
+    plan = swiss_plan(stem)
+    r = _reroute(plan.answer(q), q, canonical_swiss, plan.answer, 'floor plan')
     A, err, n, (w, h) = swiss_fit(stem)
     r['items'] = _map_items(r['items'], A)
     r['steps'].append(f"Projected DXF geometry onto the PDF sheet with an affine fit on {n} shared room labels (max error {err:.2f} pt)")
@@ -119,8 +143,9 @@ def ask_ifc(path, q):
     if not os.path.exists(abspath(ifc)):
         return dict(value=None, unit=None, items=[], method='model not in dataset', steps=[f'{ifc} is not in this dataset split'])
     with _lock:
+        from .router import canonical_ifc
         m = ifc_model(ifc)
-        r = m.answer(q)
+        r = _reroute(m.answer(q), q, lambda x: canonical_ifc(x, set(m.storeys)), m.answer, 'BIM model')
         r['storey'] = m.last_storey
     r['model'] = ifc
     r['view'] = dict(kind='model', mesh=f'/api/mesh?path={ifc}')

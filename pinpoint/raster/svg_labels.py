@@ -12,7 +12,7 @@ NS = "{http://www.w3.org/2000/svg}"
 CLASSES = [
     "door", "window", "toilet", "sink", "bathtub", "shower",
     "sauna_stove", "sauna_bench",
-    "room_bedroom", "room_kitchen", "room_bath", "room_wc", "room_balcony",
+    "room_bedroom", "room_kitchen", "room_bath", "room_wc", "room_balcony", "room_sauna",
     "floor",
 ]
 CID = {c: i for i, c in enumerate(CLASSES)}
@@ -53,6 +53,31 @@ def _poly_pts(el):
     return None
 
 
+def _all_pts(el, m):
+    """Fallback geometry: every polygon/rect/circle/line under el (paths ignored)."""
+    acc = []
+
+    def rec(e, mm):
+        mm = mm @ _mat(e.get("transform"))
+        p = _poly_pts(e)
+        if p is None and e.tag in (NS + "circle", NS + "ellipse"):
+            cx, cy = float(e.get("cx", 0)), float(e.get("cy", 0))
+            rx = float(e.get("r", e.get("rx", 0)) or 0)
+            ry = float(e.get("r", e.get("ry", 0)) or 0)
+            p = np.array([[cx - rx, cy - ry], [cx + rx, cy + ry]])
+        if p is None and e.tag == NS + "line":
+            p = np.array([[float(e.get("x1", 0)), float(e.get("y1", 0))],
+                          [float(e.get("x2", 0)), float(e.get("y2", 0))]])
+        if p is not None and len(p):
+            acc.append(_apply(mm, p))
+        for ch in e:
+            rec(ch, mm)
+
+    for ch in el:
+        rec(ch, m)
+    return np.vstack(acc) if acc else None
+
+
 def _apply(m, pts):
     p = np.c_[pts, np.ones(len(pts))] @ m.T
     return p[:, :2]
@@ -80,7 +105,7 @@ def furniture_class(cl):
         return "sink"
     if name in ("Bathtub", "Jacuzzi") or name.startswith("Bathtub"):
         return "bathtub"
-    if name in ("Shower", "ShowerCab", "ShowerPlatform") or name.startswith("ShowerCab"):
+    if name == "Shower":  # shower head/tap symbol; ShowerCab/Screen are not counted
         return "shower"
     if name.startswith("SaunaStove"):
         return "sauna_stove"
@@ -95,6 +120,8 @@ WC_RE = re.compile(r"^(WC|W\.C\.?)(\b|$)")
 def room_class(cl, label):
     lab = label.replace(".", "").strip()
     toks = re.split(r"[\s/+,]+", lab)
+    if cl.startswith("Space Sauna") or any(t in ("SAUNA", "LÖYLYH", "LH") for t in toks):
+        return "room_sauna"
     if cl.startswith("Space Bedroom") or "MH" in toks:
         return "room_bedroom"
     if cl.startswith("Space Kitchen") or any(t in ("K", "KK", "KEITTIÖ", "APUK", "TUPAK", "KEITTOKOMERO") for t in toks):
@@ -140,7 +167,7 @@ def parse_svg(path):
                     if floor_acc is not None:
                         floor_acc.append(_apply(m, pts))
                 return
-            if cl.startswith("FixedFurniture"):
+            if cl.startswith("FixedFurniture "):
                 fc = furniture_class(cl)
                 bp = None
                 for gg in el.iter(NS + "g"):
@@ -151,6 +178,8 @@ def parse_svg(path):
                                 bp = _apply(m @ _mat(gg.get("transform")), bp)
                                 break
                         break
+                if fc and bp is None:
+                    bp = _all_pts(el, m)
                 if fc and bp is not None:
                     out.append((fc, _bbox(bp)))
                 return

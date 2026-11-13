@@ -97,6 +97,8 @@ def main():
             ids = ids[:n_hqa]
         todo += [(folder, i) for i in ids]
     rnd.shuffle(todo)
+    if len(sys.argv) > 2 and sys.argv[2] == "rev":
+        todo = todo[::-1]
     print("excluded preview ids:", len(excl), "to fetch:", len(todo), flush=True)
     done = 0
     def job(a):
