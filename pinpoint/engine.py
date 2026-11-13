@@ -102,6 +102,7 @@ def ask_swiss(path, q):
     r = _reroute(plan.answer(q), q, canonical_swiss, plan.answer, 'floor plan')
     A, err, n, (w, h) = swiss_fit(stem)
     r['items'] = _map_items(r['items'], A)
+    r['excluded'] = _map_items(r.get('excluded') or [], A)
     r['steps'].append(f"Projected DXF geometry onto the PDF sheet with an affine fit on {n} shared room labels (max error {err:.2f} pt)")
     r['view'] = dict(kind='sheet', url=f'/api/sheet?path=data/swiss_dwellings/{stem}.pdf', w=w, h=h)
     r['inputs'] = [f'{stem}.dxf (geometry)', f'{stem}.pdf (sheet)']
@@ -160,6 +161,14 @@ def ask_ifc(path, q):
     r['model'] = ifc
     r['view'] = dict(kind='model', mesh=f'/api/mesh?path={quote(ifc)}')
     pv = plan_view(path, r.get('storey'))
+    try:
+        with _lock:
+            norm = lambda x: re.sub(r'[^0-9a-zæøåäöüõ]', '', (x or '').lower())
+            same = pv and pv.get('name') and r.get('storey') and norm(r['storey']) and norm(r['storey']) in norm(pv['name'].split('_plan-')[-1])
+            svg = abspath(os.path.join(os.path.dirname(ifc), pv['name'])) if same else None
+            r['xchecks'] = (r.get('xchecks') or []) + m.xchecks(r, svg)
+    except Exception as ex:
+        r['steps'].append(f'Cross-checks skipped: {type(ex).__name__}')
     if pv:
         r['view']['sheet'] = pv
         r['steps'].append(f"Linked 2D plan {pv['name'] if 'name' in pv else ''}: plan elements carry IFC GlobalIds, so the same items light up in 2D and 3D")
@@ -205,6 +214,8 @@ def ask(path, q):
     r['cost'] = dict(seconds=round(dt, 4), cpu_eur=dt * CPU_EUR_PER_SEC, llm_eur=llm_eur,
                      total_eur=dt * CPU_EUR_PER_SEC + llm_eur, llm_calls=r.get('llm_calls', 0),
                      vlm_baseline_eur=vlm_baseline(r.get('view')))
+    from .cite import finalize
+    finalize(r, path, DATA)
     gt = next((x for x in questions() if x['path'] == path and x['question'] == q), None)
     if gt is not None:
         r['truth'] = gt['answer']

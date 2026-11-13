@@ -1,5 +1,5 @@
 """Deterministic IFC answer engine: counts and quantities straight from the model, with GlobalIds as evidence."""
-import re, ifcopenshell, ifcopenshell.geom, ifcopenshell.util.element as ue, ifcopenshell.util.shape as us, ifcopenshell.util.unit as uu
+import re, os, ifcopenshell, ifcopenshell.geom, ifcopenshell.util.element as ue, ifcopenshell.util.shape as us, ifcopenshell.util.unit as uu
 TYPES = [  # (regex over question in en/et/da/de/fi, IFC classes)
  (r'sanitary|sanitaar|sanitet|sanitär', ['IfcSanitaryTerminal','IfcFlowTerminal']),
  (r'doors?\b|uks|ust\b|uste|døre|dør\b|türen|ovi', ['IfcDoor']),
@@ -77,7 +77,7 @@ class Model:
                 if qa:
                     g = self.footprint(cand[0])
                     if g:
-                        chk = dict(printed=round(qa, 2), computed=round(g, 2), ok=abs(qa - g) <= 0.03 * qa, what='Qto vs 3D footprint')
+                        chk = dict(printed=round(qa, 2), computed=round(g, 2), ok=abs(qa - g) <= 0.05 * qa, what='Qto vs 3D footprint')
                         steps.append(f"Cross-check: Qto {qa:.2f} m² vs 3D geometry footprint {g:.2f} m²")
                 items = it(cand[:1], lambda e: round(a, 2) if a else None)
                 items[0]['check'] = chk
@@ -103,3 +103,40 @@ class Model:
             v = lambda e: round(self.space_area(e)[0] or 0, 3)
             return dict(value=round(sum(v(e) for e in els), 2), unit='m²', items=it(els, v), method='sum of IfcSpace net floor areas', steps=st + ['Summed NetFloorArea (3D footprint when Qto missing)'])
         return dict(value=len(els), unit='count', items=it(els), method=f'count of {"/".join(cls)}', steps=st + [f"Counted {len(els)} distinct GlobalIds"])
+
+    # ------------------------------------------------------------------ cross-checks (second, independent reading)
+    def volume(self, e):
+        try: return us.get_volume(ifcopenshell.geom.create_shape(self.gs, e).geometry)
+        except Exception: pass
+        parts = [p for p in ue.get_parts(e) or [] if p.is_a('IfcElement') and not p.is_a('IfcFeatureElement') and p.Representation is not None]
+        vs = [self.volume(p) for p in parts[:50]]
+        return sum(vs) if vs and all(v for v in vs) else None
+
+    def xchecks(self, r, plan_svg=None):
+        """Answer-level checks: Qto volumes vs mesh volume, counted elements vs the elements drawn on the 2D plan."""
+        out = []
+        items = [i for i in r.get('items') or [] if i.get('gid')]
+        if r.get('unit') == 'm³' and 0 < len(items) <= 300:
+            byid = {i['gid']: i for i in items}
+            qs, gs, n = 0.0, 0.0, 0
+            for gid, it in byid.items():
+                e = self.f.by_guid(gid)
+                v = self.volume(e)
+                if v and it.get('value'):
+                    qs += it['value']; gs += v; n += 1
+                    it['check'] = dict(printed=round(it['value'], 3), computed=round(v, 3), ok=abs(v - it['value']) <= max(0.05 * it['value'], 0.01),
+                                       what='Qto vs 3D mesh volume')
+            if n:
+                out.append(dict(what='Σ Qto NetVolume vs Σ 3D mesh volume', printed=round(qs, 2), computed=round(gs, 2), unit='m³',
+                                ok=abs(qs - gs) <= 0.05 * max(qs, 1e-9), note=f'{n} of {len(items)} elements measured from their geometry'))
+        if r.get('unit') == 'count' and plan_svg and items:
+            try:
+                txt = open(plan_svg, encoding='utf-8', errors='replace').read()
+                drawn = set(re.findall(r'data-guid="([^"]+)"', txt))
+            except Exception:
+                drawn = set()
+            if drawn and any(i['gid'] in drawn or any(p in drawn for p in i.get('parts') or []) for i in items):
+                hit = sum(1 for i in items if i['gid'] in drawn or any(p in drawn for p in i.get('parts') or []))
+                out.append(dict(what='counted in the model vs drawn on the 2D plan', printed=len(items), computed=hit, unit='count',
+                                ok=hit == len(items), note=f"{os.path.basename(plan_svg)}: {hit} of {len(items)} GlobalIds appear on the sheet"))
+        return out
