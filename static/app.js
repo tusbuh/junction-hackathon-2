@@ -120,7 +120,7 @@ function show(r) {
     const warn = it.check && !it.check.ok;
     const sub = it.gid ? `${it.cls || ''} · ${it.gid}` : (it.kind || '');
     let v = it.value != null ? `${fmtVal(it.value)}${r.unit && r.unit !== 'count' ? ' ' + r.unit : ''}` : '';
-    if (it.check) v += `<small>${warn ? '≠' : '='} label ${it.check.printed}</small>`;
+    if (it.check) v += it.check.what === 'low confidence' ? `<small>low confidence</small>` : `<small>${warn ? '≠' : '='} ${it.check.what ? 'Qto' : 'label'} ${it.check.printed}</small>`;
     const row = el('div', 'e' + (warn ? ' warn' : ''), `<span class="n">${it.n}</span><span class="l">${esc(it.label || it.kind)}<small>${esc(sub)}</small></span><span class="v">${v}</span>`);
     row.style.animationDelay = Math.min(i * 25, 600) + 'ms';
     row.onmouseenter = () => hot(it.n, true); row.onmouseleave = () => hot(it.n, false);
