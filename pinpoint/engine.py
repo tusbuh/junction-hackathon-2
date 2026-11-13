@@ -1,0 +1,167 @@
+"""PINPOINT dispatcher: path + question -> answer with a receipt (evidence mapped to the drawing, steps, cost)."""
+import os, re, json, time, functools, threading
+import numpy as np
+import pymupdf
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+DATA = os.environ.get('PINPOINT_DATA', os.path.join(ROOT, 'data/preview/junction-dataset-preview'))
+CACHE = os.path.join(ROOT, 'data/cache')
+os.makedirs(CACHE, exist_ok=True)
+
+# --- cost model (shown in the UI meter; all numbers are explicit estimates) ---
+CPU_EUR_PER_SEC = 0.04 / 3600          # ~€0.04 per vCPU-hour on commodity cloud
+VLM_EUR_PER_MTOK_IN, VLM_EUR_PER_MTOK_OUT = 2.8, 14.0   # frontier VLM list price class (≈$3/$15 per Mtok)
+
+_lock = threading.Lock()
+
+
+def abspath(p):
+    return os.path.join(DATA, p)
+
+
+@functools.lru_cache(maxsize=None)
+def questions():
+    out = []
+    with open(os.path.join(DATA, 'questions.jsonl')) as f:
+        for l in f:
+            out.append(json.loads(l))
+    return out
+
+
+def source_of(path):
+    return path.split('/')[1] if path.startswith('data/') else path.split('/')[0]
+
+
+# ---------------------------------------------------------------- Swiss (DXF geometry -> PDF page)
+@functools.lru_cache(maxsize=64)
+def swiss_plan(stem):
+    from .swiss import Plan
+    return Plan(abspath(f'data/swiss_dwellings/{stem}.dxf'))
+
+
+@functools.lru_cache(maxsize=64)
+def swiss_fit(stem):
+    """Affine DXF(m) -> PDF(pt) fitted on room numbers printed in both files."""
+    from .swiss import NUM_RE
+    plan = swiss_plan(stem)
+    page = pymupdf.open(abspath(f'data/swiss_dwellings/{stem}.pdf'))[0]
+    words = {w[4]: ((w[0] + w[2]) / 2, (w[1] + w[3]) / 2) for w in page.get_text('words') if NUM_RE.match(w[4])}
+    src, dst = [], []
+    for t, x, y, b in plan.texts:
+        if t in words:
+            src.append(((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, 1)); dst.append(words[t])
+    A, *_ = np.linalg.lstsq(np.array(src), np.array(dst), rcond=None)
+    err = float(np.abs(np.array(src) @ A - np.array(dst)).max())
+    return A, err, len(src), (page.rect.width, page.rect.height)
+
+
+def _map_items(items, A):
+    T = lambda x, y: (np.array([x, y, 1.0]) @ A).tolist()
+    out = []
+    for it in items:
+        it = dict(it)
+        b = it.get('bbox')
+        if b:
+            p1, p2 = T(b[0], b[1]), T(b[2], b[3])
+            it['bbox'] = [min(p1[0], p2[0]), min(p1[1], p2[1]), max(p1[0], p2[0]), max(p1[1], p2[1])]
+        if it.get('poly'):
+            it['poly'] = [[round(v, 2) for v in T(x, y)] for x, y in it['poly']]
+        out.append(it)
+    return out
+
+
+def ask_swiss(path, q):
+    stem = os.path.splitext(os.path.basename(path))[0]
+    r = swiss_plan(stem).answer(q)
+    A, err, n, (w, h) = swiss_fit(stem)
+    r['items'] = _map_items(r['items'], A)
+    r['steps'].append(f"Projected DXF geometry onto the PDF sheet with an affine fit on {n} shared room labels (max error {err:.2f} pt)")
+    r['view'] = dict(kind='sheet', url=f'/api/sheet?path=data/swiss_dwellings/{stem}.pdf', w=w, h=h)
+    r['inputs'] = [f'{stem}.dxf (geometry)', f'{stem}.pdf (sheet)']
+    return r
+
+
+# ---------------------------------------------------------------- IFC (ifcopenshell -> 3D)
+@functools.lru_cache(maxsize=6)
+def ifc_model(ifc_rel):
+    from .ifcq import Model
+    return Model(abspath(ifc_rel))
+
+
+def ifc_for(path):
+    if path.endswith('.ifc'):
+        return path
+    return re.sub(r'_plan-.*$', '', path.rsplit('.', 1)[0]) + '.ifc'
+
+
+def ask_ifc(path, q):
+    ifc = ifc_for(path)
+    if not os.path.exists(abspath(ifc)):
+        return dict(value=None, unit=None, items=[], method='model not in dataset', steps=[f'{ifc} is not in this dataset split'])
+    with _lock:
+        r = ifc_model(ifc).answer(q)
+    r['model'] = ifc
+    r['view'] = dict(kind='model', mesh=f'/api/mesh?path={ifc}')
+    if path.endswith('.pdf'):
+        page = pymupdf.open(abspath(path))[0]
+        r['view']['sheet'] = dict(url=f'/api/sheet?path={path}', w=page.rect.width, h=page.rect.height)
+    r['inputs'] = [os.path.basename(ifc)]
+    return r
+
+
+# ---------------------------------------------------------------- dispatcher
+def ask(path, q):
+    t = time.perf_counter()
+    src = source_of(path)
+    if src == 'swiss_dwellings':
+        r = ask_swiss(path, q)
+    elif src in ('ifc_models', 'ifc_bench') or path.endswith('.ifc'):
+        r = ask_ifc(path, q)
+    else:
+        r = dict(value=None, unit=None, items=[], method='unsupported source', steps=[f'No adapter for {src} yet'])
+    dt = time.perf_counter() - t
+    for i, it in enumerate(r['items']):
+        it['n'] = i + 1
+    r['router'] = r.get('router', 'rules')
+    llm_eur = r.get('llm_eur', 0.0)
+    r['cost'] = dict(seconds=round(dt, 4), cpu_eur=dt * CPU_EUR_PER_SEC, llm_eur=llm_eur,
+                     total_eur=dt * CPU_EUR_PER_SEC + llm_eur, llm_calls=r.get('llm_calls', 0),
+                     vlm_baseline_eur=vlm_baseline(r.get('view')))
+    gt = next((x for x in questions() if x['path'] == path and x['question'] == q), None)
+    if gt is not None:
+        r['truth'] = gt['answer']
+        r['correct'] = grade(r['value'], gt)
+    return r
+
+
+def vlm_baseline(view):
+    """What sending this sheet to a frontier VLM would cost: ~1.6k image tokens per 1.15 MP tile at sheet resolution."""
+    if not view or 'w' not in view and 'sheet' not in view:
+        return 0.012
+    v = view if 'w' in view else view['sheet']
+    px = (v['w'] * 200 / 72) * (v['h'] * 200 / 72)   # 200 dpi needed to read small symbols
+    toks = max(1, px / 1.15e6) * 1600 + 300
+    return toks / 1e6 * VLM_EUR_PER_MTOK_IN + 400 / 1e6 * VLM_EUR_PER_MTOK_OUT
+
+
+def grade(v, gt):
+    a = gt['answer']
+    if v is None: return False
+    if gt['type'] == 'count':
+        return v == a
+    if gt['type'] in ('area', 'length', 'volume'):
+        try: return abs(float(v) - float(a)) <= 0.02 * abs(float(a)) + 1e-9
+        except Exception: return False
+    return None   # free-text: not auto-graded
+
+
+def catalog():
+    """Drawings that have questions, grouped by source, with their example questions."""
+    by = {}
+    for q in questions():
+        by.setdefault(q['path'], []).append(q)
+    out = []
+    for p, qs in by.items():
+        out.append(dict(path=p, source=source_of(p), name=os.path.basename(p), n=len(qs),
+                        questions=[dict(q=x['question'], a=x['answer'], type=x['type']) for x in qs]))
+    return out

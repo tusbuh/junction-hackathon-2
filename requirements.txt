@@ -1,0 +1,8 @@
+ezdxf
+pymupdf
+ifcopenshell
+shapely
+numpy
+fastapi
+uvicorn
+pillow
