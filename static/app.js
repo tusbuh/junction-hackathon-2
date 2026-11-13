@@ -576,9 +576,10 @@ $('#minimap').addEventListener('pointerdown', e => {
 // ============================================================ 3D model viewer
 const T = { inited: false, path: null, loading: null, hl: [] };
 function init3d() {
-  if (T.inited) return; T.inited = true;
+  if (T.inited) return !T.failed; T.inited = true;
   const canvas = $('#three');
-  T.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  try { T.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+  catch (e) { T.failed = true; $('#modelEmpty').style.display = ''; $('#modelEmpty span').textContent = '3D view needs WebGL, which this browser has disabled.'; return false; }
   T.renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); T.renderer.localClippingEnabled = true;
   T.renderer.toneMapping = THREE.ACESFilmicToneMapping; T.renderer.toneMappingExposure = 1.05;
   T.scene = new THREE.Scene();
@@ -605,9 +606,10 @@ function init3d() {
     if (T.selMat) T.selMat.opacity = 0.65 + 0.3 * Math.sin(t / 160);
     T.renderer.render(T.scene, T.camera); place3dLabels();
   })();
+  return true;
 }
 T.resize = () => {
-  if (!T.inited) return;
+  if (!T.inited || T.failed) return;
   const r = $('#modelv').getBoundingClientRect(); if (!r.width) return;
   T.renderer.setSize(r.width, r.height, false); T.camera.aspect = r.width / r.height;
   // shift the projection so the model centres in the area not covered by the answer card
@@ -617,7 +619,7 @@ T.resize = () => {
   T.camera.updateProjectionMatrix();
 };
 async function loadModel(path) {
-  init3d();
+  if (!init3d()) return;
   if (T.path === path) return T.loading;
   T.path = path; $('#modelEmpty').style.display = 'none';
   $('#load3d').hidden = false;
@@ -703,7 +705,7 @@ function fit3d(anim = true, box, close) {
   })(t0));
 }
 function highlight3d(items, storey) {
-  if (!T.inited || !T.H) { T.hl = []; $('#labels3d').innerHTML = ''; return; }
+  if (!T.inited || T.failed || !T.H) { T.hl = []; $('#labels3d').innerHTML = ''; return; }
   T.cutInfo = null;
   if (T.clip) {
     const z0 = storey != null ? T.levels[storey] : null;
