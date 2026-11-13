@@ -31,6 +31,28 @@ async function boot() {
   if (P.get('mode')) S.userMode = P.get('mode');
   if (P.get('q')) { $('#q').value = P.get('q'); await ask(); if (P.get('sel')) setTimeout(() => select(+P.get('sel')), 2600); }
   if (P.get('tour')) tour();
+  else if (!P.get('q')) splash();
+}
+async function splash() {
+  $('#splash').hidden = false;
+  const close = () => $('#splash').hidden = true;
+  $('#spTour').onclick = () => { close(); tour(); };
+  $('#spTry').onclick = () => { close(); $('#q').focus(); };
+  $('#splash').onclick = e => { if (e.target.id === 'splash') close(); };
+  try {
+    const d = await (await fetch('/api/scoreboard')).json();
+    const g = d.reduce((a, x) => a + x.graded, 0), c = d.reduce((a, x) => a + x.correct, 0), n = d.reduce((a, x) => a + x.total, 0);
+    const e = d.reduce((a, x) => a + x.eur, 0), v = d.reduce((a, x) => a + x.vlm_eur, 0);
+    const ms = d.filter(x => x.total).map(x => x.median_ms).sort((a, b) => a - b);
+    countUp($('#spAcc'), 100 * c / Math.max(g, 1), x => x.toFixed(1) + '%');
+    countUp($('#spN'), g, x => Math.round(x).toLocaleString('en'));
+    $('#spMs').textContent = ms.length ? `${ms[ms.length >> 1] < 1 ? '<1' : Math.round(ms[ms.length >> 1])} ms` : '–';
+    countUp($('#spX'), e ? v / e : 0, x => x >= 1e6 ? (x / 1e6).toFixed(1) + 'M×' : Math.round(x).toLocaleString('en') + '×');
+  } catch (e) { }
+}
+function countUp(node, to, fmt, D = 1400) {
+  const t0 = performance.now();
+  (function step(now) { const t = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - t, 4); node.textContent = fmt(to * e); if (t < 1) requestAnimationFrame(step); })(t0);
 }
 function renderSources() {
   const counts = {};
@@ -109,6 +131,7 @@ $('#q').oninput = () => {
 };
 
 async function ask() {
+  $('#splash').hidden = true;
   const q = $('#q').value.trim(); if (!q || !S.file) return;
   const go = $('#go'); go.classList.add('busy');
   const t0 = performance.now();
@@ -490,6 +513,7 @@ function drawOverlay(items) {
   } else SV.items = items.filter(i => i.bbox && !i.gid);
   const L = $('#labels2d'); L.innerHTML = '';
   const many = SV.items.length > 60;
+  L.classList.toggle('sm', SV.items.length > 24);
   const minPad = Math.max(SV.vb[2], SV.vb[3]) * 0.0012;
   SV.items.forEach(it => {
     const warn = it.check && !it.check.ok;
@@ -515,6 +539,7 @@ function drawOverlay(items) {
     const room = it.kind === 'room' && it.value != null;
     const lab = el('div', 'lb' + (room ? ' room' : '') + (many && !room ? ' dot' : '') + (warn ? ' warn' : ''), room ? `${it.n} · ${fmtVal(it.value)} m²` : it.n);
     lab.dataset.n = it.n; lab.title = it.label || '';
+    if (warn && it.check.printed != null) lab.dataset.cx = `printed ${it.check.printed} ≠ computed ${fmtVal(it.check.computed ?? it.value)}`;
     lab.onmouseenter = () => hot(it.n, true); lab.onmouseleave = () => hot(it.n, false);
     lab.onclick = e => { e.stopPropagation(); select(it.n); };
     lab.onpointerdown = e => e.stopPropagation();
@@ -718,7 +743,7 @@ function highlight3d(items, storey) {
   $('#cutTag').textContent = T.cutInfo || '';
   for (const k of ['hlMesh', 'hlEdges', 'selMesh', 'hotMesh']) drop(k);
   T.hl = items.filter(i => i.gid).map(it => ({ it, els: [it.gid, ...(it.parts || [])].flatMap(g => T.byGid.get(g) || []) })).filter(h => h.els.length);
-  const L = $('#labels3d'); L.innerHTML = ''; L.classList.remove('focus');
+  const L = $('#labels3d'); L.innerHTML = ''; L.classList.remove('focus'); L.classList.toggle('sm', T.hl.length > 24);
   if (T.edges) { T.edges.material.color.set(T.hl.length ? 0x6f8fc7 : 0x0b1222); T.edges.material.opacity = T.hl.length ? .22 : .35; }
   if (!T.hl.length) { T.baseMat.opacity = 1; T.baseMat.depthWrite = true; T.hlMat = null; return; }
   T.baseMat.opacity = T.cutInfo ? 0.28 : 0.10; T.baseMat.depthWrite = false;

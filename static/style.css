@@ -252,3 +252,34 @@ main { flex: 1; display: grid; grid-template-columns: 1fr 360px; min-height: 0; 
 
 @media (max-width: 1350px) { .meter .m:nth-child(3), .meter .m:nth-child(2) { display: none; } .brand span { display: none; } .dock .hint { display: none; } }
 @media (max-width: 1100px) { main { grid-template-columns: 1fr 300px; } .credits { right: 312px; } .meter .vs { display: none; } .docBtn { flex-basis: 160px; } }
+
+/* dense evidence: smaller numbered pills */
+.labels.sm .lb { min-width: 16px; height: 16px; font-size: 9px; padding: 0 4px; box-shadow: 0 0 0 1.5px #1a0d00aa, 0 0 10px #ffb020aa; }
+/* cross-check disagreement shown right on the drawing */
+.labels .lb.warn::after { content: attr(data-cx); position: absolute; left: 100%; top: 50%; transform: translate(6px, -50%); background: #2a0710ee; color: #ffd0d8; border: 1px solid var(--bad); border-radius: 6px; padding: 1px 6px; font: 600 10px var(--mono); white-space: nowrap; }
+
+/* ================= welcome splash ================= */
+.splash { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 40%, #0b1730ee, #05080ff5 70%); backdrop-filter: blur(3px); animation: fade .4s; }
+.splash .sc { text-align: center; max-width: 820px; padding: 24px; }
+.splash h1 { font-size: 52px; line-height: 1.05; margin: 0 0 14px; font-weight: 900; letter-spacing: -.03em; background: linear-gradient(135deg, #fff 30%, var(--acc)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.splash p.lead { color: var(--ink2); font-size: 17px; margin: 0 auto 28px; max-width: 640px; }
+.splash .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+.splash .stats div { background: #0e1626cc; border: 1px solid var(--line2); border-radius: 14px; padding: 14px 10px; animation: rise .5s both; }
+.splash .stats div:nth-child(2) { animation-delay: .08s; } .splash .stats div:nth-child(3) { animation-delay: .16s; } .splash .stats div:nth-child(4) { animation-delay: .24s; }
+.splash .stats b { display: block; font: 800 30px var(--mono); color: var(--ok); letter-spacing: -.02em; }
+.splash .stats label { font-size: 11px; color: var(--ink3); text-transform: uppercase; letter-spacing: .08em; }
+.splash .langs { color: var(--ink3); font-size: 13px; margin-bottom: 26px; }
+.splash .langs span { display: inline-block; border: 1px solid var(--line2); border-radius: 99px; padding: 2px 10px; margin: 3px; color: var(--ink2); font-family: var(--mono); font-size: 12px; }
+.splash .cta { display: flex; gap: 12px; justify-content: center; }
+.splash .cta button { border-radius: 12px; padding: 13px 24px; font-weight: 800; font-size: 15px; border: 1px solid var(--line2); background: var(--panel); }
+.splash .cta button.go { background: linear-gradient(135deg, var(--acc), var(--acc2)); color: #1a0d00; border: 0; box-shadow: 0 10px 40px #ff8a0044; }
+.splash .cta button:hover { filter: brightness(1.1); }
+.splash .how { margin-top: 26px; font-size: 12.5px; color: var(--ink3); }
+.splash .how b { color: var(--cy); font-weight: 600; }
+
+@media (max-height: 820px), (max-width: 1350px) {
+  .answer { width: 290px; padding: 11px 13px 10px; }
+  .answer .val b { font-size: 42px; }
+  .answer .aq { -webkit-line-clamp: 1; max-height: 1.6em; }
+  .splash h1 { font-size: 40px; } .splash .stats b { font-size: 24px; }
+}
