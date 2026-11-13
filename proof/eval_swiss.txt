@@ -1,0 +1,162 @@
+405/405  How many rooms labelled X are there on this floor?
+128/128  What is the net floor area of room X (X) in m²?
+106/112  What is the net floor area of X in m², summing all its rooms
+65/65  How many apartments (residential units) are shown on this fl
+65/65  How many doors (interior doors and entrance doors together) 
+65/65  How many windows are drawn on this floor plan?
+62/65  How many toilets (WC) are drawn on this floor plan?
+62/65  How many washbasins are drawn on this floor plan?
+65/65  What is the total net area in m² of all rooms labelled X on 
+61/65  What is the total net floor area in m² of all numbered indoo
+56/56  How many bathtubs are drawn on this floor plan?
+42/44  Quelle est la surface nette totale en m² de toutes les pièce
+22/22  Wie viele Wohnungen sind auf diesem Grundriss dargestellt?
+22/22  Wie viele Türen (Innentüren und Eingangstüren zusammen) sind
+22/22  Wie viele Fenster sind auf diesem Grundriss eingezeichnet?
+21/22  Wie viele WCs sind auf diesem Grundriss eingezeichnet?
+21/22  Wie viele Lavabos sind auf diesem Grundriss eingezeichnet?
+22/22  Wie gross ist die gesamte Nettofläche in m² aller Räume mit 
+22/22  Wie gross ist die gesamte Nettogeschossfläche in m² aller nu
+22/22  Combien dXétage ?
+22/22  Combien de portes (portes intérieures et portes d'entrée con
+22/22  Combien de fenêtres sont dessinées sur ce plan ?
+21/22  Combien de WC sont dessinés sur ce plan ?
+21/22  Combien de lavabos sont dessinés sur ce plan ?
+21/21  Quanti appartamenti (unità abitative) sono rappresentati in 
+21/21  Quanti locali con la denominazione «Cucina» ci sono in quest
+21/21  Quante porte (porte interne e porte d'ingresso insieme) sono
+21/21  Quante finestre sono disegnate in questa pianta?
+20/21  Quanti WC sono disegnati in questa pianta?
+20/21  Quanti lavabi sono disegnati in questa pianta?
+21/21  Qual è la superficie netta totale in m² di tutti i locali de
+19/21  Qual è la superficie netta totale in m² di tutti i locali in
+21/21  Wie viele Räume mit der Bezeichnung «Küche» gibt es in diese
+21/21  Wie viele Räume mit der Bezeichnung «Bad» gibt es in diesem 
+21/21  Wie viele Räume mit der Bezeichnung «Korridor» gibt es in di
+15/21  How many showers are drawn on this floor plan?
+21/21  Combien de pièces portant la désignation « Couloir » y a-t-i
+20/20  Combien de pièces portant la désignation « Cuisine » y a-t-i
+19/19  Quanti locali con la denominazione «Corridoio» ci sono in qu
+19/19  Quante vasche da bagno sono disegnate in questa pianta?
+19/19  Wie viele Badewannen sind auf diesem Grundriss eingezeichnet
+19/19  Combien de pièces portant la désignation « Pièce » y a-t-il 
+18/18  Combien de pièces portant la désignation « Bain » y a-t-il à
+18/18  Combien de baignoires sont dessinées sur ce plan ?
+17/17  Wie gross ist die Nettowohnfläche von Wohnung A in m² (Summe
+16/16  Quanti locali con la denominazione «Stanza» ci sono in quest
+16/16  Qual è la superficie netta dell'appartamento A in m² (somma 
+16/16  Wie viele Räume mit der Bezeichnung «Zimmer» gibt es in dies
+16/16  Wie gross ist die Nettowohnfläche von Wohnung B in m² (Summe
+15/15  Quanti locali con la denominazione «Balcone» ci sono in ques
+14/15  Quelle est la surface nette de l'appartement A en m² (somme 
+14/14  Wie viele Räume mit der Bezeichnung «Balkon» gibt es in dies
+14/14  Quanti locali con la denominazione «Bagno» ci sono in questo
+14/14  Quelle est la surface nette de la pièce X (« Pièce ») en m² 
+12/14  Quelle est la surface nette de l'appartement B en m² (somme 
+13/13  Wie viele Räume mit der Bezeichnung «Treppenhaus» gibt es in
+13/13  Wie viele Räume mit der Bezeichnung «Wohnen/Essen» gibt es i
+13/13  Quanti locali con la denominazione «Vano scala» ci sono in q
+13/13  Combien de pièces portant la désignation « Balcon » y a-t-il
+13/13  Combien de pièces portant la désignation « Cage d'escalier »
+12/12  Combien de pièces portant la désignation « Séjour/repas » y 
+11/11  Qual è la superficie netta dell'appartamento B in m² (somma 
+11/11  Quanti locali con la denominazione «Soggiorno/pranzo» ci son
+10/10  Wie gross ist die Nettofläche von Raum X («Zimmer») in m²?
+10/10  Qual è la superficie netta del locale X («Corridoio») in m²?
+9/9  Wie viele Räume mit der Bezeichnung «Reduit» gibt es in dies
+9/9  Wie gross ist die Nettofläche von Raum X («Bad») in m²?
+8/8  Qual è la superficie netta del locale X («Stanza») in m²?
+8/8  Wie viele Räume mit der Bezeichnung «Wohnen» gibt es in dies
+7/8  Wie viele Duschen sind auf diesem Grundriss eingezeichnet?
+8/8  Qual è la superficie netta del locale X («Cucina») in m²?
+7/7  Wie viele Räume mit der Bezeichnung «Schlafzimmer» gibt es i
+7/7  Quanti locali con la denominazione «Ripostiglio» ci sono in 
+4/7  Quante docce sono disegnate in questa pianta?
+7/7  Quelle est la surface nette de la pièce X (« Bain ») en m² ?
+6/6  Wie gross ist die Nettofläche von Raum X («Korridor») in m²?
+6/6  Wie gross ist die Nettowohnfläche von Wohnung C in m² (Summe
+6/6  Qual è la superficie netta del locale X («Bagno») in m²?
+6/6  Quelle est la surface nette de la pièce X (« Cuisine ») en m
+4/6  Combien de douches sont dessinées sur ce plan ?
+5/5  Quanti locali con la denominazione «Camera da letto» ci sono
+5/5  Quelle est la surface nette de l'appartement C en m² (somme 
+5/5  Combien de pièces portant la désignation « Réduit » y a-t-il
+5/5  Quelle est la surface nette de la pièce X (« Balcon ») en m²
+5/5  Combien de pièces portant la désignation « Loggia » y a-t-il
+5/5  Combien de pièces portant la désignation « Séjour » y a-t-il
+3/4  Qual è la superficie netta dell'appartamento C in m² (somma 
+4/4  Quelle est la surface nette de la pièce X (« Couloir ») en m
+4/4  Wie gross ist die Nettofläche von Raum X («Balkon») in m²?
+4/4  Combien de pièces portant la désignation « Chambre à coucher
+3/3  Wie viele Räume mit der Bezeichnung «Loggia» gibt es in dies
+3/3  Quanti locali con la denominazione «Soggiorno» ci sono in qu
+3/3  Qual è la superficie netta del locale X («Soggiorno/pranzo»)
+3/3  Quelle est la surface nette de la pièce X (« Séjour/repas »)
+3/3  Wie gross ist die Nettofläche von Raum X («Wohnen») in m²?
+3/3  Wie gross ist die Nettofläche von Raum X («Wohnen/Essen») in
+2/2  Wie gross ist die Nettofläche von Raum X («Küche») in m²?
+2/2  Qual è la superficie netta dell'appartamento D in m² (somma 
+2/2  Qual è la superficie netta del locale X («Balcone») in m²?
+2/2  What is the net floor area of room UX (X) in m²?
+1/2  Quelle est la surface nette de l'appartement D en m² (somme 
+2/2  Qual è la superficie netta del locale X («Vano scala») in m²
+1/1  Wie gross ist die Nettofläche von Raum X («Bürofläche») in m
+1/1  Wie gross ist die Nettofläche von Raum X («Loggia») in m²?
+1/1  Qual è la superficie netta del locale X («Soggiorno») in m²?
+1/1  Qual è la superficie netta del locale X («Camera da letto») 
+1/1  Qual è la superficie netta del locale X («Ripostiglio») in m
+1/1  Qual è la superficie netta dell'appartamento G in m² (somma 
+1/1  Wie gross ist die Nettofläche von Raum UX («Korridor») in m²
+1/1  Wie gross ist die Nettofläche von Raum UX («Küche») in m²?
+1/1  Quelle est la surface nette de la pièce X (« Réduit ») en m²
+1/1  Wie gross ist die Nettofläche von Raum X («Schlafzimmer») in
+1/1  Quelle est la surface nette de la pièce X (« Chambre à couch
+1/1  Quelle est la surface nette de la pièce X (« Cage d'escalier
+1/1  Quelle est la surface nette de l'appartement H en m² (somme 
+1/1  Quelle est la surface nette de la pièce X (« Loggia ») en m²
+1/1  Quelle est la surface nette de la pièce X (« Séjour ») en m²
+0/1  Qual è la superficie netta dell'appartamento E in m² (somma 
+1/1  Wie gross ist die Nettofläche von Raum X («Treppenhaus») in 
+1/1  Wie gross ist die Nettofläche von Raum X («Reduit») in m²?
+1/1  Quelle est la surface nette de l'appartement F en m² (somme 
+TOTAL (2314, 2358) 98.1 %
+('site279_bldg514_floor2041.pdf', 'How many toilets (WC) are drawn on this floor plan?', 2, 0)
+('site279_bldg514_floor2041.pdf', 'Combien de WC sont dessinés sur ce plan ?', 2, 0)
+('site279_bldg514_floor2041.pdf', 'How many washbasins are drawn on this floor plan?', 2, 4)
+('site279_bldg514_floor2041.pdf', 'Combien de lavabos sont dessinés sur ce plan ?', 2, 4)
+('site2150_bldg3001_floor13690.pdf', 'What is the net floor area of apartment B in m², summing all its rooms', 37.6, 39.85)
+('site2150_bldg3001_floor13690.pdf', "Quelle est la surface nette de l'appartement B en m² (somme de toutes ", 37.6, 39.85)
+('site2150_bldg3001_floor13690.pdf', 'What is the total net floor area in m² of all numbered indoor rooms on', 220.29, 225.67)
+('site2150_bldg3001_floor13690.pdf', 'Quelle est la surface nette totale en m² de toutes les pièces intérieu', 220.29, 225.67)
+('site248_bldg456_floor1800.pdf', 'How many toilets (WC) are drawn on this floor plan?', 6, 3)
+('site248_bldg456_floor1800.pdf', 'Wie viele WCs sind auf diesem Grundriss eingezeichnet?', 6, 3)
+('site248_bldg456_floor1800.pdf', 'How many washbasins are drawn on this floor plan?', 3, 6)
+('site248_bldg456_floor1800.pdf', 'Wie viele Lavabos sind auf diesem Grundriss eingezeichnet?', 3, 6)
+('site897_bldg1970_floor8690.pdf', 'How many showers are drawn on this floor plan?', 1, 0)
+('site897_bldg1970_floor8690.pdf', 'Wie viele Duschen sind auf diesem Grundriss eingezeichnet?', 1, 0)
+('site3238_bldg4922_floor22515.pdf', 'How many showers are drawn on this floor plan?', 2, 0)
+('site3238_bldg4922_floor22515.pdf', 'Quante docce sono disegnate in questa pianta?', 2, 0)
+('site157_bldg323_floor1313.pdf', 'What is the net floor area of apartment D in m², summing all its rooms', 72.5, 77.1)
+('site157_bldg323_floor1313.pdf', "Quelle est la surface nette de l'appartement D en m² (somme de toutes ", 72.5, 77.1)
+('site157_bldg323_floor1313.pdf', 'What is the net floor area of apartment B in m², summing all its rooms', 72.66, 76.26)
+('site157_bldg323_floor1313.pdf', "Quelle est la surface nette de l'appartement B en m² (somme de toutes ", 72.66, 76.26)
+('site157_bldg323_floor1313.pdf', 'What is the total net floor area in m² of all numbered indoor rooms on', 537.68, 565.38)
+('site157_bldg323_floor1313.pdf', 'Quelle est la surface nette totale en m² de toutes les pièces intérieu', 537.68, 565.38)
+('site2294_bldg3383_floor15064.pdf', 'How many showers are drawn on this floor plan?', 1, 0)
+('site2294_bldg3383_floor15064.pdf', 'Quante docce sono disegnate in questa pianta?', 1, 0)
+('site52_bldg298_floor1183.pdf', 'How many showers are drawn on this floor plan?', 2, 1)
+('site52_bldg298_floor1183.pdf', 'Combien de douches sont dessinées sur ce plan ?', 2, 1)
+('site1213_bldg2383_floor48290.pdf', 'How many showers are drawn on this floor plan?', 2, 0)
+('site1213_bldg2383_floor48290.pdf', 'Combien de douches sont dessinées sur ce plan ?', 2, 0)
+('site4038_bldg6362_floor26166.pdf', 'How many showers are drawn on this floor plan?', 3, 0)
+('site4038_bldg6362_floor26166.pdf', 'Quante docce sono disegnate in questa pianta?', 3, 0)
+('site892_bldg1902_floor8415.pdf', 'What is the net floor area of apartment A in m², summing all its rooms', 25.54, 34.08)
+('site892_bldg1902_floor8415.pdf', "Quelle est la surface nette de l'appartement A en m² (somme de toutes ", 25.54, 34.08)
+('site1047_bldg2154_floor9740.pdf', 'How many toilets (WC) are drawn on this floor plan?', 2, 1)
+('site1047_bldg2154_floor9740.pdf', 'Quanti WC sono disegnati in questa pianta?', 2, 1)
+('site1047_bldg2154_floor9740.pdf', 'How many washbasins are drawn on this floor plan?', 0, 1)
+('site1047_bldg2154_floor9740.pdf', 'Quanti lavabi sono disegnati in questa pianta?', 0, 1)
+('site1098_bldg2234_floor10334.pdf', 'What is the net floor area of apartment C in m², summing all its rooms', 63.67, 70.01)
+('site1098_bldg2234_floor10334.pdf', "Qual è la superficie netta dell'appartamento C in m² (somma di tutti i", 63.67, 70.01)
+('site1098_bldg2234_floor10334.pdf', 'What is the net floor area of apartment E in m², summing all its rooms', 33.3, 37.95)
+('site1098_bldg2234_floor10334.pdf', "Qual è la superficie netta dell'appartamento E in m² (somma di tutti i", 33.3, 37.95)

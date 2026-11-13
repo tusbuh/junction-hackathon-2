@@ -1,0 +1,66 @@
+loaded data/ifc_models/bsc-clinic_clinic-plumbing.ifc 1.1 s
+loaded data/ifc_models/bsc-esplanades_1807-ep-ar-v18.ifc 0.3 s
+loaded data/ifc_models/bsc-molio_molio-with-uris.ifc 1.5 s
+401/402  What is the net floor area of the room X on X, in m²?
+285/285  Kui suur on ruumi X netopõrandapind korrusel X (m²)?
+116/117  Hvad er nettoarealet af rummet X på X i m²?
+0/24  (model ifc not in preview)
+13/13  How many doors are shown on the floor plan of X?
+13/13  What is the total net floor area of all rooms (spaces) 
+12/12  How many rooms (spaces) are shown on the floor plan of 
+11/11  How many walls are shown on the floor plan of X?
+8/8  How many columns are shown on the floor plan of X?
+8/8  Hvor mange døre er vist på plantegningen for X?
+8/8  Hvor mange vægge er vist på plantegningen for X?
+8/8  Hvad er det samlede nettoareal af alle rum på X i m²?
+8/8  What is the total net volume of all slabs on X, in m³?
+8/8  Hvad er det samlede nettovolumen af alle dæk og plader 
+7/7  Hvor mange rum er vist på plantegningen for X?
+7/7  Hvor mange søjler er vist på plantegningen for X?
+7/7  What is the total length of all walls on X, in metres?
+7/7  Hvad er den samlede længde af alle vægge på X i meter?
+7/7  What is the total net side area of all walls on X, in m
+7/7  Hvad er det samlede nettosideareal af alle vægge på X i
+7/7  What is the total net volume of all walls on X, in m³?
+7/7  Hvad er det samlede nettovolumen af alle vægge på X i m
+4/6  How many stairs are shown on the floor plan of X?
+5/5  Mitu ust on näidatud korruse X plaanil?
+5/5  Mitu ruumi on näidatud korruse X plaanil?
+5/5  Kui suur on kõigi ruumide netopõrandapind kokku korruse
+4/4  Mitu treppi on näidatud korruse X plaanil?
+4/4  How many windows are shown on the floor plan of X?
+4/4  Hvor mange vinduer er vist på plantegningen for X?
+3/3  Mitu seina on näidatud korruse X plaanil?
+2/2  How many doors are there in the model X?
+2/2  How many windows are there in the model X?
+2/2  How many rooms (spaces) are there in the model X?
+2/2  How many walls are there in the model X?
+2/2  How many columns are there in the model X?
+2/2  How many beams are there in the model X?
+1/2  How many stairs are there in the model X?
+0/2  Hvor mange trapper er vist på plantegningen for X?
+1/1  How many sanitary fixtures are there in the model X?
+1/1  Mitu ust on mudelis X?
+1/1  Mitu akent on mudelis X?
+1/1  Mitu ruumi on mudelis X?
+1/1  Mitu seina on mudelis X?
+1/1  Mitu posti on mudelis X?
+1/1  Mitu tala on mudelis X?
+1/1  Mitu treppi on mudelis X?
+1/1  Mitu posti on näidatud korruse X plaanil?
+1/1  Hvor mange døre er der i modellen X?
+1/1  Hvor mange vinduer er der i modellen X?
+1/1  Hvor mange rum er der i modellen X?
+1/1  Hvor mange vægge er der i modellen X?
+1/1  Hvor mange søjler er der i modellen X?
+1/1  Hvor mange bjælker er der i modellen X?
+0/1  Hvor mange trapper er der i modellen X?
+TOTAL 1017 1049
+('bsc-molio_molio-with', "How many stairs are there in the model 'Molio Demo-hus'?", 15, 579, 'count of IfcStair')
+('bsc-molio_molio-with', "Hvor mange trapper er der i modellen 'Molio Demo-hus'?", 15, 579, 'count of IfcStair')
+('bsc-molio_molio-with', "What is the net floor area of the room 'Kontor ([Rum nr. 108)' on '1. Sal', in m", 18.83, None, 'room not found')
+('bsc-molio_molio-with', "Hvad er nettoarealet af rummet 'Kontor ([Rum nr. 108)' på '1. Sal' i m²?", 18.83, None, 'room not found')
+('bsc-molio_molio-with', "How many stairs are shown on the floor plan of '4. Sal'?", 2, 80, 'count of IfcStair')
+('bsc-molio_molio-with', "Hvor mange trapper er vist på plantegningen for '4. Sal'?", 2, 80, 'count of IfcStair')
+('bsc-molio_molio-with', "How many stairs are shown on the floor plan of '5. Sal'?", 1, 44, 'count of IfcStair')
+('bsc-molio_molio-with', "Hvor mange trapper er vist på plantegningen for '5. Sal'?", 1, 44, 'count of IfcStair')
