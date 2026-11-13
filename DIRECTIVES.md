@@ -25,3 +25,7 @@ Priority order:
 6. Hero stat: honest per-source numbers from the eval JSON, not a blended 40.9%.
 7. Cost race visual: VLM baseline (about EUR 52 for Swiss) vs us (about EUR 0.00006), shown big and clear.
 Golden rules: eval before every merge, no accuracy drops, no invented numbers, never publish or submit.
+
+# TRACK OWNERSHIP (Sat 02:00, avoid GPU/disk fights)
+- RASTER (~/jh2-raster) ALONE owns CubiCasa detector training and writes to data/cubicasa_train. Only ONE YOLO training may run on the Mac at a time.
+- ACCURACY (~/jh2-acc) must NOT train YOLO or write data/cubicasa_train. It does Finnish OCR, area/scale and room-label work for CubiCasa on its own branch, plus Swiss/IFC/opening_design/text, all feeding the same eval_all scoreboard.
