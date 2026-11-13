@@ -45,6 +45,8 @@ def split_segments(line, gap=95):
         if w[0] - cur[-1][2] > gap: segs.append(cur); cur = [w]
         else: cur.append(w)
     segs.append(cur)
+    # drop sheet-border grid labels ("C", "4") glued to the left of a table row
+    segs = [sg[1:] if len(sg) > 2 and len(sg[0][4]) == 1 and sg[0][4].isalpha() and sg[1][0] - sg[0][2] > 40 else sg for sg in segs]
     return segs
 
 
@@ -54,6 +56,7 @@ def tables(words):
     def is_row(s):
         if len(s) < 3: return False
         if s[0][4].isdigit() and s[1][4] == 'SF': return True                        # "108 SF" area-first rows
+        if s[0][4] == 'Redundant' and re.match(r'^\d{3}$', s[1][4]): return True     # finish rows without an area
         if re.match(r'^\d{1,4}$', s[0][4]) and re.match(r'^[A-Z]{1,2}\d{1,3}(-[A-Z]{1,2})?$|^[A-Z]{2}$', s[1][4]): return True   # "71 U01" count-first rows
         return bool(ID_RX.match(s[0][4]))
     cand = [s for s in segs if is_row(s)]
@@ -61,6 +64,7 @@ def tables(words):
     keyed = []
     for s in cand:
         if s[0][4].isdigit() and len(s) > 1 and s[1][4] == 'SF': keyed.append((('r', s[1][2]), s))
+        elif s[0][4] == 'Redundant': keyed.append((('r', s[0][0] + 38), s))
         else: keyed.append((('l', s[0][0]), s))
     by_x = collections.defaultdict(list)
     for side in ('l', 'r'):
@@ -125,8 +129,8 @@ def build(rows, segs):
     if tl:
         title = ' '.join(w[4] for w in max(tl, key=lambda s: s[0][1]))
     return dict(title=title, cols=cols, headers=hdr, bbox=[x0, y0, x1, y1],
-                rows=[dict(count=(int(s[0][4]) if re.match(r'^\d{1,4}$', s[0][4]) and re.match(r'^[A-Z]{1,2}\d{1,3}(-[A-Z]{1,2})?$|^[A-Z]{2}$', s[1][4]) else None),
-                           desc=' '.join(w[4] for w in s[2:]), id=(s[1][4] if re.match(r'^\d{1,4}$', s[0][4]) and re.match(r'^[A-Z]{1,2}\d{1,3}(-[A-Z]{1,2})?$|^[A-Z]{2}$', s[1][4]) else
+                rows=[dict(count=(int(s[0][4]) if s[1][4] != 'SF' and re.match(r'^\d{1,4}$', s[0][4]) and re.match(r'^[A-Z]{1,2}\d{1,3}(-[A-Z]{1,2})?$|^[A-Z]{2}$', s[1][4]) else None),
+                           desc=' '.join(w[4] for w in s[2:]), id=(s[1][4] if s[1][4] != 'SF' and re.match(r'^\d{1,4}$', s[0][4]) and re.match(r'^[A-Z]{1,2}\d{1,3}(-[A-Z]{1,2})?$|^[A-Z]{2}$', s[1][4]) else
                                s[0][4] + (' SF' if len(s) > 1 and s[1][4] == 'SF' else '')), cells=cells(s), bbox=[min(w[0] for w in s), min(w[1] for w in s), max(w[2] for w in s), max(w[3] for w in s)]) for s in rows])
 
 

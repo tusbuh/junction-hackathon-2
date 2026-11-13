@@ -18,7 +18,7 @@ rewrite the *question* into a template; it never sees the drawing and never prod
 |---|---|---|---|---|
 | Swiss floor plans (DXF + PDF, EN/DE/FR/IT) | DXF layers → symbols + room polygons, projected onto the PDF | **99.2 %** (2338/2358) | < 1 ms warm | ≈ €0.00000003 |
 | IFC building models (EN/ET/DA/DE) | ifcopenshell: elements, storeys, quantities, 3D footprints | **97.7 %** (1025/1049); **100 %** of questions whose IFC is in the preview | 44 ms | ≈ €0.0000005 |
-| US drawing sets (schedule sheets) | rotation-aware vector words → schedule tables | 36 % (21/58, early) | ~0.1 s | ≈ €0.000001 |
+| US drawing sets (schedule sheets) | rotation-aware vector words → schedule tables, highlighted rows | 70 % (40/57) | ~0.1 s | ≈ €0.000001 |
 | IFC-Bench v2 (free text) | deterministic intents over IFC facts, GlobalIds cited | not auto-graded (reference answer shown) | ~0.1 s | ≈ €0.000001 |
 | Finnish raster plans (PNG) | YOLO detector fine-tuned on CubiCasa5K (preview plans excluded) | in progress | — | — |
 
