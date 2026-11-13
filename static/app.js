@@ -40,14 +40,27 @@ async function splash() {
   $('#spTry').onclick = () => { close(); $('#q').focus(); };
   $('#splash').onclick = e => { if (e.target.id === 'splash') close(); };
   try {
+    // honest per-source numbers straight from data/eval/*.json; never one blended headline
     const d = await (await fetch('/api/scoreboard')).json();
-    const g = d.reduce((a, x) => a + x.graded, 0), c = d.reduce((a, x) => a + x.correct, 0), n = d.reduce((a, x) => a + x.total, 0);
-    const e = d.reduce((a, x) => a + x.eur, 0), v = d.reduce((a, x) => a + x.vlm_eur, 0);
-    const ms = d.filter(x => x.total).map(x => x.median_ms).sort((a, b) => a - b);
-    countUp($('#spAcc'), 100 * c / Math.max(g, 1), x => x.toFixed(1) + '%');
-    countUp($('#spN'), g, x => Math.round(x).toLocaleString('en'));
+    const by = Object.fromEntries(d.map(x => [x.source, x])), fmtN = x => x.toLocaleString('en');
+    for (const [src, id] of [['swiss_dwellings', 'Swiss'], ['ifc_models', 'Ifc']]) {
+      const s = by[src];
+      if (!s || !s.graded) continue;
+      countUp($('#sp' + id), 100 * s.correct / s.graded, x => x.toFixed(1) + '%');
+      $('#sp' + id + 'N').textContent = `${fmtN(s.correct)} / ${fmtN(s.graded)} auto-graded questions`;
+    }
+    const sc = d.filter(x => x.total), n = sc.reduce((a, x) => a + x.total, 0), e = sc.reduce((a, x) => a + x.eur, 0);
+    if (n) {
+      const per = e / n, dec = per > 0 ? Math.max(2, Math.ceil(-Math.log10(per)) + 1) : 2;
+      $('#spCost').textContent = '€' + per.toFixed(dec);
+      const v = sc.reduce((a, x) => a + x.vlm_eur, 0), r = e ? v / e : 0;
+      $('#spCostN').textContent = `CPU only, no LLM · mean over ${fmtN(n)} eval questions` +
+        (r ? ` · ~${r >= 1e6 ? (r / 1e6).toFixed(1) + 'M' : Math.round(r).toLocaleString('en')}× cheaper than a frontier VLM (est.)` : '');
+    }
+    const ms = sc.map(x => x.median_ms).sort((a, b) => a - b);
     $('#spMs').textContent = ms.length ? `${ms[ms.length >> 1] < 1 ? '<1' : Math.round(ms[ms.length >> 1])} ms` : '–';
-    countUp($('#spX'), e ? v / e : 0, x => x >= 1e6 ? (x / 1e6).toFixed(1) + 'M×' : Math.round(x).toLocaleString('en') + '×');
+    const cc = by.cubicasa5k;
+    if (cc && cc.graded) $('#spWip').textContent = `Raster scans (CubiCasa): detector in progress · currently ${(100 * cc.correct / cc.graded).toFixed(1)}% on ${fmtN(cc.graded)} questions, not counted above`;
   } catch (e) { }
 }
 function countUp(node, to, fmt, D = 1400) {

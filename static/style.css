@@ -268,6 +268,8 @@ main { flex: 1; display: grid; grid-template-columns: 1fr 360px; min-height: 0; 
 .splash .stats div:nth-child(2) { animation-delay: .08s; } .splash .stats div:nth-child(3) { animation-delay: .16s; } .splash .stats div:nth-child(4) { animation-delay: .24s; }
 .splash .stats b { display: block; font: 800 30px var(--mono); color: var(--ok); letter-spacing: -.02em; }
 .splash .stats label { font-size: 11px; color: var(--ink3); text-transform: uppercase; letter-spacing: .08em; }
+.splash .stats small { display: block; margin-top: 4px; font-size: 11px; color: var(--ink3); opacity: .8; }
+.splash .wip { margin: -18px 0 24px; font-size: 12px; color: var(--ink3); }
 .splash .langs { color: var(--ink3); font-size: 13px; margin-bottom: 26px; }
 .splash .langs span { display: inline-block; border: 1px solid var(--line2); border-radius: 99px; padding: 2px 10px; margin: 3px; color: var(--ink2); font-family: var(--mono); font-size: 12px; }
 .splash .cta { display: flex; gap: 12px; justify-content: center; }

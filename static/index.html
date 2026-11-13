@@ -86,11 +86,12 @@
       <h1>Ask a blueprint anything.<br>Check the answer in seconds.</h1>
       <p class="lead">PINPOINT reads the geometry already inside CAD, PDF and IFC files, so every count, area and schedule row is boxed and numbered on the real drawing and lit up in the 3D model. No vision model ever guesses.</p>
       <div class="stats" id="splashStats">
-        <div><b id="spAcc">–</b><label>auto-graded accuracy</label></div>
-        <div><b id="spN">–</b><label>questions auto-graded</label></div>
+        <div><b id="spSwiss">–</b><label>correct on Swiss floor plans</label><small id="spSwissN"></small></div>
+        <div><b id="spIfc">–</b><label>correct on IFC models</label><small id="spIfcN"></small></div>
+        <div><b id="spCost">–</b><label>avg compute cost per question</label><small id="spCostN"></small></div>
         <div><b id="spMs">–</b><label>median answer time</label></div>
-        <div><b id="spX">–</b><label>cheaper than a frontier VLM</label></div>
       </div>
+      <div class="wip" id="spWip">Raster scans (CubiCasa): detector in progress, not yet scored</div>
       <div class="langs">Ask in <span>English</span><span>Deutsch</span><span>Suomi</span><span>Eesti</span><span>Dansk</span><span>Français</span><span>Italiano</span></div>
       <div class="cta"><button class="go" id="spTour">▶ Watch the guided tour</button><button id="spTry">Try it yourself</button></div>
       <div class="how"><b>/</b> ask · <b>← →</b> step through counted items · <b>1 2 3</b> 2D / split / 3D · <b>⌘K</b> pick a drawing</div>
