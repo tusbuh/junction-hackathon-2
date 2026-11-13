@@ -99,15 +99,20 @@ class Plan:
             lab=[o for o in others if abs(o[1]-x)<0.05 and 0<y-o[2]<0.6 and AREA_RE.match(o[0])]
             printed=float(AREA_RE.match(lab[0][0]).group(1)) if lab else None
             geo=round(poly.area,2) if poly else None
-            unit=None
+            unit=None; inunit=False
             if poly:
-                for u,up in units:
-                    if up.buffer(0.05).contains(poly.representative_point()): unit=u
+                # a room belongs to the smallest UNIT_OUTLINE around it; a nested outline without a Whg./App. label
+                # (e.g. a shared corridor drawn inside an apartment's outline) owns its rooms, so they are in no apartment
+                rp=poly.representative_point()
+                own=sorted([up for up in self.units_poly if up.buffer(0.05).contains(rp)],key=lambda up:up.area)
+                if own:
+                    inunit=True
+                    unit=next((u for u,up in units if up is own[0]),None)
             bbx=poly.bounds if poly else b
             # an unlabelled (no name, no printed m²) strip under 1.3 m wide inside an apartment, with at most 2 doors and
             # no sanitary fixture, is a loggia / service shaft drawn outside the facade line: not net floor area
             shaft=False
-            if poly is not None and name is None and printed is None and unit and min(bbx[2]-bbx[0],bbx[3]-bbx[1])<1.3 and poly.area>=1.0:
+            if poly is not None and name is None and printed is None and inunit and min(bbx[2]-bbx[0],bbx[3]-bbx[1])<1.3 and poly.area>=1.0:
                 g=poly.buffer(0.05)
                 nd=sum(box(*d).intersects(g) for d in self.doors)
                 nf=sum(box(*d).intersects(poly) for d in self.wc+self.basin+self.tub+self.shower)
