@@ -51,7 +51,12 @@ def split_segments(line, gap=95):
 def tables(words):
     segs = [s for l in lines_of(words) for s in split_segments(l)]
     # candidate rows: segment starting with an id-like token and having >= 3 words
-    cand = [s for s in segs if len(s) >= 3 and ID_RX.match(s[0][4] if not s[0][4].isdigit() or len(s) < 2 or s[1][4] != 'SF' else s[0][4] + ' SF')]
+    def is_row(s):
+        if len(s) < 3: return False
+        if s[0][4].isdigit() and s[1][4] == 'SF': return True                        # "108 SF" area-first rows
+        if re.match(r'^\d{1,4}$', s[0][4]) and re.match(r'^[A-Z]{1,2}\d{1,3}(-[A-Z]{1,2})?$|^[A-Z]{2}$', s[1][4]): return True   # "71 U01" count-first rows
+        return bool(ID_RX.match(s[0][4]))
+    cand = [s for s in segs if is_row(s)]
     # cluster rows by the alignment edge of their id (left for codes, right for right-aligned "108 SF")
     keyed = []
     for s in cand:
@@ -68,8 +73,15 @@ def tables(words):
     for key, rows in by_x.items():
         rows.sort(key=lambda s: s[0][1])
         run = [rows[0]]
+        def continues(a, b):
+            gap = b[0][1] - a[0][1]
+            if gap <= 45: return True
+            if gap > 160: return False
+            # multi-line descriptions: nothing else starts in the id column between the two rows
+            x = a[0][0]
+            return not any(a[0][1] + 3 < sg[0][1] < b[0][1] - 3 and abs(sg[0][0] - x) < 25 for sg in segs)
         for s in rows[1:]:
-            if s[0][1] - run[-1][0][1] < 40: run.append(s)
+            if continues(run[-1], s): run.append(s)
             else:
                 if len(run) >= 4: out.append(run)
                 run = [s]
@@ -109,11 +121,13 @@ def build(rows, segs):
         hdr[i] = (hdr[i] + ' ' + w[4]).strip()
     title = ' '.join(w[4] for w in above if w[1] < y0 - 40)[:80]
     # title: nearest line containing 'schedule' above the table
-    tl = [s for s in segs if any('schedul' in w[4].lower() for w in s) and s[0][1] < y0 and y0 - s[0][1] < 140 and x0 - 60 < s[0][0] < x1]
+    tl = [s for s in segs if any('schedul' in w[4].lower() for w in s) and s[0][1] < y0 and y0 - s[0][1] < 260 and x0 - 60 < s[0][0] < x1]
     if tl:
         title = ' '.join(w[4] for w in max(tl, key=lambda s: s[0][1]))
     return dict(title=title, cols=cols, headers=hdr, bbox=[x0, y0, x1, y1],
-                rows=[dict(id=(s[0][4] + (' SF' if len(s) > 1 and s[1][4] == 'SF' else '')), cells=cells(s), bbox=[min(w[0] for w in s), min(w[1] for w in s), max(w[2] for w in s), max(w[3] for w in s)]) for s in rows])
+                rows=[dict(count=(int(s[0][4]) if re.match(r'^\d{1,4}$', s[0][4]) and re.match(r'^[A-Z]{1,2}\d{1,3}(-[A-Z]{1,2})?$|^[A-Z]{2}$', s[1][4]) else None),
+                           desc=' '.join(w[4] for w in s[2:]), id=(s[1][4] if re.match(r'^\d{1,4}$', s[0][4]) and re.match(r'^[A-Z]{1,2}\d{1,3}(-[A-Z]{1,2})?$|^[A-Z]{2}$', s[1][4]) else
+                               s[0][4] + (' SF' if len(s) > 1 and s[1][4] == 'SF' else '')), cells=cells(s), bbox=[min(w[0] for w in s), min(w[1] for w in s), max(w[2] for w in s), max(w[3] for w in s)]) for s in rows])
 
 
 def nz(t):
@@ -218,19 +232,41 @@ def answer(path, q):
                 xs = [w[2] for w in words if abs((w[1] + w[3]) / 2 - (r['bbox'][1] + r['bbox'][3]) / 2) < 2.5 and r['bbox'][2] < w[0] < r['bbox'][2] + 300]
                 r = r
             why = f"the Notes column (same row, right of the table body) lists {note.group(1)}"
-        elif dims:
-            ci = col_for(t, 'height') if re.search(r'high|height', ql) else col_for(t, 'width')
-            sel = [r for r in rows if ci is not None and nz(r['cells'][ci]) == nz(dims[0])]
-            why = f"{t['headers'][ci] if ci is not None else '?'} = {dims[0]}"
+        elif codes:
+            want = set(codes)
+            sel = [r for r in rows if any(p in want for c in r['cells'] for p in re.split(r'[/\s,]+', c))]
+            why = 'a cell equals ' + ' or '.join(sorted(want))
         elif rm and 'door' in ql:
             ci = col_for(t, 'room number', 'number')
             ci = 2 if ci == 0 else ci
             sel = [r for r in rows if any(nz(c) == rm.group(1) for c in r['cells'][1:4])]
             why = f"room number = {rm.group(1)}"
-        elif codes:
-            want = set(codes)
-            sel = [r for r in rows if any(p in want for c in r['cells'] for p in re.split(r'[/\s,]+', c))]
-            why = 'a cell equals ' + ' or '.join(sorted(want))
+        elif dims:
+            ci = col_for(t, 'height') if re.search(r'high|height', ql) else col_for(t, 'width')
+            sel = [r for r in rows if ci is not None and nz(r['cells'][ci]) == nz(dims[0])]
+            why = f"{t['headers'][ci] if ci is not None else '?'} = {dims[0]}"
+        if rows and rows[0].get('count') is not None:   # count-first type schedule ("71 U01 UNIT DOOR")
+            if not codes and not dims:
+                # product / floor words from the question that appear in row descriptions (e.g. MARVIN, VISTAGRANDE, 3RD FLOOR)
+                stop = {'SHEET', 'DRAWINGS', 'CANNERY', 'TRAIL', 'RESIDENCES', 'OXFORD', 'CLAIRE', 'SCHEDULED', 'TOTAL', 'DOORS', 'WINDOWS', 'FLOOR'}
+                kws = [w.upper() for w in re.findall(r"[A-Za-z]{5,}", q) if w.upper() not in stop and any(w.upper() in r['desc'] for r in rows)]
+                fl = re.search(r'(\d)(?:st|nd|rd|th) floor', ql)
+                sw = re.search(r"starts? with '([A-Z]+)'", q)
+                sel = rows
+                if re.search(r'in total|all type marks', ql) and not sw:
+                    sel = rows; why = 'all type marks'
+                elif sw:
+                    sel = [r for r in sel if r['desc'].startswith(sw.group(1))]; why = 'description starts with ' + sw.group(1)
+                elif kws:
+                    sel = [r for r in sel if all(k in r['desc'] for k in kws)]; why = 'description contains ' + ' + '.join(kws)
+                else:
+                    why = 'all rows'
+                if fl:
+                    sel = [r for r in sel if re.search(fl.group(1) + r'(ST|ND|RD|TH) FLOOR', r['desc'])]; why += ', ' + fl.group(0)
+            its = [dict(item(r, 0), value=r['count']) for r in sel]
+            tot = sum(r['count'] for r in sel)
+            return dict(value=tot, unit='count', items=its, method=f'sum of the Count column where {why}',
+                        steps=steps + [f"Kept type rows where {why}: {len(sel)}", f"Each row carries its own quantity → summed Count = {tot}"])
         qi = col_for(t, 'count', 'qty', 'quantity')
         if qi is not None and qi > 0:   # aggregated schedule: one row per type, quantity in a Count column
             its = [dict(item(r, 0), value=num(r['cells'][qi])) for r in sel]
