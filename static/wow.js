@@ -24,6 +24,7 @@ async function boq() {
 }
 
 function mount() {
+  import('/static/identify.js');   // component identification: click any element -> inspector card + parts list
   const host = document.querySelector('.top') || document.body;
   const anchor = document.querySelector('#tourBtn');
   const w = mk('wowWalk', '🚶 Walk in 3D', 'Extrude this drawing into a 3D building and walk through it (W)', walk);

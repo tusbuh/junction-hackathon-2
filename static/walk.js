@@ -71,6 +71,7 @@ function dom() {
     if (e.code === 'KeyL') V.$('#wkLab').click();
     if (e.code === 'KeyT') { autoTour(!V.auto); return; }
     if (V.auto && /Key[WASD]|Arrow/.test(e.code)) autoTour(false);
+    if (e.code === 'KeyI') { identifyAt(); return; }
     if (e.code === 'KeyF') setMode(V.mode === 'walk' ? 'orbit' : 'walk');
     if (e.code === 'PageUp' || e.code === 'KeyE') storeyStep(1);
     if (e.code === 'PageDown' || e.code === 'KeyQ') storeyStep(-1);
@@ -127,7 +128,14 @@ function init() {
     else return;
     V.P.yaw -= dx * 0.0024; V.P.pitch = clamp(V.P.pitch - dy * 0.0024, -1.35, 1.35); V.P.anim = null;
   });
-  canvas.addEventListener('dblclick', e => { if (V.mode === 'orbit') pickAt(e, true); });
+  canvas.addEventListener('dblclick', e => { clearTimeout(V.idT); if (V.mode === 'orbit') pickAt(e, true); });
+  // component identification: single click in orbit (a double click still flies there)
+  let pd = null;
+  canvas.addEventListener('pointerdown', e => pd = [e.clientX, e.clientY]);
+  canvas.addEventListener('pointerup', e => {
+    if (V.mode !== 'orbit' || !pd || Math.hypot(e.clientX - pd[0], e.clientY - pd[1]) > 4) return;
+    const x = e.clientX, y = e.clientY; clearTimeout(V.idT); V.idT = setTimeout(() => identifyAt(x, y), 260);
+  });
   canvas.addEventListener('pointermove', e => { if (V.mode === 'orbit') V.mouse = e; });
   loop();
   return true;
@@ -442,7 +450,7 @@ async function buildIfc(g) {
   const st = {};
   H.elements.forEach(e => { let z = 1e9; for (let v = e.v0; v < e.v0 + e.nv; v++) z = Math.min(z, P[v * 3 + 2]); e.zmin = z; if (e.storey) (st[e.storey] = st[e.storey] || []).push(z); });
   V.levels = Object.entries(st).map(([k, zs]) => { zs.sort((a, b) => a - b); return { name: k, z: zs[Math.floor(zs.length * 0.2)], n: zs.length }; }).sort((a, b) => a.z - b.z);
-  V.ifc = { H, P, I, sub, byGid: new Map() };
+  V.ifc = { H, P, I, sub, byGid: new Map(), base, off: (() => { let o = 0; return base.map(e => { const a = o; o += e.ni; return a; }); })() };
   H.elements.forEach(e => { (V.ifc.byGid.get(e.gid) || V.ifc.byGid.set(e.gid, []).get(e.gid)).push(e); });
   const counts = {}; H.elements.forEach(e => counts[e.cls] = (counts[e.cls] || 0) + 1);
   const top = ['IfcWall', 'IfcWallStandardCase', 'IfcDoor', 'IfcWindow', 'IfcSlab', 'IfcSpace'].filter(k => counts[k]).map(k => `${counts[k]} ${k.replace('Ifc', '').replace('StandardCase', ' (std)')}`);
@@ -830,6 +838,46 @@ function lookInfo() {
 }
 const indoors = (x, y) => !V.g?.rooms || V.g.kind !== 'swiss' || V.g.rooms.some(r => !r.outdoor && inPoly(x, y, r.poly));
 function inPoly(x, y, p) { let c = false; for (let i = 0, j = p.length - 1; i < p.length; j = i++) { const [xi, yi] = p[i], [xj, yj] = p[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+
+// what is this? -> identify.js inspector card (Swiss: DXF point + kind hint, IFC: GlobalId)
+function identifyAt(cx, cy) {
+  if (!V.open || !V.renderer) return;
+  const r = V.renderer.domElement.getBoundingClientRect();
+  const ndc = cx == null ? new THREE.Vector2(0, 0) : new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -(cy - r.top) / r.height * 2 + 1);
+  V.ray.setFromCamera(ndc, V.camera); V.ray.far = 1e4;
+  const hit = V.ray.intersectObjects(V.ifcMesh ? [V.ifcMesh] : V.pick, false)[0];
+  if (!hit) return;
+  let d;
+  if (V.ifc && hit.object === V.ifcMesh) {
+    const o = hit.faceIndex * 3, off = V.ifc.off; let lo = 0, hi = off.length - 1;
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (off[m] <= o) lo = m; else hi = m - 1; }
+    d = { path: V.g.model || V.key, gid: V.ifc.base[lo].gid, el: V.ifc.base[lo] };
+  } else {
+    const p = V.world.worldToLocal(hit.point.clone());
+    d = { path: V.key, mx: p.x, my: p.y, hint: hit.object.userData.info?.t };
+  }
+  dispatchEvent(new CustomEvent('pp:walkpick', { detail: d }));
+}
+function markIdent(c) {
+  if (V.idMark) {   // IFC marks share the model's vertex buffers: detach them before disposing the index
+    const g = V.idMark.geometry; V.world.remove(V.idMark);
+    if (V.idMark.userData.shared) { g.deleteAttribute('position'); }
+    g.dispose(); V.idMark = null;
+  }
+  if (!c || !V.open || !c.from?.walk) return;
+  const mat = new THREE.MeshBasicMaterial({ color: 0x38d6ff, transparent: true, opacity: 0.45, depthTest: false, blending: THREE.AdditiveBlending });
+  if (V.ifc && V.ifc.byGid.get(c.id)) {
+    const els = V.ifc.byGid.get(c.id); let n = 0; els.forEach(e => n += e.ni);
+    const idx = new Uint32Array(n); let o = 0; els.forEach(e => { idx.set(V.ifc.I.subarray(e.i0, e.i0 + e.ni), o); o += e.ni; });
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', V.ifcMesh.geometry.getAttribute('position')); geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    V.idMark = new THREE.Mesh(geo, mat); V.idMark.userData.shared = true;
+  } else if (c.dxf?.poly && V.g?.heights) {
+    const top = c.kind === 'room' ? 0.06 : c.kind === 'fixture' ? 0.9 : V.g.heights.storey + 0.02;
+    V.idMark = new THREE.Mesh(new THREE.ExtrudeGeometry(shape(c.dxf.poly.length > 2 && c.dxf.poly[0][0] === c.dxf.poly.at(-1)[0] && c.dxf.poly[0][1] === c.dxf.poly.at(-1)[1] ? c.dxf.poly.slice(0, -1) : c.dxf.poly, null), { depth: top, bevelEnabled: false }), mat);
+  }
+  if (V.idMark) { V.idMark.renderOrder = 9; V.world.add(V.idMark); }
+}
+addEventListener('pp:identified', e => markIdent(e.detail));
 
 function pickAt(e, fly) {
   const r = V.renderer.domElement.getBoundingClientRect();

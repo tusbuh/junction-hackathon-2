@@ -179,12 +179,15 @@ def swiss_index(stem):
             mid = math.radians((a.dxf.start_angle + ((a.dxf.end_angle - a.dxf.start_angle) % 360) / 2))
             sx, sy = a.dxf.center.x + 0.5 * a.dxf.radius * math.cos(mid), a.dxf.center.y + 0.5 * a.dxf.radius * math.sin(mid)
             swing = room_at(sx, sy)
-        bx = th.buffer(0.08, cap_style=2)
-        for le, lp in lv:
-            bx = bx.union(lp)
-        geo = unary_union([bx] + [lp for _, lp in lv])
+        parts_ = [th.buffer(0.05, cap_style=2)] + [lp for _, lp in lv]
+        for a in ar:   # the swing quadrant is how a door reads on a plan: hull of threshold, leaf and arc
+            t0, t1 = a.dxf.start_angle, a.dxf.start_angle + ((a.dxf.end_angle - a.dxf.start_angle) % 360)
+            pts = [(a.dxf.center.x + a.dxf.radius * math.cos(math.radians(t0 + (t1 - t0) * i / 12)),
+                    a.dxf.center.y + a.dxf.radius * math.sin(math.radians(t0 + (t1 - t0) * i / 12))) for i in range(13)]
+            parts_.append(Polygon(pts + [(a.dxf.center.x, a.dxf.center.y)]).buffer(0))
+        geo = unary_union(parts_).convex_hull
         E[f'd:{e.dxf.handle}'] = dict(kind='door', h=e.dxf.handle, width=L, leaves=[(le.dxf.handle, lp) for le, lp in lv], arcs=ar,
-                                      sides=sides, swing=swing, poly=list(geo.envelope.exterior.coords) if geo.geom_type != 'Polygon' else list(geo.exterior.coords),
+                                      sides=sides, swing=swing, poly=list(geo.exterior.coords),
                                       P=geo, line=opening, ent=e)
 
     dl = [(k, v) for k, v in E.items() if v['kind'] == 'door']
@@ -252,7 +255,7 @@ def _ring(T, pts):
 
 
 def _door_type(d):
-    return f"{'double' if len(d['arcs']) >= 2 or len(d['leaves']) >= 2 else 'single'}-leaf · {round(d['width'] * 20) * 5} cm clear"
+    return f"{'double' if len(d['arcs']) >= 2 or len(d['leaves']) >= 2 else 'single'}-leaf · ≈ {round(d['width'] * 20) * 5} cm clear"
 
 
 def _room_name(r):
@@ -289,7 +292,7 @@ def swiss_parts(path):
 
     by = lambda kind: [(k, v) for k, v in E.items() if v['kind'] == kind]
     grp('door', 'Doors', 'DOOR', by('door'), _door_type)
-    grp('window', 'Windows', 'WINDOW', by('window'), lambda v: f"{round(v['width'] * 20) * 5} cm wide")
+    grp('window', 'Windows', 'WINDOW', by('window'), lambda v: f"≈ {round(v['width'] * 20) * 5} cm wide")
     grp('wall', 'Walls', 'WALL', by('wall'), lambda v: ('exterior wall' if v['ext'] else 'interior wall') + (f" · hatch {v['hatch']}" if v['hatch'] else ''))
     grp('fixture', 'Sanitary fixtures', 'FIXTURE', by('fixture'), lambda v: FIX_TERM[v['fx']])
     grp('room', 'Rooms / spaces', 'ROOM_OUTLINE', [(k, v) for k, v in by('room') if not v['room'].get('shaft')],
@@ -379,7 +382,7 @@ def swiss_card(path, eid):
             lp = v['leaves'][0][1].minimum_rotated_rectangle
             c = list(lp.exterior.coords)[:4]
             a, b = math.dist(c[0], c[1]), math.dist(c[1], c[2])
-            D('Leaf', f'{_cm(max(a, b))} × {round(min(a, b) * 1000)} mm', 'drawn door-leaf rectangle (width × thickness)')
+            D('Leaf (drawn open)', _cm(max(a, b)), 'long side of the 5-vertex leaf symbol; its drawn thickness is symbolic, not the real leaf')
         if v['arcs']:
             a = v['arcs'][0]
             D('Swing radius', _cm(a.dxf.radius), f'ARC, {round((a.dxf.end_angle - a.dxf.start_angle) % 360)}° sweep')
@@ -748,7 +751,9 @@ def raster_parts(path):
         geo[k] = dict(kind=d['cls'], poly=[[b[0], b[1]], [b[2], b[1]], [b[2], b[3]], [b[0], b[3]]], conf=d['conf'])
     groups = [dict(key=c, term=RASTER_TERMS[c] + 's', layer='YOLO detector', count=len(ids), types=[dict(name=RASTER_TERMS[c] + ' (detected)', count=len(ids), ids=ids)])
               for c, ids in sorted(by.items(), key=lambda kv: -len(kv[1]))]
-    return dict(kind='raster', file=os.path.basename(path), groups=groups, geo=geo, summary=_summary(groups), credit=credit(path),
+    from PIL import Image
+    W, H = Image.open(engine.abspath(path)).size
+    return dict(kind='raster', file=os.path.basename(path), sheet=dict(w=W, h=H, units='px'), groups=groups, geo=geo, summary=_summary(groups), credit=credit(path),
                 note='Raster scan: elements are symbols found by our fine-tuned detector (boxes with confidence), not CAD objects.')
 
 
@@ -780,7 +785,12 @@ def parts(path):
             from .wow import credit
             return dict(kind='none', why=f'Raster detector unavailable: {type(e).__name__}', credit=credit(path))
     from .wow import credit
-    return dict(kind='none', why='This is a plain vector PDF sheet: no element objects to list. Click printed text or tags to identify them.',
+    sheet = None
+    if path.lower().endswith('.pdf'):
+        import pymupdf
+        r = pymupdf.open(engine.abspath(path))[0].rect
+        sheet = dict(w=r.width, h=r.height, units='pt')
+    return dict(kind='none', sheet=sheet, why='This is a plain vector PDF sheet: no element objects to list. Click printed text or tags to identify them.',
                 credit=credit(path))
 
 
