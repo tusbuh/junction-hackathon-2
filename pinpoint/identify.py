@@ -299,7 +299,9 @@ def swiss_parts(path):
         lambda v: room_term(v['room']['name'])[0] or (v['room']['name'] or 'unnamed room'))
     ndup = sum(1 for _, v in by('door') if v.get('dup')) // 2
     if ndup:
-        groups[0]['warn'] = f'{ndup} door{"s" if ndup > 1 else ""} drawn twice (identical overlapping DXF entities)'
+        nd = len(by('door'))
+        groups[0]['warn'] = (f'{ndup} door{"s are" if ndup > 1 else " is"} drawn twice (identical stacked DXF entities): {nd - ndup} distinct door positions. '
+                             f'Counts follow the {nd} entities, as the dataset answers do.')
     if by('unit'):
         grp('unit', 'Apartments', 'UNIT_OUTLINE', by('unit'), lambda v: 'apartment (Wohnung)')
     geo = {}
@@ -401,8 +403,8 @@ def swiss_card(path, eid):
         if v['arcs']:
             src.append(dict(k='Swing', v=', '.join(f'ARC handle {a.dxf.handle}' for a in v['arcs'])))
         if v.get('dup'):
-            notes.append(f"⚠ Drafting duplicate: identical DOOR entities (threshold handle {', '.join(v['dup'])}) lie exactly on top of this one. "
-                         "Door counts here follow the DXF entities, as the dataset's own answers do.")
+            notes.append(f"⚠ Drawn twice: an identical DOOR entity (threshold handle {', '.join(v['dup'])}) lies exactly on top of this one. "
+                         "Door counts follow the DXF entities, as the dataset's own answers do; a take-off should count this opening once.")
         notes.append('Door type, fire rating and hardware are not drawn in the Swiss DXF; a door schedule would be needed.')
     elif k == 'window':
         title = 'Window'
