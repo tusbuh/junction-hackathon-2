@@ -20,7 +20,7 @@ rewrite the *question* into a template; it never sees the drawing and never prod
 | IFC building models (EN/ET/DA/DE) | ifcopenshell: elements, storeys, quantities, 3D footprints | **97.7 %** (1025/1049); **100 %** of questions whose IFC is in the preview | 44 ms | ≈ €0.0000005 |
 | US drawing sets (schedule sheets) | rotation-aware vector words → schedule tables, highlighted rows | 70 % (40/57) | ~0.1 s | ≈ €0.000001 |
 | IFC-Bench v2 (free text) | deterministic intents over IFC facts, GlobalIds cited | not auto-graded (reference answer shown) | ~0.1 s | ≈ €0.000001 |
-| Finnish raster plans (PNG) | YOLO detector fine-tuned on CubiCasa5K (preview plans excluded) | in progress | — | — |
+| Finnish raster plans (PNG) | leak-free YOLOv8n (trained only on the 213 CubiCasa5K plans not in the Stoa set) + fi/en room-label OCR | 2694 / 4270 = 63.1 % exact (preview dev split) | — | — |
 
 Open the **▦ Scoreboard** in the app for the live numbers. Counts must be exact; areas, lengths and volumes within 2 %.
 The 24 IFC misses all refer to FZK-Haus, whose IFC file is not part of the preview.
@@ -72,6 +72,6 @@ questions on this drawing" grades every dataset question for that file live.
 ## Licences and credits
 
 Drawings and questions come from the Stoa Junction 2026 dataset and keep their licences (see each
-`data/<source>/LICENSE.md`): Swiss Dwellings CC BY 4.0, CubiCasa5K CC BY-NC 4.0 (detector trained only on CubiCasa5K
-plans that are not in the preview set), opening_design CC BY-SA 4.0, IFC models per file. three.js (MIT),
+`data/<source>/LICENSE.md`): Swiss Dwellings CC BY 4.0, CubiCasa5K CC BY-NC-SA 4.0, Kalervo et al. 2019 (detector weights
+and derived labels keep CC BY-NC-SA; trained only on the 213 CubiCasa5K plans that are not in the Stoa set, zero overlap asserted), opening_design CC BY-SA 4.0, IFC models per file. three.js (MIT),
 ifcopenshell (LGPL), PyMuPDF (AGPL), ezdxf (MIT), ultralytics (AGPL).
