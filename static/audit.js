@@ -5,7 +5,8 @@ const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const $ = s => document.querySelector(s);
 const cache = new Map();
-const get = async p => { if (!cache.has(p)) cache.set(p, fetch('/api/audit?path=' + encodeURIComponent(p)).then(r => r.json())); return cache.get(p); };
+// servers started before drawaudit.py have no /api/audit: the button then hides itself instead of failing
+const get = async p => { if (!cache.has(p)) cache.set(p, fetch('/api/audit?path=' + encodeURIComponent(p)).then(r => r.ok ? r.json() : null).catch(() => null)); return cache.get(p); };
 let SHOW = null;
 
 const KIND = { schedule_vs_plan: 'Schedule ≠ plan', untagged_door: 'Untagged door', revision: 'Revision change', duplicate: 'Duplicate element',
@@ -72,7 +73,9 @@ export async function openAudit(path) {
   const PP = window.PP; const p = path || PP?.S?.file?.path; if (!p) return;
   if ($('#splash')) $('#splash').hidden = true;
   const host = $('#receipt'); host.innerHTML = '<div class="au-empty">Auditing the drawing…</div>';
-  renderAudit(await get(p), host);
+  const a = await get(p);
+  if (!a) { host.innerHTML = '<div class="au-empty">Drawing audit needs the server restarted on the current code.</div>'; return; }
+  renderAudit(a, host);
 }
 
 async function showcase() {
@@ -85,7 +88,8 @@ async function showcase() {
     document.body.append(m);
   }
   m.hidden = false;
-  SHOW = SHOW || await (await fetch('/api/audit/showcase')).json();
+  SHOW = SHOW || await fetch('/api/audit/showcase').then(r => r.ok ? r.json() : null).catch(() => null);
+  if (!SHOW) { m.querySelector('.au-mb').textContent = 'The showcase needs the server restarted on the current code.'; return; }
   const cards = [];
   SHOW.audits.forEach((a, ai) => a.findings.forEach((f, fi) => cards.push({ a, f, ai, fi })));
   // lead with the strongest kinds of evidence; one card per kind and file keeps the list readable
@@ -113,7 +117,7 @@ function mount() {
   let last = null;
   setInterval(async () => {   // amber count badge for the drawing on screen
     const p = window.PP?.S?.file?.path; if (!p || p === last) return; last = p;
-    const a = await get(p); if (window.PP?.S?.file?.path !== p) return;
+    const a = await get(p); if (!a) { b.hidden = true; return; } if (window.PP?.S?.file?.path !== p) return;
     const s = b.querySelector('.au-badge'); s.hidden = !a.findings.length; s.textContent = a.findings.length;
   }, 800);
   addEventListener('keydown', e => { if (!e.target.closest?.('input,textarea') && !e.metaKey && !e.ctrlKey && e.key === 'a') openAudit(); });

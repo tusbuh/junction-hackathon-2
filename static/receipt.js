@@ -43,7 +43,7 @@ function tolRow(t, r) {
 export function renderReceipt(r, host, hooks = {}) {
   if (!host) return;
   const rc = r.receipt || {};
-  const conf = rc.confidence || { level: 'low', colour: 'red', score: 0, why: [] };
+  const conf = rc.confidence || null;   // servers started before cite.py send no receipt: show no colour rather than a false 'low'
   const items = r.items || [];
   const checks = rc.checks || [];
   const exc = rc.excluded || [];
@@ -53,11 +53,11 @@ export function renderReceipt(r, host, hooks = {}) {
   const showSum = items.length > 1 && r.unit && !['count', 'text'].includes(r.unit) && r.value != null;
 
   host.innerHTML = `
-  <div class="rc ${conf.colour}">
-    <div class="rc-head">
+  <div class="rc ${conf ? conf.colour : ''}">
+    ${conf ? `<div class="rc-head">
       <div class="rc-conf"><span class="rc-dot"></span><b>${CONF[conf.level] || conf.level}</b><span class="rc-score">${Math.round((conf.score || 0) * 100)}</span></div>
       <div class="rc-why">${(conf.why || []).map(w => `<span>${esc(w)}</span>`).join('')}</div>
-    </div>
+    </div>` : ''}
     <div class="rc-ans${isText ? ' text' : ''}">
       <div class="rc-val">${r.value == null ? 'no answer' : esc(isText ? r.value : withUnit(r.value, r.unit === 'count' ? '' : r.unit))}${r.unit === 'count' && r.value != null ? '<small>counted</small>' : ''}</div>
       <div class="rc-method">${esc(r.method || '')}</div>
