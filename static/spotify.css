@@ -449,3 +449,4 @@ html.static .splash .stats div, html.static .player * { transition: none !import
 .bqRow .d em.bad { color: #f3727f; background: #f3727f1f; }
 .sbrow .pct { color: #fff !important; }
 .side .brand span { overflow: hidden; text-overflow: ellipsis; max-width: 100%; } .side .brand > div { min-width: 0; }
+.side .brand span { white-space: normal; line-height: 1.25; }
