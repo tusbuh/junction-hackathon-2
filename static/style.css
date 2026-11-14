@@ -307,11 +307,17 @@ html.static .splash, html.static .splash *, html.static .answer, html.static .an
 .badge.tol.bad b { color: var(--bad); }
 
 /* ================= tour captions ================= */
-.tourCap { position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%); z-index: 90; max-width: min(860px, 86vw); padding: 12px 20px 13px; border-radius: 14px; background: #05080fee; border: 1px solid #38d6ff55; box-shadow: 0 10px 40px #000a, 0 0 0 1px #000; color: var(--ink); font-size: 16px; line-height: 1.4; text-align: center; backdrop-filter: blur(6px); animation: rise .35s both; pointer-events: none; }
+.tourCap { position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%); z-index: 260; max-width: min(860px, 86vw); padding: 12px 20px 13px; border-radius: 14px; background: #05080fee; border: 1px solid #38d6ff55; box-shadow: 0 10px 40px #000a, 0 0 0 1px #000; color: var(--ink); font-size: 16px; line-height: 1.4; text-align: center; backdrop-filter: blur(6px); animation: rise .35s both; pointer-events: none; }
+body.wkOpen .tourCap { bottom: 96px; }
+body.boqOpen .tourCap { left: 30%; }
 .tourCap small { display: block; font: 700 10.5px var(--mono); letter-spacing: .2em; color: var(--acc); margin-bottom: 4px; text-transform: uppercase; }
 .tourCap em { font-style: normal; color: var(--cy); font-weight: 700; }
 .tourCap .dots { display: flex; gap: 5px; justify-content: center; margin-top: 8px; }
 .tourCap .dots i { width: 18px; height: 3px; border-radius: 2px; background: #2a3a5a; }
 .tourCap .dots i.on { background: var(--acc); }
 .tourCap .dots i.past { background: #38d6ff88; }
-#raceBtn { border-color: #3ddc9766; color: var(--ok); }
+#meter { cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+#meter:hover { border-color: #3ddc97aa; box-shadow: 0 0 22px #3ddc9733; }
+.meter label u { text-decoration: none; color: var(--ok); margin-left: 4px; letter-spacing: .04em; }
+body:has(.credit:not(:empty)) .credits { display: none; }
+@media (max-width: 1720px) { .top .tbtn, .top .wowBtn { padding-left: 9px; padding-right: 9px; font-size: 12px; } .meter .m { padding: 4px 8px; } }

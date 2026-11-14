@@ -24,12 +24,12 @@ function dom() {
     <div class="rcTick"><span class="rcQn" id="rcQn">0</span><span class="rcQ" id="rcQ"></span></div>
     <div class="lane vlm">
       <div class="lh"><b>Frontier VLM</b><span class="est">ESTIMATE*</span><small id="rcVsub"></small></div>
-      <div class="track"><i class="bar" id="rcVb"></i></div>
+      <div class="track"><i class="rcBar" id="rcVb"></i></div>
       <div class="lv"><b id="rcVe">€0</b><small>accuracy <em>not measured</em> · latency <em>not measured</em></small></div>
     </div>
     <div class="lane pp">
       <div class="lh"><b>PINPOINT</b><span class="meas">MEASURED</span><small id="rcPsub"></small></div>
-      <div class="track"><i class="bar" id="rcPb"></i><span class="here" id="rcHere">← PINPOINT's bar is here: <b id="rcPct"></b> of the width</span></div>
+      <div class="track"><i class="rcBar" id="rcPb"></i><span class="here" id="rcHere">← PINPOINT's bar is here: <b id="rcPct"></b> of the width</span></div>
       <div class="lv"><b id="rcPe">€0</b><small id="rcPacc"></small></div>
     </div>
     <div class="rcBig" id="rcBig"><b id="rcX1">–</b><span>× cheaper, on the questions we actually ran</span></div>

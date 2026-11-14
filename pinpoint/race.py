@@ -36,6 +36,7 @@ def race():
                         eur=sum(r['eur'] or 0 for r in res), secs=sum(secs),
                         median_ms=1000 * statistics.median(secs), p95_ms=1000 * sorted(secs)[int(0.95 * (len(secs) - 1))],
                         vlm_eur=vlm_q * len(res)))
+    out.sort(key=lambda x: -x['n'])
     tot = {k: sum(x[k] for x in out) for k in ('n', 'graded', 'correct', 'eur', 'secs', 'vlm_eur')}
     sample.sort(key=lambda q: zlib.crc32(q.encode()))   # stable shuffle: mix sources in the ticker
     return JSONResponse(dict(sources=out, total=tot, file='data/eval/*.json', sample=sample,

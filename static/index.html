@@ -33,15 +33,14 @@
     </div>
   </form>
 
-  <div class="meter" id="meter" title="Measured CPU time × €0.04/vCPU-h + LLM tokens (0 by default)">
+  <div class="meter" id="meter" role="button" tabindex="0" title="Measured CPU time × €0.04/vCPU-h + LLM tokens (0 by default). Click for the cost race (R)">
     <div class="m"><label>cost</label><b id="mLast">€0</b></div>
     <div class="m"><label>time</label><b id="mLat">–</b></div>
     <div class="m"><label>LLM</label><b id="mLlm">0</b></div>
     <div class="m vs"><label>frontier VLM</label><b id="mVlm">–</b></div>
-    <div class="m save"><label>cheaper</label><b id="mSave">–</b></div>
+    <div class="m save"><label>cheaper <u>race ▸</u></label><b id="mSave">–</b></div>
   </div>
   <button class="tbtn" id="tourBtn">▶ Tour</button>
-  <button class="tbtn" id="raceBtn" title="PINPOINT vs a frontier VLM on the same questions (R)">€ Cost race</button>
   <button class="tbtn" id="sbBtn">▦ Scoreboard</button>
 </header>
 

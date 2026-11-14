@@ -263,7 +263,7 @@ function addBadges(r) {
       bd.append(b);
     }
   }
-  if ('truth' in r) {
+  if ('truth' in r && !bd.querySelector('.tol')) {
     if (r.correct === true) bd.append(el('span', 'badge ok', `✓ ground truth ${esc(fmtVal(r.truth))}`));
     else if (r.correct === false) bd.append(el('span', 'badge bad', `✗ ground truth ${esc(fmtVal(r.truth))}`));
     else if (isText) { const b = el('span', 'badge', 'reference answer ▾'); b.title = String(r.truth); b.style.cursor = 'help'; bd.append(b); }
@@ -952,7 +952,7 @@ async function tour() {
   for (let i = 0; i < TOUR.length && S.touring; i++) {
     const st = TOUR[i];
     try {
-      if (st.race) { tourCap(i, st.cap()); await R.openRace(); await tourWait(9000); break; }   // the race stays up as the closing frame
+      if (st.race) { tourCap(i, st.cap()); await R.openRace(); await tourWait(2500); if (S.touring) tourCap(i, null); await tourWait(6000); break; }   // caption clears so the table is readable   // the race stays up as the closing frame
       const f = S.cat.find(x => x.path === st.path); if (!f) continue;
       if (S.file !== f) { S.userMode = st.mode || 'sheet'; selectFile(f); await tourWait(900); }
       if (st.boq) {
@@ -987,7 +987,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.touring)
 
 // ============================================================ cost race (static/race.js; numbers from /api/race = data/eval/*.json)
 const openRace = async () => { const m = await import('/static/race.js'); $('#splash').hidden = true; return m.openRace(); };
-$('#raceBtn').onclick = openRace;
+$('#meter').onclick = openRace;
 document.addEventListener('keydown', e => {
   if (e.target.matches('input, textarea') || e.metaKey || e.ctrlKey || document.body.classList.contains('wkOpen') || document.body.classList.contains('boqOpen')) return;
   if (e.key === 'r') openRace();
