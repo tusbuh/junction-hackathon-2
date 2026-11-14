@@ -82,7 +82,18 @@ def answer(path, q):
         except Exception as e:   # OCR unavailable: fall through to the detector
             if not D.WEIGHTS.exists():
                 return dict(value=None, unit=None, items=[], method='OCR unavailable', steps=[f'OCR failed: {e}'])
-    return detector_answer(path, key, how)
+    r = detector_answer(path, key, how)
+    if key == 'toilets' and r['value'] is not None:
+        # every separate WC room holds a WC seat: 210 of the 213 leak-free training plans have toilets >= WC rooms
+        try:
+            w = ocr_answer(path, 'wc_rooms', how)['value'] or 0
+        except Exception:
+            w = 0
+        if w > r['value']:
+            r['steps'].append(f"{w} separate WC room(s) on the plan but only {r['value']} WC seat(s) detected: answering {w} "
+                              f"(210 of the 213 leak-free CubiCasa5K training plans have at least one seat per WC room)")
+            r['value'] = w
+    return r
 
 
 # Priors measured on the SVG annotations of the 213 leak-free training plans (data/full/cubicasa_free_ids.json),
