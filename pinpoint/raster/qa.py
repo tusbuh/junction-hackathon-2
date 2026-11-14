@@ -57,6 +57,16 @@ def ocr_answer(path, key, how):
             d['steps'] = r['steps'] + [f"OCR {'not confident' if not r.get('confident') else 'found fewer'} ({r['value']}): using the symbol detector instead"] + d['steps']
             d['method'] = 'OCR room labels → detector fallback'
             return d
+    if key == 'bedrooms' and r.get('confident') and D.WEIGHTS.exists():
+        # OCR misses MH labels far more often than it invents them (preview dev: 21 under vs 5 over), so a
+        # bedroom box the detector is sure of (conf >= BED_SURE) raises the count; it never lowers it
+        sure = dedup([dict(d) for d in dets(path) if dict(d)['cls'] == 'room_bedroom' and dict(d)['conf'] >= BED_SURE])
+        if len(sure) > (r['value'] or 0):
+            r['steps'].append(f"OCR read {r['value']} bedroom label(s); the detector is sure (≥{BED_SURE}) of {len(sure)} bedroom(s): "
+                              f"answering {len(sure)} (a label hidden under furniture or hatching is missed, a confident bedroom box rarely is wrong)")
+            r['items'] += [dict(kind='room_bedroom', label=f"bedroom · {d['conf']:.2f} (detector)", bbox=d['bbox'], value=None, check=None) for d in sure]
+            r['value'] = len(sure)
+            r['method'] = 'OCR room labels + confident detector boxes'
     return r
 
 
@@ -82,6 +92,8 @@ PRIOR_MIN = {'showers_bathtubs': 1, 'toilets': 1, 'sinks': 2}
 # shower threshold re-tuned together with the prior and the de-duplication on the 25 held-out leak-free plans
 PRIOR_N = {'showers_bathtubs': '200', 'toilets': '203', 'sinks': '197'}
 THR_OVERRIDE = {'shower': 0.15}
+# bedrooms: plateau 0.5-0.8 in both halves of a 2-fold split of the preview plans (dev; chosen in the middle)
+BED_SURE = 0.6
 CONTAIN = 0.5   # a box with > 50 % of its area inside a stronger same-class box is the same object (TTA / nested storey)
 
 
