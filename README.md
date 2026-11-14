@@ -37,7 +37,7 @@ never blended: the sources differ in kind and size.
 | Swiss floor plans (DXF + PDF, EN/DE/FR/IT) | DXF layers → symbols + room polygons, projected onto the PDF | **2358 / 2358** (count 1614/1614, area 744/744) | **100 %** | 0.2 ms | €0.000052 |
 | IFC building models (EN/ET/DA/DE) | ifcopenshell: elements, storeys, quantities, 3D footprints | **1049 / 1049** (area 846/846, count 153/153, volume 34/34, length 16/16) | **100 %** | 38 ms | €0.00039 |
 | US drawing sets (opening_design schedule sheets) | rotation-aware vector words → schedule tables, highlighted rows | **61 / 64** (count 37/39, text 15/16, area 9/9) | **95.3 %** | 0.2 ms | €0.0000017 |
-| Finnish raster plans (CubiCasa5K PNG) | leak-free YOLOv8n (trained only on the 213 CubiCasa5K plans not in the Stoa set) + fi/en room-label OCR + fixture priors from those 213 plans + nested-box de-duplication | **3042 / 4270** (all count questions) | **71.2 %** | 0.6 ms (p95 158 ms) | €0.00088 |
+| Finnish raster plans (CubiCasa5K PNG) | leak-free YOLOv8n + YOLO11s ensemble (both trained only on the 213 CubiCasa5K plans not in the Stoa set) + fi/en room-label OCR + fixture priors from those 213 plans + nested-box de-duplication | **3124 / 4270** (all count questions) | **73.2 %** | 0.8 ms (p95 322 ms) | €0.0014 |
 | IFC-Bench v2 (free text) | deterministic intents over IFC facts, GlobalIds cited | not auto-graded (reference answer shown) | — | — | — |
 
 0 LLM calls in every run above. Open the **▦ Scoreboard** in the app for the live numbers.
@@ -52,8 +52,23 @@ with a number, each returns an explained "can't answer, here's why". Across the 
 **CubiCasa room-label OCR** (`/api/eval_all`, Tesseract fin+eng, preview): kitchens 70/75, bathrooms 55/60, floors
 97/108, balconies 28/35, bedrooms 52/72, WC 41/60, saunas 48/77. Weakest classes are where the remaining raster misses are.
 
-(`/api/eval_all` still shows the earlier CubiCasa snapshot of 2728 / 4270 = 63.9 %; the scoreboard's 3042 / 4270 is the
-current `data/eval/cubicasa5k.json` after the de-duplication and priors change.)
+(`/api/eval_all` still shows the earlier CubiCasa snapshot of 2728 / 4270 = 63.9 %; the scoreboard's 3124 / 4270 is the
+current `data/eval/cubicasa5k.json`.)
+
+**CubiCasa follow-up (RASTER4): 3042 → 3124 / 4270 (71.2 % → 73.2 %).** The three steps below are measured on preview, and
+`python -m pinpoint.raster.breakdown old.json new.json` prints the per-template delta:
+1. Bedrooms (+16): when OCR reads the bedroom labels, the count is raised to the number of detector bedroom boxes with
+   confidence ≥ 0.6, and never lowered. OCR misses labels far more often than it invents them. The 0.6 cut sits in the
+   middle of a plateau (0.5–0.8) that holds in both halves of a 2-fold split of the preview plans. **This is dev tuning on
+   preview.**
+2. Toilets (+4): the count is never below the number of separate WC rooms. This holds on 210 of the 213 leak-free plans.
+3. Second detector (+62): a YOLO11s trained on the same 213 leak-free plans (val mAP50 0.71 vs 0.66 for YOLOv8n), with
+   its boxes fused with the YOLOv8n boxes. The choices were made on the 25 held-out leak-free plans only, never on preview:
+   which classes use the ensemble (all except shower, bathtub and bedroom) and the per-class thresholds. Windows go from
+   166 to 176, doors 170 → 176, sinks 306 → 314, toilets 356 → 360, saunas 266 → 278, separate WC 194 → 202, floors
+   454 → 470, and balconies 116 → 114.
+Tried and dropped because they showed no robust gain on val25 or on preview CV: threshold re-tuning, soft (confidence-sum)
+counts, multi-scale inference, splitting long window boxes, other cross-count rules, and a crop re-scoring classifier.
 
 ## Cost
 
@@ -190,8 +205,8 @@ ask about.
 CubiCasa5K, © 2019 CubiCasa. Credit: Ahti Kalervo, Juha Ylioinas, Markus Häikiö, Antti Karhu, Juho Kannala,
 "CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis", SCIA 2019,
 https://zenodo.org/records/2613548. Non-commercial use only. **ShareAlike:** the detector weights, derived labels and
-anything else adapted from CubiCasa5K are shared under the same CC BY-NC-SA 4.0 licence. The detector was trained only
-on the 213 CubiCasa5K plans that are not in the Stoa set (zero overlap asserted).
+anything else adapted from CubiCasa5K are shared under the same CC BY-NC-SA 4.0 licence. Both detectors (YOLOv8n and
+YOLO11s, Ultralytics AGPL-3.0) were trained only on the 213 CubiCasa5K plans that are not in the Stoa set (zero overlap asserted).
 
 **Swiss Dwellings — CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/). Swiss Dwellings v3.0.0 by Matthias
 Standfest, Michael Franzen, Yvonne Schröder, Luis Gonzalez Medina, Yarilo Villanueva Hernandez, Jan Hendrik Buck,
