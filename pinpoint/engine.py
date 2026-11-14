@@ -134,22 +134,30 @@ def ifc_for(path):
 
 def plan_view(path, storey=None):
     """The IfcOpenShell-rendered plan SVG for this model (elements carry data-guid), preferring the asked storey."""
+    from . import fullset
     base = ifc_for(path)[:-4]
-    d = os.path.dirname(abspath(base))
     stem = os.path.basename(base)
     if path.endswith('.svg'):
         return dict(url=f'/api/sheet?path={quote(path)}', inline=True)
-    cands = sorted(f for f in os.listdir(d) if f.startswith(stem + '_plan-') and f.endswith('.svg')) if os.path.isdir(d) else []
-    if path.endswith('.pdf') and os.path.exists(abspath(path[:-4] + '.svg')):
-        cands = [os.path.basename(path[:-4] + '.svg')] + cands
+    # plan SVGs of this model: in the unpacked split and among files cached from the full dataset
+    found = {}
+    for root in (DATA, fullset.FILES):
+        d = os.path.join(root, os.path.dirname(base))
+        if os.path.isdir(d):
+            for f in os.listdir(d):
+                if f.startswith(stem + '_plan-') and f.endswith('.svg'):
+                    found.setdefault(f, os.path.dirname(base) + '/' + f)
+    cands = sorted(found)
+    own = os.path.basename(path[:-4] + '.svg')
+    if path.endswith('.pdf') and own in found:
+        cands = [own] + cands
     if storey:
         norm = lambda x: re.sub(r'[^0-9a-zæøåäöüõ]', '', x.lower())
         m = [c for c in cands if norm(storey) and norm(storey) in norm(c.split('_plan-')[1])]
         cands = m + cands
     if not cands:
         return None
-    rel = os.path.relpath(os.path.join(d, cands[0]), DATA)
-    return dict(url=f'/api/sheet?path={quote(rel)}', inline=True, name=cands[0])
+    return dict(url=f'/api/sheet?path={quote(found[cands[0]])}', inline=True, name=cands[0])
 
 
 def ask_ifc(path, q):

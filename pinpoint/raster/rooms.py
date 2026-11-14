@@ -34,7 +34,13 @@ def tokens(text):
 # a label read in the wrong orientation comes back reversed ("HM" for MH, "HO" for OH): accept reversals
 # of multi-letter tokens that are not themselves another class's token
 _ALL = {t for v in CLASS_TOKENS.values() for t in v}
-REVERSED = {t[::-1]: c for c, v in CLASS_TOKENS.items() for t in v if len(t) >= 2 and t[::-1] not in _ALL}
+_UPSIDE = str.maketrans('MW', 'WM')     # read upside down, M looks like W: "MH" -> "HW"
+REVERSED = {}
+for _c, _v in CLASS_TOKENS.items():
+    for _t in _v:
+        for _r in (_t[::-1], _t[::-1].translate(_UPSIDE)):
+            if len(_t) >= 2 and _r not in _ALL and _r != _t:
+                REVERSED.setdefault(_r, _c)
 DESCRIPTOR = re.compile(r'^\d+\s*[HM]\b|^\d+[HM]\+', re.I)     # "3H+K+S", "2h+kt": apartment type, not a room
 
 
