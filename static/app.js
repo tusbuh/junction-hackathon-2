@@ -11,6 +11,9 @@ const NS = 'http://www.w3.org/2000/svg';
 const SRC_NAMES = { swiss_dwellings: 'Swiss CAD', ifc_models: 'IFC models', ifc_bench: 'IFC bench', cubicasa5k: 'Finnish scans', opening_design: 'US sheets' };
 const SRC_TAG = { swiss_dwellings: 'DXF+PDF', ifc_models: 'IFC', ifc_bench: 'IFC', cubicasa5k: 'scan', opening_design: 'PDF' };
 
+// ?static=1 (screenshots, video) or prefers-reduced-motion: every count-up / sweep shows its final state instantly
+const STATIC = new URLSearchParams(location.search).has('static') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (STATIC) document.documentElement.classList.add('static');
 const S = { cat: [], src: 'swiss_dwellings', file: null, total: 0, n: 0, last: null, mode: 'sheet', blue: true, sel: null, items: [], run: 0,
   has: { sheet: false, model: false } };
 
@@ -38,6 +41,7 @@ async function splash() {
   const close = () => $('#splash').hidden = true;
   $('#spTour').onclick = () => { close(); tour(); };
   $('#spTry').onclick = () => { close(); $('#q').focus(); };
+  $('#spRace').onclick = () => { close(); openRace(); };
   $('#splash').onclick = e => { if (e.target.id === 'splash') close(); };
   try {
     // honest per-source numbers straight from data/eval/*.json; never one blended headline
@@ -64,6 +68,7 @@ async function splash() {
   } catch (e) { }
 }
 function countUp(node, to, fmt, D = 1400) {
+  if (STATIC) { node.textContent = fmt(to); return; }
   const t0 = performance.now();
   (function step(now) { const t = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - t, 4); node.textContent = fmt(to * e); if (t < 1) requestAnimationFrame(step); })(t0);
 }
@@ -124,6 +129,18 @@ function selectFile(f) {
   if (S.has.model) loadModel(ifcFor(f.path))?.then(() => { if (!T.H && S.file === f && S.has.sheet) { S.has.model = false; updateModeButtons(); setMode('sheet'); } });
   setMode(S.has.sheet && S.has.model ? (S.userMode || 'split') : S.has.model ? 'model' : 'sheet');
   updateModeButtons();
+  setCredits(f);
+}
+
+// ---- data licence credit under every drawing (data/<source>/LICENSE.md, via /api/credit)
+const creditCache = new Map();
+const getCredit = p => { if (!creditCache.has(p)) creditCache.set(p, fetch(`/api/credit?path=${encodeURIComponent(p)}`).then(r => r.json()).catch(() => null)); return creditCache.get(p); };
+const creditHtml = c => c ? `<b>Data:</b> ${esc(c.credit)}${c.licence ? `<i>${esc(c.licence)}</i>` : ''}` : '';
+async function setCredits(f) {
+  const isIfc = f.path.endsWith('.ifc');
+  const [c2, c3] = await Promise.all([isIfc ? null : getCredit(f.path), S.has.model ? getCredit(ifcFor(f.path)) : null]);
+  if (S.file !== f) return;
+  $('#credit2d').innerHTML = creditHtml(c2); $('#credit3d').innerHTML = creditHtml(c3);
 }
 
 function clearResult() {
@@ -232,6 +249,20 @@ async function show(r) {
 function addBadges(r) {
   const bd = $('#aBadges'); bd.innerHTML = '';
   const isText = r.unit === 'text';
+  const tv = typeof r.truth === 'number' ? r.truth : parseFloat(r.truth);
+  if ('truth' in r && typeof r.value === 'number' && isFinite(tv) && !isText) {
+    // Stoa's strict rule, shown on the receipt: counts exact, area / length / volume within 2%
+    const u = r.unit && r.unit !== 'count' ? ' ' + r.unit : '';
+    if (r.unit === 'count' || (Number.isInteger(r.value) && Number.isInteger(tv) && !u)) {
+      bd.append(el('span', 'badge tol' + (r.value === tv ? '' : ' bad'), r.value === tv ? `<b>exact</b> ${fmtVal(r.value)} = ${fmtVal(tv)} ground truth` : `<b>not exact</b> ${fmtVal(r.value)} vs ${fmtVal(tv)} ground truth`));
+    } else {
+      const dev = tv ? 100 * Math.abs(r.value - tv) / Math.abs(tv) : (r.value === tv ? 0 : Infinity);
+      const pc = dev === 0 ? '0%' : dev < 0.01 ? '<0.01%' : dev < 10 ? dev.toFixed(2) + '%' : dev.toFixed(0) + '%';
+      const b = el('span', 'badge tol' + (dev <= 2 + 1e-7 ? '' : ' bad'), `${fmtVal(r.value)} vs ${fmtVal(tv)}${esc(u)} · <b>${dev <= 2 + 1e-7 ? 'within' : 'off by'} ${pc}</b> (limit 2%)`);
+      b.title = 'Stoa scoring: area, length and volume answers must be within 2% of the ground truth; counts must be exact.';
+      bd.append(b);
+    }
+  }
   if ('truth' in r) {
     if (r.correct === true) bd.append(el('span', 'badge ok', `✓ ground truth ${esc(fmtVal(r.truth))}`));
     else if (r.correct === false) bd.append(el('span', 'badge bad', `✗ ground truth ${esc(fmtVal(r.truth))}`));
@@ -258,7 +289,7 @@ async function reveal(r, run) {
     return { it, x: b ? (b[0] + b[2]) / 2 : h ? h.c[0] : 0 };
   }).sort((a, b) => a.x - b.x);
   const xs = order.map(o => o.x), x0 = Math.min(...xs), x1 = Math.max(...xs);
-  const D = Math.min(2600, Math.max(900, 350 + S.items.length * 70));
+  const D = STATIC ? 0 : Math.min(2600, Math.max(900, 350 + S.items.length * 70));
   if (isNum) A.classList.add('counting');
   let scan = null;
   if (S.mode !== 'model' && SV.items.length && !SV.inline) scan = makeScan(x0, x1);
@@ -267,7 +298,7 @@ async function reveal(r, run) {
   await new Promise(res => {
     (function step(now) {
       if (run !== S.run) { scan?.remove(); return res(); }
-      const t = Math.min(1, (now - t0) / D), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const t = D ? Math.min(1, (now - t0) / D) : 1, e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
       const x = x0 + (x1 - x0 + 1e-9) * e;
       while (k < order.length && (order[k].x <= x + 1e-9 || t >= 1)) {
         const it = order[k].it; revealItem(it.n); k++;
@@ -879,38 +910,89 @@ $('#sbBtn').onclick = async () => {
 $('#sbX').onclick = () => $('#sb').hidden = true;
 $('#sb').onclick = e => { if (e.target.id === 'sb') $('#sb').hidden = true; };
 
-// ============================================================ guided tour (one showcase per source)
+// ============================================================ guided tour: the moments a site engineer should see
+// Captions are built from the live answer (value, ground truth, item count); no number is typed into this file.
+const SW = 'data/swiss_dwellings/site1000_bldg2082_floor9385.pdf';
+const devPct = r => { const t = +r.truth; return t ? 100 * Math.abs(r.value - t) / Math.abs(t) : 0; };
+const pcTxt = d => d === 0 ? '0%' : d < 0.01 ? '<0.01%' : d.toFixed(2) + '%';
 const TOUR = [
-  ['data/swiss_dwellings/site1000_bldg2082_floor9385.pdf', 'Wie viele WCs sind auf diesem Grundriss eingezeichnet?', 'sheet', 2],
-  ['data/swiss_dwellings/site1000_bldg2082_floor9385.pdf', 'What is the net floor area of apartment A in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?', 'sheet', 2],
-  ['data/ifc_models/bsc-esplanades_1807-ep-ar-v18_plan-04-4-korrus.pdf', 'Mitu ust on näidatud korruse „4.korrus“ plaanil?', 'split', 3],
-  ['data/ifc_bench/duplex_arc.ifc', 'How many bedrooms are there?', 'model', 2],
-  ['data/opening_design/Sports_Complex/Sheets - Current Set/A-801 - Door and Finish Schedules & Wall Types.pdf', 'On sheet A-801 of the Xcel Sports Complex drawings, how many doors in the door schedule are door type B2 (double aluminium door with glazing)?', 'sheet', 2],
-  ['data/cubicasa5k/colorful-11400.png', 'Kuinka monta ikkunaa pohjapiirustuksessa on?', 'sheet', 2],
+  { k: 'Exact count', path: SW, q: 'Wie viele WCs sind auf diesem Grundriss eingezeichnet?', mode: 'sheet', steps: 3,
+    cap: r => `Asked in German. <em>${fmtVal(r.value)} WCs</em>, each one boxed and numbered on the real drawing. ${r.correct ? 'Matches the ground truth <em>exactly</em>, as Stoa\'s scoring demands for counts.' : ''} Step through them with ← →.` },
+  { k: 'Areas, within 2%', path: SW, q: 'What is the net floor area of apartment A in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?', mode: 'sheet', steps: 2,
+    cap: r => `Net floor area: <em>${fmtVal(r.value)} ${esc(r.unit)}</em> vs ground truth ${fmtVal(r.truth)}, within <em>${pcTxt(devPct(r))}</em> (limit 2%). Every room in the sum is cited, so you can check each area against the printed label.` },
+  { k: '2D ⇆ 3D in sync', path: 'data/ifc_models/bsc-esplanades_1807-ep-ar-v18_plan-04-4-korrus.pdf', q: 'Mitu ust on näidatud korruse „4.korrus“ plaanil?', mode: 'split', steps: 3,
+    cap: r => `Estonian office floor, asked in Estonian. <em>${fmtVal(r.value)} doors</em>: click a number and the sheet and the IFC model fly to the same door, with its <em>GlobalId</em>.` },
+  { k: 'Schedules', path: 'data/opening_design/Sports_Complex/Sheets - Current Set/A-801 - Door and Finish Schedules & Wall Types.pdf', q: 'On sheet A-801 of the Xcel Sports Complex drawings, how many doors in the door schedule are door type B2 (double aluminium door with glazing)?', mode: 'sheet', steps: 2,
+    cap: r => `A real US drawing set. The door schedule is read row by row: <em>${fmtVal(r.value)} type B2 doors</em>, each row highlighted where it sits on sheet A-801.` },
+  { k: 'Walk the plan', path: SW, q: 'Wie viele WCs sind auf diesem Grundriss eingezeichnet?', walk: true,
+    cap: () => `The same 2D plan, extruded into a building you can <em>walk through</em>. The tour visits every counted WC in first person.` },
+  { k: 'Bill of quantities', path: SW, boq: true,
+    cap: () => `One click: a <em>bill of quantities</em> for the whole floor (rooms, floor areas, doors, windows, sanitary fixtures), every line cross-checked against the dataset's own questions. CSV and PDF export.` },
+  { k: 'Cost race', race: true,
+    cap: () => `The same questions, two ways. A frontier VLM would pay per image; PINPOINT reads the geometry already in the file. Measured costs vs a list-price estimate.` },
 ];
 S.touring = false;
 const tourWait = async ms => { const t = performance.now(); while (S.touring && performance.now() - t < ms) await sleep(100); };
+function tourCap(i, html) {
+  let c = $('#tourCap');
+  if (!c) { c = el('div', 'tourCap'); c.id = 'tourCap'; document.body.append(c); }
+  c.hidden = html == null; if (html == null) return;
+  c.style.animation = 'none'; c.offsetHeight; c.style.animation = '';
+  c.innerHTML = `<small>${i + 1} / ${TOUR.length} · ${esc(TOUR[i].k)}</small>${html}<div class="dots">${TOUR.map((_, j) => `<i class="${j < i ? 'past' : j === i ? 'on' : ''}"></i>`).join('')}</div>`;
+}
+const overlays = async () => Promise.all([import('/static/walk.js'), import('/static/boq.js'), import('/static/race.js')]);
+async function closeOverlays() { const [w, b, r] = await overlays(); w.close(); b.close(); r.close(); }
+function stopTour() { S.touring = false; $('#tourBtn').textContent = '▶ Tour'; $('#tourBtn').classList.remove('on'); tourCap(0, null); }
 async function tour() {
-  if (S.touring) { S.touring = false; $('#tourBtn').textContent = '▶ Tour'; $('#tourBtn').classList.remove('on'); return; }
+  if (S.touring) { stopTour(); closeOverlays(); return; }
   S.touring = true; $('#tourBtn').textContent = '■ Stop'; $('#tourBtn').classList.add('on');
+  $('#splash').hidden = true; $('#sb').hidden = true;
   const um = S.userMode;
-  for (const [path, q, mode, steps] of TOUR) {
-    if (!S.touring) break;
-    const f = S.cat.find(x => x.path === path); if (!f) continue;
-    S.userMode = mode;
-    if (S.file !== f) { selectFile(f); await tourWait(900); }
-    $('#q').value = '';
-    for (const ch of q) { if (!S.touring) break; $('#q').value += ch; await sleep(16); }
-    if (!S.touring) break;
-    await ask();
-    await tourWait(1600);
-    for (let i = 1; i <= Math.min(steps, S.items.length) && S.touring; i++) { select(i); await tourWait(1700); }
-    if (S.touring && S.items.length) { clearSel(); await tourWait(1800); }
+  const [W, B, R] = await overlays();
+  for (let i = 0; i < TOUR.length && S.touring; i++) {
+    const st = TOUR[i];
+    try {
+      if (st.race) { tourCap(i, st.cap()); await R.openRace(); await tourWait(9000); break; }   // the race stays up as the closing frame
+      const f = S.cat.find(x => x.path === st.path); if (!f) continue;
+      if (S.file !== f) { S.userMode = st.mode || 'sheet'; selectFile(f); await tourWait(900); }
+      if (st.boq) {
+        tourCap(i, st.cap()); await B.openBoq({ path: f.path, name: f.name }); await tourWait(8500); B.close(); continue;
+      }
+      if (st.walk) {
+        tourCap(i, st.cap());
+        await W.openWalk({ path: f.path, name: f.name, q: st.q, mode: 'walk' });
+        await tourWait(4200);
+        if (S.touring) document.querySelector('#wkAuto')?.click();
+        await tourWait(11000);
+        W.close(); continue;
+      }
+      S.userMode = st.mode;
+      tourCap(i, null);
+      $('#q').value = '';
+      for (const ch of st.q) { if (!S.touring) break; $('#q').value += ch; if (!STATIC) await sleep(14); }
+      if (!S.touring) break;
+      await ask();
+      tourCap(i, st.cap(S.last));
+      await tourWait(1800);
+      for (let k = 1; k <= Math.min(st.steps, S.items.length) && S.touring; k++) { select(k); await tourWait(1900); }
+      if (S.touring && S.items.length) { clearSel(); await tourWait(1800); }
+    } catch (e) { console.warn('tour step failed', st.k, e); }
   }
   S.userMode = um;
-  S.touring = false; $('#tourBtn').textContent = '▶ Tour'; $('#tourBtn').classList.remove('on');
+  const wasOn = S.touring; stopTour();
+  if (!wasOn) closeOverlays();
 }
 $('#tourBtn').onclick = tour;
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.touring) { stopTour(); closeOverlays(); } }, true);
 
-window.PP = { S, SV, T, select, setMode, ask, hot, clearSel, selectFile, show };
+// ============================================================ cost race (static/race.js; numbers from /api/race = data/eval/*.json)
+const openRace = async () => { const m = await import('/static/race.js'); $('#splash').hidden = true; return m.openRace(); };
+$('#raceBtn').onclick = openRace;
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input, textarea') || e.metaKey || e.ctrlKey || document.body.classList.contains('wkOpen') || document.body.classList.contains('boqOpen')) return;
+  if (e.key === 'r') openRace();
+});
+if (new URLSearchParams(location.search).get('race')) openRace();
+
+window.PP = { S, SV, T, select, setMode, ask, hot, clearSel, selectFile, show, tour, openRace };
 boot();

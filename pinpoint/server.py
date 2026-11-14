@@ -109,6 +109,8 @@ def mesh(path: str = Query(...)):
 
 from .wow import router as _wow_router  # WOW track: 3D walkthrough + bill of quantities
 app.include_router(_wow_router)
+from .race import router as _race_router  # UI: cost race (eval files vs VLM list-price estimate)
+app.include_router(_race_router)
 
 app.mount('/static', StaticFiles(directory=STATIC), name='static')
 

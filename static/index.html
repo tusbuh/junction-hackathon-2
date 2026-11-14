@@ -41,6 +41,7 @@
     <div class="m save"><label>cheaper</label><b id="mSave">–</b></div>
   </div>
   <button class="tbtn" id="tourBtn">▶ Tour</button>
+  <button class="tbtn" id="raceBtn" title="PINPOINT vs a frontier VLM on the same questions (R)">€ Cost race</button>
   <button class="tbtn" id="sbBtn">▦ Scoreboard</button>
 </header>
 
@@ -58,6 +59,7 @@
         <div class="empty" id="sheetEmpty"><div class="ring"></div><span>Pick a drawing and ask a question.</span></div>
         <canvas class="minimap" id="minimap" width="200" height="140" hidden></canvas>
         <div class="vtag">2D · drawing</div>
+        <div class="credit" id="credit2d"></div>
       </div>
       <div class="view modelv" id="modelv" hidden>
         <canvas id="three"></canvas>
@@ -66,6 +68,7 @@
         <div class="pick" id="pick" hidden></div>
         <div class="load" id="load3d" hidden><div class="spin"></div><span>tessellating IFC…</span></div>
         <div class="vtag">3D · IFC model <span id="cutTag"></span></div>
+        <div class="credit" id="credit3d"></div>
       </div>
     </div>
 
@@ -93,8 +96,8 @@
       </div>
       <div class="wip" id="spWip">Raster scans (CubiCasa): detector in progress, not yet scored</div>
       <div class="langs">Ask in <span>English</span><span>Deutsch</span><span>Suomi</span><span>Eesti</span><span>Dansk</span><span>Français</span><span>Italiano</span></div>
-      <div class="cta"><button class="go" id="spTour">▶ Watch the guided tour</button><button id="spTry">Try it yourself</button></div>
-      <div class="how"><b>/</b> ask · <b>← →</b> step through counted items · <b>1 2 3</b> 2D / split / 3D · <b>⌘K</b> pick a drawing</div>
+      <div class="cta"><button class="go" id="spTour">▶ Watch the guided tour</button><button id="spRace">€ Cost race</button><button id="spTry">Try it yourself</button></div>
+      <div class="how"><b>/</b> ask · <b>← →</b> step through counted items · <b>1 2 3</b> 2D / split / 3D · <b>⌘K</b> pick a drawing · <b>R</b> cost race</div>
     </div></div>
 
     <div class="dock" id="dock">

@@ -24,12 +24,13 @@ def credit(path):
     src = engine.source_of(path)
     lic = os.path.join(engine.DATA, 'data', src, 'LICENSE.md')
     name = os.path.basename(path)
+    rel = path.split(f'{src}/', 1)[1] if f'{src}/' in path else name   # opening_design keys rows by sub-path
     if not os.path.exists(lic):
         return dict(licence=None, credit=f'Stoa Junction 2026 dataset · {src}')
     txt = open(lic, encoding='utf-8').read()
     for line in txt.splitlines():
         cells = [c.strip() for c in line.strip().strip('|').split('|')]
-        if len(cells) >= 4 and cells[0] == name:
+        if len(cells) >= 4 and cells[0] in (name, rel):
             return dict(licence=cells[2], credit=cells[3])
     for line in txt.splitlines():
         if line.startswith('All files:'):
