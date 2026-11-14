@@ -35,6 +35,7 @@ async function loadParts() {
   if (ID.path === p && ID.loading) return ID.loading;
   ID.path = p; ID.parts = null; ID.idx = null;
   ID.loading = fetch(`/api/parts?path=${encodeURIComponent(p)}`).then(r => r.json()).then(d => {
+    if (d.detail) d = { kind: 'none', why: 'This server was started before component identification was added: restart it to enable /api/parts.' };
     if (ID.path !== p) return null;
     ID.parts = d; ID.idx = new Map();
     (d.groups || []).forEach(g => g.types.forEach(t => t.ids.forEach(id => ID.idx.set(id, { g, t }))));
@@ -207,7 +208,8 @@ async function inspect(q, from) {
   card.hidden = false; card.classList.add('loading'); card.classList.toggle('over', !!from?.walk);
   if (!card.innerHTML) card.innerHTML = `<div class="idLoad"><i></i> identifying…</div>`;
   const qs = new URLSearchParams({ path: p }); for (const k of ['id', 'x', 'y', 'mx', 'my', 'hint']) if (q[k] != null && q[k] !== '') qs.set(k, q[k]);
-  const c = await (await fetch('/api/inspect?' + qs)).json();
+  let c = await (await fetch('/api/inspect?' + qs)).json();
+  if (c.detail) c = { none: true, why: 'This server was started before component identification was added: restart it to enable /api/inspect.' };
   card.classList.remove('loading');
   if (c.none) { card.innerHTML = `<div class="idCH"><span class="idKind">NOTHING HERE</span><button class="idX" data-x>✕</button></div><p class="idWhy">${esc(c.why)}</p>`; card.querySelector('[data-x]').onclick = closeCard; return; }
   ID.sel = { id: c.id, geo: c.geo, dxf: c.dxf, kind: c.kind };
