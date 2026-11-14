@@ -317,11 +317,15 @@ def to_csv(b, path):
     if b.get('credit'):
         w.writerow(['Data credit', b['credit'].get('credit'), b['credit'].get('licence') or ''])
     w.writerow([])
-    w.writerow(['Item', 'Section', 'Description', 'Quantity', 'Unit', 'Method', 'Source', 'Printed label', 'Computed', 'Check', 'Evidence count', 'Evidence (GlobalId / label)'])
+    v = verify_cached(path) or {}
+    w.writerow(['Item', 'Section', 'Description', 'Quantity', 'Unit', 'Method', 'Source', 'Printed label', 'Computed', 'Check',
+                'Dataset ground truth', 'Deviation %', 'Dataset question', 'Evidence count', 'Evidence (GlobalId / label)'])
     for l in b['lines']:
         c = l.get('check') or {}
+        g = (v.get(l['id']) or [None])[0]
         w.writerow([l['id'], l['sec'][1], l['desc'], l['qty'], l['unit'], l['method'], l['source'], c.get('printed', ''), c.get('computed', ''),
-                    ('agree' if c.get('ok') else 'DISAGREE') if c else '', len(l['items']), _evidence_ids(l)])
+                    ('agree' if c.get('ok') else 'DISAGREE') if c else '', g['truth'] if g else '', g['dev'] if g else '', g['q'] if g else '',
+                    len(l['items']), _evidence_ids(l)])
     return '﻿' + o.getvalue()   # BOM so Excel opens the umlauts correctly
 
 
@@ -340,12 +344,16 @@ def to_pdf(b, path):
     E = lambda x: html.escape(str(x if x is not None else ''))
     fmt = lambda v: (f'{v:,.3f}'.rstrip('0').rstrip('.') if isinstance(v, float) else f'{v:,}' if isinstance(v, int) else E(v))
     rows, sec = [], None
+    V = verify_cached(path) or {}
     for l in b['lines']:
         if l['sec'] != sec:
             sec = l['sec']
             rows.append(f'<tr class="s"><td colspan="5">{E(sec[0])} &nbsp; {E(sec[1])}</td></tr>')
         c = l.get('check')
         chk = '' if not c else (f' <span class="ok">✓ label {c["printed"]}</span>' if c['ok'] else f' <span class="bad">≠ label {c["printed"]}</span>')
+        gt = (V.get(l['id']) or [None])[0]
+        if gt:
+            chk += f' <span class="gt">✓ dataset ground truth {E(gt["truth"])}{(" · Δ " + str(gt["dev"]) + "%") if gt["type"] != "count" else ""}</span>'
         rows.append(f'<tr><td class="id">{E(l["id"])}</td><td>{E(l["desc"])}{chk}<div class="m">{E(l["method"])} · {E(l["source"])} · {len(l["items"])} evidence item(s)</div></td>'
                     f'<td class="q">{fmt(l["qty"])}</td><td class="u">{E(l["unit"])}</td></tr>')
     kp = ' &nbsp;·&nbsp; '.join(f'<b>{fmt(k["v"])}</b> {E(k["u"])} {E(k["k"])}' for k in b.get('kpi', []))
@@ -360,7 +368,7 @@ def to_pdf(b, path):
 td { border-bottom: 0.5px solid #ccc; padding: 2px 3px; vertical-align: top; } tr.h td { font-weight: bold; border-bottom: 1px solid #000; }
 tr.s td { font-weight: bold; background: #1d2433; color: #ffffff; padding: 3px; font-size: 9px; } .id { font-family: monospace; width: 32px; color: #8a5a00; }
 .q { text-align: right; font-weight: bold; width: 60px; } .u { width: 40px; color: #444; } .m { color: #777; font-size: 6.5px; }
-.ok { color: #138a52; font-size: 7px; } .bad { color: #c0392b; font-size: 7px; font-weight: bold; } .cr { font-size: 7px; color: #444; margin-top: 8px; }'''
+.ok { color: #138a52; font-size: 7px; } .gt { color: #ffffff; background: #138a52; font-size: 6.5px; font-weight: bold; } .bad { color: #c0392b; font-size: 7px; font-weight: bold; } .cr { font-size: 7px; color: #444; margin-top: 8px; }'''
     story = pymupdf.Story(html=doc, user_css=css)
     import io
     buf = io.BytesIO()
@@ -382,3 +390,80 @@ tr.s td { font-weight: bold; background: #1d2433; color: #ffffff; padding: 3px; 
         pg.insert_text((36, pg.rect.height - 22), f'PINPOINT BoQ · {os.path.basename(path)} · page {i - n0 + 1}/{tab.page_count}', fontsize=6.5, color=(.4, .4, .4))
         pg.insert_text((36, pg.rect.height - 13), ('Data: ' + (cr.get('credit') or ''))[:190], fontsize=5.5, color=(.45, .45, .45))
     return out.tobytes(deflate=True)
+
+
+# ====================================================================== cross-check against the dataset's own questions
+def _key(it):
+    if it.get('gid'):
+        return it['gid']
+    b = it.get('bbox')
+    return tuple(round(v, 1) for v in b) if b else it.get('label')
+
+
+_VER, _VLOCK = {}, __import__('threading').Lock()
+
+
+def verify_cached(path):
+    return _VER.get(path)
+
+
+def warm(path):
+    """Start verification in the background (IFC drawings can have hundreds of questions)."""
+    import threading
+    with _VLOCK:
+        if path in _VER or ('busy', path) in _VER:
+            return
+        _VER[('busy', path)] = True
+    def run():
+        try:
+            verify(path)
+        finally:
+            _VER.pop(('busy', path), None)
+    t = threading.Thread(target=run, daemon=True); t._wow_warm = True; t.start()
+
+
+def verify(path):
+    import time
+    while ('busy', path) in _VER and path not in _VER and not getattr(__import__('threading').current_thread(), '_wow_warm', False):
+        time.sleep(0.2)
+    if path in _VER:
+        return _VER[path]
+    out = _verify(path)
+    _VER[path] = out
+    return out
+
+
+def _verify(path):
+    """For every numeric ground-truth question on this drawing, answer it with the engine and find the BoQ line with
+    the same evidence set (same elements). A line is 'verified' when that question's answer matches the ground truth
+    under the challenge's grading (counts exact, measures within 2%). Matching is by evidence identity, not by number."""
+    from . import engine
+    from .wow import _num
+    b = _num(build(path))
+    if b.get('kind') == 'none':
+        return {}
+    idx = {}
+    for l in b['lines']:
+        k = frozenset(_key(i) for i in l['items'])
+        if k:
+            idx.setdefault(k, []).append(l)
+    out, seen = {}, set()
+    for q in engine.questions():
+        if q['path'] != path or q['type'] not in ('count', 'area', 'length', 'volume') or q['question'] in seen:
+            continue
+        seen.add(q['question'])
+        try:
+            r = _num(engine.ask(path, q['question']))
+        except Exception:
+            continue
+        k = frozenset(_key(i) for i in r.get('items') or [])
+        for l in idx.get(k, []):
+            unit_ok = (q['type'] == 'count') == (l['unit'] in ('pcs', 'elements'))
+            same = l['qty'] is not None and r['value'] is not None and abs(float(l['qty']) - float(r['value'])) <= max(1e-6, 0.005 * abs(float(r['value'])))
+            if not unit_ok or not same:
+                continue
+            t = q['answer']
+            dev = abs(float(l['qty']) - float(t)) / abs(float(t)) * 100 if t else 0.0
+            ok = engine.grade(l['qty'], q)
+            out.setdefault(l['id'], []).append(dict(q=q['question'], truth=t, value=l['qty'], ok=bool(ok), dev=round(dev, 3), type=q['type']))
+    return out

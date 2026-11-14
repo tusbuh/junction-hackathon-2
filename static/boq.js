@@ -86,7 +86,21 @@ export async function openBoq({ path, name }) {
   B.$('#bqSub').textContent = `${b.lines.length} lines · ${nItems.toLocaleString('en')} evidence links · measured in ${Math.round(ms)} ms from ${b.kind === 'swiss' ? 'the DXF layers' : 'the IFC model (' + (b.schema || '') + ')'} · 0 LLM calls`;
   B.$('#bqKpi').innerHTML = (b.kpi || []).map((k, i) => `<div style="animation-delay:${i * 70}ms"><b data-v="${typeof k.v === 'number' ? k.v : ''}">${typeof k.v === 'number' ? '0' : esc(k.v ?? '—')}</b><span>${esc(k.u)} ${esc(k.k)}</span></div>`).join('');
   B.$('#bqKpi').querySelectorAll('b[data-v]').forEach(n => { const v = parseFloat(n.dataset.v); if (!isNaN(v)) countUp(n, v, Number.isInteger(v) ? 0 : 2); });
+  B.v = {};
   renderRows();
+  const vpath = path;
+  fetch(`/api/boq_verify?path=${encodeURIComponent(path)}`).then(r => r.json()).then(v => {
+    if (B.path !== vpath || !B.open) return;
+    B.v = v || {};
+    const nl = Object.keys(B.v).length, nq = Object.values(B.v).reduce((a, x) => a + x.length, 0), bad = Object.values(B.v).flat().filter(x => !x.ok).length;
+    if (nl) {
+      const k = document.createElement('div'); k.className = 'gtK';
+      k.innerHTML = `<b>${nl}</b><span>lines = dataset ground truth (${nq} questions${bad ? `, ${bad} off` : ''})</span>`;
+      k.title = 'Each verified line has exactly the same evidence elements as a dataset question, and its quantity meets the challenge grading (counts exact, measures within 2%).';
+      B.$('#bqKpi').append(k);
+    }
+    renderRows();
+  }).catch(() => { });
   await showDrawing(b);
 }
 export function close() { B.open = false; B.root.hidden = true; document.body.classList.remove('boqOpen'); }
@@ -102,7 +116,8 @@ function renderRows() {
   const R = B.$('#bqRows'); R.innerHTML = '';
   let sec = null, n = 0, i = 0;
   B.b.lines.forEach(l => {
-    if (q && !`${l.id} ${l.desc} ${l.method} ${l.source} ${l.unit}`.toLowerCase().includes(q)) return;
+    const gt = B.v?.[l.id];
+    if (q && !`${l.id} ${l.desc} ${l.method} ${l.source} ${l.unit} ${gt ? 'verified ground truth gt' : ''}`.toLowerCase().includes(q)) return;
     if (!sec || l.sec[0] !== sec) {
       sec = l.sec[0];
       const h = document.createElement('div'); h.className = 'bqSec';
@@ -116,7 +131,7 @@ function renderRows() {
     r.className = 'bqRow' + (B.sel === l.id ? ' on' : '') + (l.note === 'derived' ? ' der' : '') + (c && !c.ok ? ' warn' : '');
     r.dataset.id = l.id; r.style.animationDelay = Math.min(i++ * 12, 500) + 'ms';
     r.innerHTML = `<span class="id">${esc(l.id)}</span>
-      <span class="d">${esc(l.desc)}${c ? (c.ok ? ` <em class="ok">✓ label ${c.printed}</em>` : ` <em class="bad">≠ label ${c.printed}</em>`) : ''}${l.note === 'derived' ? ' <em class="dv">derived</em>' : ''}
+      <span class="d">${esc(l.desc)}${c ? (c.ok ? ` <em class="ok">✓ label ${c.printed}</em>` : ` <em class="bad">≠ label ${c.printed}</em>`) : ''}${l.note === 'derived' ? ' <em class="dv">derived</em>' : ''}${gt ? ` <em class="${gt.every(x => x.ok) ? 'gt' : 'bad'}" title="${esc(gt.map(x => `${x.ok ? '✓' : '✗'} ${x.q}\n   ground truth ${x.truth} · ours ${x.value} · Δ ${x.dev}%`).join('\n'))}">✓ ground truth ${esc(gt[0].truth)}${gt[0].type !== 'count' ? ` · Δ ${gt[0].dev}%` : ''}${gt.length > 1 ? ` · ${gt.length} Qs` : ''}</em>` : ''}
         <small>${esc(l.method)} · <b>${esc(l.source)}</b></small></span>
       <span class="q">${fmtQ(l.qty, l.unit)}<small>${esc(l.unit)}</small></span>
       <span class="ev" title="evidence items">${l.items.length}</span>`;

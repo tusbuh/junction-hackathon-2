@@ -171,3 +171,7 @@
 .bqRow.warn .q { color: #ffc94d; }
 .bqNone { padding: 40px 24px; color: #a7b4ca; } .bqNone b { color: #eaf0f9; font-size: 16px; }
 @media (max-width: 900px) { .bqBody { grid-template-columns: 1fr; grid-template-rows: 45% 55%; } .bqKpi { display: none; } }
+
+.bqRow .d em.gt { color: #0b1a10; background: #3ddc97; cursor: help; }
+.bqKpi .gtK { border-color: #3ddc9788; background: #3ddc9712; animation: bqPop .5s both; }
+.bqKpi .gtK b { color: #3ddc97; }

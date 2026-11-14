@@ -76,7 +76,18 @@ def boq(path: str = Query(...)):
     from .server import safe
     safe(path)
     from . import boq as B
-    return JSONResponse(_num(B.build(path)))
+    out = _num(B.build(path))
+    if out.get('kind') != 'none':
+        B.warm(path)
+    return JSONResponse(out)
+
+
+@router.get('/api/boq_verify')
+def boq_verify(path: str = Query(...)):
+    from .server import safe
+    safe(path)
+    from . import boq as B
+    return JSONResponse(B.verify(path))
 
 
 @router.get('/api/boq.csv')
