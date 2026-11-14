@@ -59,7 +59,7 @@ Stoa's scoring: counts exact; areas, lengths and volumes within 2 %. Per source,
 | Swiss floor plans (DXF + PDF) | **2358 / 2358** | **100 %** | count 1614/1614 · area 744/744 | 0.2 ms |
 | IFC building models | **1049 / 1049** | **100 %** | area 846/846 · count 153/153 · volume 34/34 · length 16/16 | 38 ms |
 | US drawing sets (opening_design) | **61 / 64** | **95.3 %** | count 37/39 · text 15/16 · area 9/9 | 0.2 ms |
-| Finnish raster plans (CubiCasa5K) | **3042 / 4270** | **71.2 %** | count 3042/4270 | 0.6 ms |
+| Finnish raster plans (CubiCasa5K) | **3124 / 4270** | **73.2 %** | count 3124/4270 | 0.8 ms |
 
 **Unseen drawings** (`/api/eval_all`, full-dataset drawings not in the preview, never used for development):
 
@@ -77,11 +77,11 @@ Measured CPU time × €0.04 per vCPU-hour (+ LLM tokens if the optional router 
 
 | | PINPOINT (measured) | frontier VLM (list-price estimate*) |
 |---|---|---|
-| all 7,741 graded preview questions | **€0.0013** (120 s CPU) | €170.48 |
-| per question | ≈ €0.00000017 | ≈ €0.022 |
+| all 7,741 graded preview questions | **€0.0024** (213.6 s CPU) | €170.48 |
+| per question | ≈ €0.00000031 | ≈ €0.022 |
 
 \* Estimate, not a measurement: ~1.6k image tokens per 1.15 MP at 200 dpi plus prompt/answer at $3/$15 per Mtok.
-Ratio ≈ 10⁵×.
+Ratio ≈ 72,135×.
 
 ## Real errors found in the dataset (from the files, `static/findings.json` + `/api/audit`)
 

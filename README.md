@@ -34,10 +34,10 @@ never blended: the sources differ in kind and size.
 
 | source | what PINPOINT reads | exact / graded | accuracy | median latency | measured cost, whole source |
 |---|---|---|---|---|---|
-| Swiss floor plans (DXF + PDF, EN/DE/FR/IT) | DXF layers → symbols + room polygons, projected onto the PDF | **2358 / 2358** (count 1614/1614, area 744/744) | **100 %** | 0.2 ms | €0.000052 |
-| IFC building models (EN/ET/DA/DE) | ifcopenshell: elements, storeys, quantities, 3D footprints | **1049 / 1049** (area 846/846, count 153/153, volume 34/34, length 16/16) | **100 %** | 38 ms | €0.00039 |
+| Swiss floor plans (DXF + PDF, EN/DE/FR/IT) | DXF layers → symbols + room polygons, projected onto the PDF | **2358 / 2358** (count 1614/1614, area 744/744) | **100 %** | 0.2 ms | €0.000053 |
+| IFC building models (EN/ET/DA/DE) | ifcopenshell: elements, storeys, quantities, 3D footprints | **1049 / 1049** (area 846/846, count 153/153, volume 34/34, length 16/16) | **100 %** | 38 ms | €0.00090 |
 | US drawing sets (opening_design schedule sheets) | rotation-aware vector words → schedule tables, highlighted rows | **61 / 64** (count 37/39, text 15/16, area 9/9) | **95.3 %** | 0.2 ms | €0.0000017 |
-| Finnish raster plans (CubiCasa5K PNG) | leak-free YOLOv8n + YOLO11s ensemble (both trained only on the 213 CubiCasa5K plans not in the Stoa set) + fi/en room-label OCR + fixture priors from those 213 plans + nested-box de-duplication | **3124 / 4270** (all count questions) | **73.2 %** | 0.8 ms (p95 322 ms) | €0.0014 |
+| Finnish raster plans (CubiCasa5K PNG) | leak-free YOLOv8n + YOLO11s ensemble (both trained only on the 213 CubiCasa5K plans not in the Stoa set) + fi/en room-label OCR + fixture priors from those 213 plans + nested-box de-duplication | **3124 / 4270** (all count questions) | **73.2 %** | 0.8 ms (p95 321 ms) | €0.0014 |
 | IFC-Bench v2 (free text) | deterministic intents over IFC facts, GlobalIds cited | not auto-graded (reference answer shown) | — | — | — |
 
 0 LLM calls in every run above. Open the **▦ Scoreboard** in the app for the live numbers.
@@ -77,12 +77,12 @@ above). From `/api/race` (same `data/eval/*.json`):
 
 | | PINPOINT (measured) | frontier VLM (list-price estimate) |
 |---|---|---|
-| all 7,741 graded preview questions | **€0.0013** (120 s CPU) | €170.48 |
-| per question | ≈ €0.00000017 | ≈ €0.022 |
-| Swiss floor plans, 2,358 questions | €0.000052 | €51.93 |
+| all 7,741 graded preview questions | **€0.0024** (213.6 s CPU) | €170.48 |
+| per question | ≈ €0.00000031 | ≈ €0.022 |
+| Swiss floor plans, 2,358 questions | €0.000053 | €51.93 |
 
 The VLM column is an estimate, not a measurement: ~1.6k image tokens per 1.15 MP at 200 dpi plus prompt/answer at
-$3/$15 per Mtok. On these numbers a frontier VLM would cost roughly 10⁵× more for the same questions. The UI's cost meter
+$3/$15 per Mtok. On these numbers a frontier VLM would cost about 72,135× more for the same questions. The UI's cost meter
 shows both per answer; click it (or press `R`) for the cost race.
 
 ## How it works
