@@ -141,7 +141,7 @@ def detector_answer(path, key, how):
                   check=None if d['conf'] >= 0.5 else dict(printed='', computed=d['conf'], ok=False, what='low confidence'))
              for d in sorted(keep, key=lambda d: (d['bbox'][1], d['bbox'][0]))]
     steps = [f"Router ({how}): question → “{key.replace('_', ' ')}” = detector classes {', '.join(cls)}",
-             f"YOLOv8n detector (fine-tuned only on the 213 CubiCasa5K plans that are not in the Stoa set, so no test plan was seen; CubiCasa5K CC BY-NC-SA 4.0) on 4 rotations, boxes fused: {len(ds)} detections",
+             f"{'YOLOv8n + YOLO11s ensemble' if D.ensemble() else 'YOLOv8n detector'} (fine-tuned only on the 213 CubiCasa5K plans that are not in the Stoa set, so no test plan was seen; CubiCasa5K CC BY-NC-SA 4.0) on 4 rotations, boxes fused: {len(ds)} detections",
              f"Kept {len(keep)} {'/'.join(LABEL[c] for c in cls)} above the per-class threshold tuned on 25 held-out leak-free plans"
              + (f" ({len(raw) - len(keep)} duplicate box(es) inside a stronger one dropped)" if len(raw) > len(keep) else '')]
     if len(keep) < prior:

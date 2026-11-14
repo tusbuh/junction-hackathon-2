@@ -19,11 +19,18 @@ ROOT = Path(__file__).resolve().parents[2]
 # leak-free weights: trained ONLY on the 213 CubiCasa5K plans not in the Stoa set (pinpoint/raster/build_free.py)
 WEIGHTS = ROOT / "data/models/cubicasa_yolo_free.pt"
 THRESH = ROOT / "data/models/cubicasa_free_thresholds.json"
+# second leak-free model (YOLO11s, same 213 free plans, RASTER4): its boxes are fused with the YOLOv8n boxes
+# (mean confidence, 0 where one model missed). Per class, the 25 held-out free plans decide which source wins:
+# the ensemble for every class except shower / bathtub / bedroom, where YOLOv8n alone was better on val25.
+WEIGHTS2 = ROOT / "data/models/cubicasa_yolo11s_free.pt"
+THRESH_ENS = ROOT / "data/models/cubicasa_ens_thresholds.json"
+V8N_ONLY = {"shower", "bathtub", "room_bedroom"}
 IMGSZ = 1024
 FLOOR_CONF = 0.05
 TTA = True  # 4-rotation test-time augmentation (set per thresholds file)
 
 _model = None
+_model2 = None
 _lock = threading.Lock()
 _thr = None
 
@@ -42,15 +49,31 @@ def model():
     return _model
 
 
+def model2():
+    global _model2
+    with _lock:
+        if _model2 is None:
+            from ultralytics import YOLO
+            _model2 = YOLO(str(WEIGHTS2))
+    return _model2
+
+
+def ensemble():
+    return WEIGHTS2.exists() and THRESH_ENS.exists()
+
+
 def thresholds():
     global _thr
     if _thr is None:
         _thr = json.loads(THRESH.read_text()) if THRESH.exists() else {}
+        if ensemble():
+            ens = json.loads(THRESH_ENS.read_text())
+            _thr = {c: (_thr.get(c, 0.25) if c in V8N_ONLY else ens.get(c, 0.25)) for c in set(_thr) | set(ens)}
     return _thr
 
 
-def _predict(im, conf, imgsz):
-    m = model()
+def _predict(im, conf, imgsz, m=None):
+    m = m or model()
     with _lock:
         r = m.predict(im, imgsz=imgsz, conf=conf, iou=0.5, device=_device(),
                       verbose=False, max_det=600)[0]
@@ -66,6 +89,34 @@ def _iou(a, b):
 
 
 def detect(png_path, conf=FLOOR_CONF, imgsz=IMGSZ, tta=None):
+    """Leak-free detections: YOLOv8n alone, or (when the YOLO11s weights are present) the two-model ensemble."""
+    a = detect1(png_path, conf, imgsz, tta)
+    if not ensemble():
+        return a
+    b = detect1(png_path, conf, imgsz, tta, m=model2())
+    return [d for d in a if d["cls"] in V8N_ONLY] + [d for d in _fuse2(a, b) if d["cls"] not in V8N_ONLY]
+
+
+def _fuse2(A, B):
+    """Same-class boxes of the two models with IoU >= 0.45 are one object; conf = mean of the two (0 if one missed)."""
+    allds = sorted([(0, d) for d in A] + [(1, d) for d in B], key=lambda x: -x[1]["conf"])
+    used, out = [False] * len(allds), []
+    for i, (src, d) in enumerate(allds):
+        if used[i]:
+            continue
+        grp = {src: d["conf"]}
+        used[i] = True
+        for j in range(i + 1, len(allds)):
+            s2, e = allds[j]
+            if not used[j] and s2 not in grp and e["cls"] == d["cls"] and \
+                    _iou(np.array(d["bbox"]), np.array([e["bbox"]]))[0] >= 0.45:
+                grp[s2] = e["conf"]
+                used[j] = True
+        out.append({"cls": d["cls"], "conf": round(sum(grp.values()) / 2, 4), "bbox": d["bbox"]})
+    return out
+
+
+def detect1(png_path, conf=FLOOR_CONF, imgsz=IMGSZ, tta=None, m=None):
     """Run the detector on one image. bbox is in original image pixels.
 
     tta=True runs the model on 4 rotations (0/90/180/270 deg) and fuses the boxes:
@@ -76,12 +127,12 @@ def detect(png_path, conf=FLOOR_CONF, imgsz=IMGSZ, tta=None):
     im = cv2.imread(str(png_path), cv2.IMREAD_COLOR)
     H, W = im.shape[:2]
     if not tta:
-        names, b, c, k = _predict(im, conf, imgsz)
+        names, b, c, k = _predict(im, conf, imgsz, m)
         return [{"cls": names[int(kk)], "conf": round(float(cc), 4), "bbox": [round(float(v), 1) for v in bb]}
                 for bb, cc, kk in zip(b, c, k)]
     allb, allc, allk, alla = [], [], [], []
     for r in range(4):
-        names, b, c, k = _predict(np.ascontiguousarray(np.rot90(im, r)), conf, imgsz)
+        names, b, c, k = _predict(np.ascontiguousarray(np.rot90(im, r)), conf, imgsz, m)
         allb.append(_unrotate_k(b, r, W, H)); allc.append(c); allk.append(k); alla.append(np.full(len(c), r))
     b, c, k, a = np.concatenate(allb), np.concatenate(allc), np.concatenate(allk), np.concatenate(alla)
     out = []
