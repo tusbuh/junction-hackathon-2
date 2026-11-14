@@ -2,8 +2,8 @@
 
 Live app: `http://127.0.0.1:8737` (add `?static=1` for screen recordings, so counters show final values instantly).
 Every number below comes from `/api/scoreboard`, `/api/eval_all`, `/api/race` or a committed file (README.md,
-`static/findings.json`). Header, left to right: drawing picker, ask box, cost meter (click = cost race), `🚶 Walk in 3D`
-(W), `▤ BoQ` (Q), `⚠ Audit` (A), `⌖ Identify` (I), `▶ Tour`, `▦ Scores`. Where a value is computed live on screen, the script says "read it off the screen" rather than
+`static/findings.json`). Header, left to right: drawing picker, ask box, cost meter (click = cost race), `Walk in 3D`
+(W), `BoQ` (Q), `Audit` (A), `Identify` (I), `Tour`, `Scores`. Where a value is computed live on screen, the script says "read it off the screen" rather than
 quoting a number. **Keep the licence credit line under the drawing visible in every shot.**
 
 Audience: Stoa's founding tech team and a construction engineer. Speak like a site engineer: takeoff, door schedule,
@@ -13,7 +13,7 @@ BoQ, as-built, RFI.
 
 ## 0:00 – 0:15 · The pain (splash screen)
 
-**Show:** the splash: four per-source cards and the green cost strip under them.
+**Show:** the splash: four per-source columns and the cost strip under them.
 
 **Say:**
 > "A site engineer loses hours a day hunting through drawing sets for one number: how many WCs on level 3, the net
@@ -22,12 +22,12 @@ BoQ, as-built, RFI.
 > answer."
 
 **Point at:** Swiss CAD floor plans 2,358/2,358, IFC building models 1,049/1,049, US drawing sets 61/64, Finnish raster
-scans 3,124/4,270 (amber: honest, not hidden). "Per source, never blended. Counts exact, quantities within 2 %, which is
+scans 3,124/4,270 (shown as is, not hidden). "Per source, never blended. Counts exact, quantities within 2 %, which is
 Stoa's own scoring."
 
 ## 0:15 – 0:45 · Ask box, receipt and citations (quantity takeoff)
 
-**Do:** `Try it yourself` → Swiss plan `site1000_bldg2082_floor9385` → ask in German:
+**Do:** `Open the drawing` → Swiss plan `site1000_bldg2082_floor9385` → ask in German:
 `Wie viele WCs sind auf diesem Grundriss eingezeichnet?`
 
 **Say:**
@@ -46,7 +46,7 @@ loggias, terraces and other outdoor spaces?`
 > "80.33 square metres against the reference 80.34: within 0.01 %, inside the 2 % limit. All nine rooms in the sum are
 > shaded and cited, and each one is checked against its own printed m² label. That's a takeoff a QS can sign off."
 
-**Point at:** the green tolerance badge, the per-room `= label` checks, the cross-check (Σ printed m² labels = Σ room
+**Point at:** the tolerance badge, the per-room `= label` checks, the cross-check (Σ printed m² labels = Σ room
 polygons, 74.89 = 74.89 m² on the 7 rooms that carry a label).
 
 **If asked about balconies:** this floor has none. On `site1088_bldg2216_floor10132` ask the apartment C area question:
@@ -55,7 +55,7 @@ reason.
 
 ## 1:00 – 1:25 · Drawing audit (catching real errors before the RFI)
 
-**Do:** `⚠ Audit` (key `A`) → `★ Errors we found in the dataset` → Sports Complex door package.
+**Do:** `Audit` (key `A`) → `Errors we found in the dataset` → Sports Complex door package.
 
 **Say:**
 > "Here PINPOINT catches mistakes in the drawings themselves. On this US drawing set the door schedule lists 41 doors, but the
@@ -68,7 +68,7 @@ geometry, so the concrete volume in every takeoff is over-counted.
 
 ## 1:25 – 1:45 · Click-to-identify components (as-built check)
 
-**Do:** `⌖ Identify` (key `I`) → click a door on the plan, then a wall in the IFC model.
+**Do:** `Identify` (key `I`) → click a door on the plan, then a wall in the IFC model.
 
 **Say:**
 > "Click any element and you get a site-ready card: what it is, its type, its size (clear opening, leaf, swing,
@@ -82,17 +82,17 @@ takeoff counts the opening once.
 ## 1:45 – 2:05 · 2D ⇆ 3D and the walkthrough
 
 **Do:** IFC plan `bsc-esplanades … 4-korrus` in split view (key `2`), ask in Estonian:
-`Mitu ust on näidatud korruse „4.korrus“ plaanil?` → click a numbered door → then `🚶 Walk in 3D` (key `W`) on the
+`Mitu ust on näidatud korruse „4.korrus“ plaanil?` → click a numbered door → then `Walk in 3D` (key `W`) on the
 Swiss plan.
 
 **Say:**
 > "Estonian office floor, asked in Estonian. Click door 3 and the sheet and the BIM model fly to the same door by its
 > GlobalId, with no fitting and no guessing. And any 2D plan becomes a building you can walk through; the counted
-> elements glow. That's how you'd brief a crew before they go on site."
+> elements are highlighted. That's how you'd brief a crew before they go on site."
 
 ## 2:05 – 2:25 · Bill of quantities
 
-**Do:** `▤ BoQ` (key `Q`) on the Swiss plan → hover a line → show CSV/PDF export.
+**Do:** `BoQ` (key `Q`) on the Swiss plan → hover a line → show CSV/PDF export.
 
 **Say:**
 > "One click: the whole floor's BoQ, with rooms, net areas, doors, windows and sanitary fixtures, every line traceable to
@@ -114,7 +114,7 @@ Swiss plan.
 
 ## 2:45 – 3:00 · Guided tour + close
 
-**Do:** `▶ Tour` (let it run in the background while closing; it plays count → area → 2D/3D → door schedule → walk →
+**Do:** `Tour` (let it run in the background while closing; it plays count → area → 2D/3D → door schedule → walk →
 BoQ → cost race, captions built from the live answers).
 
 **Say:**

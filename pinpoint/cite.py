@@ -99,7 +99,7 @@ def confidence(r, src, checks):
     ok = [c for c in checks if c.get('ok')]
     bad = [c for c in checks if c.get('ok') is False]
     if bad:
-        s = min(s, 0.6); why.append(f'{len(bad)} cross-check(s) disagree: verify the amber items')
+        s = min(s, 0.6); why.append(f'{len(bad)} cross-check(s) disagree: verify the flagged items')
     elif ok:
         s = min(1.0, s + 0.02); why.append(f'{len(ok)} independent cross-check(s) agree')
     low = [i for i in r.get('items') or [] if (i.get('check') or {}).get('what') == 'low confidence']

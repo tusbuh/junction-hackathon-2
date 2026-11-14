@@ -3,7 +3,7 @@
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const num = v => typeof v === 'number' ? (Number.isInteger(v) ? v.toLocaleString('en') : v.toLocaleString('en', { maximumFractionDigits: 2, minimumFractionDigits: 2 })) : (v ?? '—');
 const withUnit = (v, u) => v == null || v === '' ? '—' : `${num(v)}${u && u !== 'count' && u !== 'text' ? ' ' + u : ''}`;
-const CONF = { high: 'High confidence', check: 'Check the amber items', low: 'Low confidence' };
+const CONF = { high: 'High confidence', check: 'Check the flagged items', low: 'Low confidence' };
 
 function delta(p, c) {
   if (typeof p !== 'number' || typeof c !== 'number' || !p) return '';
