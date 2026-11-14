@@ -237,7 +237,7 @@ html.theme-b {
   & .tourCap .dots i.past { background: var(--ink); }
 
   /* ================================================================= SPLASH: the front page */
-  & .splash { background: rgba(244, 238, 227, .985); backdrop-filter: none; }
+  & .splash { background: var(--paper); backdrop-filter: none; }
   & .splash .sc { text-align: left; max-width: 940px; width: calc(100% - 100px); padding: 10px 0 0; }
   & .splash .sc::before { content: 'No. 01  \2014  every answer comes with a receipt'; white-space: pre; display: block; padding-bottom: 12px; margin-bottom: 18px;
     border-bottom: 2px solid var(--ink); font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
