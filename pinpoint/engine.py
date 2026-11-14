@@ -246,7 +246,33 @@ def grade(v, gt):
     if gt['type'] in ('area', 'length', 'volume'):
         try: return abs(float(v) - float(a)) <= 0.02 * abs(float(a)) + 1e-9
         except Exception: return False
-    return None   # free-text: not auto-graded
+    if gt['type'] == 'text' and source_of(gt.get('path', '')) != 'ifc_bench':   # ifc_bench: long narrative answers, not auto-graded
+        return grade_text(v, a)
+    return None
+
+
+_STOP = {'the', 'and', 'with', 'for', 'per', 'are', 'its', 'that', 'this', 'from', 'each', 'all', 'has', 'have', 'kind', 'one'}
+
+
+def grade_text(v, a):
+    """Free-text answers (dataset README: 'text is free-form'), graded strictly but fairly:
+    correct if the normalised truth appears verbatim in the answer, or if EVERY number/code of the truth
+    appears and at least 60% of its content words do. Long narrative truths (> 30 words) are not auto-graded."""
+    a, v = str(a), str(v)
+    if len(a.split()) > 30:
+        return None
+    norm = lambda t: re.sub(r'[\s\u2019’`]+', '', t.lower().replace('″', '"').replace('′', "'").replace('aluminum', 'aluminium'))
+    if norm(a) and norm(a) in norm(v):
+        return True
+    al, vl = a.lower().replace('aluminum', 'aluminium'), v.lower().replace('aluminum', 'aluminium')
+    codes = re.findall(r"[a-z]*\d[\w./'\"-]*", al)
+    if any(norm(c).strip('.') not in norm(vl) for c in codes):
+        return False
+    words = [w for w in re.findall(r'[a-zäöüåæø]{3,}', al) if w not in _STOP]
+    if not words:
+        return bool(codes)
+    vw = set(re.findall(r'[a-zäöüåæø]{3,}', vl))
+    return sum(w in vw for w in words) / len(words) >= 0.6
 
 
 def catalog():
