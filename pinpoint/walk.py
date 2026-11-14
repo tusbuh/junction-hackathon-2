@@ -94,7 +94,10 @@ def build(stem):
     bbox = [min(xs), min(ys), max(xs), max(ys)] if xs else [0, 0, 1, 1]
     # spawn point: centroid of the largest indoor room (usually the living room)
     indoor = [r for r in rooms if not r['outdoor'] and not r['shaft']]
-    big = max(indoor, key=lambda r: r['area'] or 0) if indoor else None
+    import re
+    living = [r for r in indoor if re.search(r'wohn|séjour|sejour|soggiorno|living|salon', r['name'] or '', re.I)]
+    habitable = [r for r in indoor if not re.search(r'reduit|réduit|treppe|escalier|scala|korridor|flur|corridoio|couloir|lift|keller|cave|abstell|ripostiglio|disimpegno', r['name'] or '', re.I)]
+    big = max(living or habitable or indoor, key=lambda r: r['area'] or 0) if indoor else None
     spawn = list(Polygon(big['poly']).representative_point().coords[0]) if big else [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2]
     # the printed sheet, placed under the model: invert the DXF->PDF affine fit (same fit the 2D view uses)
     sheet = None

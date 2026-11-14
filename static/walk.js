@@ -277,20 +277,23 @@ async function buildSwiss(g) {
   g.rooms.forEach(r => {
     const info = { t: 'room', label: `${r.num}${r.name ? ' ' + r.name : ''}`, sub: r.area != null ? `${fmt(r.area)} m² net floor area${r.printed != null ? ` · label ${fmt(r.printed)} m²` : ''}${r.unit ? ` · apartment ${r.unit}` : ''}` : '' };
     const m = prism(r.poly, r.holes, -0.005, 0.0, floorMat(r.name), { cast: false, info }); m.userData.room = r; m.userData.rise = 'floor';
-    if (!r.outdoor) { const c = prism(r.poly, r.holes, H.storey, H.storey + 0.02, MAT.ceil, { cast: false }); c.visible = false; V.ceil.push(c); }
+    if (!r.outdoor) { const c = prism(r.poly, r.holes, H.storey, H.storey + 0.02, MAT.ceil, { cast: false }); c.castShadow = false; c.visible = false; V.ceil.push(c); }
   });
   // walls: dark section-cut cap on top, plaster sides
   g.walls.forEach(w => { const m = prism(w.outer, w.holes, 0, H.storey, [MAT.cap, MAT.wall], { info: { t: 'wall', label: 'Wall', sub: 'from DXF layer WALL' } }); m.userData.rise = 'wall'; });
   // doors: lintel over the gap + the drawn leaf
   g.doors.forEach((d, i) => {
-    const l = prism(d.gap, null, H.door, H.storey, [MAT.cap, MAT.wall], { info: { t: 'door', label: `Door`, sub: `${Math.round(d.width * 100)} cm clear opening (DXF threshold)` } }); l.userData.rise = 'wall';
+    const dinfo = { t: 'door', label: `Door`, sub: `${Math.round(d.width * 100)} cm clear opening (DXF threshold)` };
+    let l = prism(d.gap, null, H.door, H.storey - 0.01, MAT.wall, { info: dinfo }); l.userData.rise = 'wall';
+    l = prism(d.gap, null, H.storey - 0.01, H.storey, MAT.cap, { info: dinfo, cast: false }); l.userData.rise = 'wall';
     if (d.leaf) { const m = prism(d.leaf, null, 0.01, H.door - 0.02, MAT.leaf, { info: { t: 'door', label: 'Door leaf', sub: `${Math.round(d.width * 100)} cm opening` } }); m.userData.rise = 'wall'; }
   });
   // windows: parapet, glazing, lintel
   g.windows.forEach(w => {
     const info = { t: 'window', label: 'Window', sub: `${Math.round(w.width * 100)} cm wide (DXF frame)` };
-    let m = prism(w.poly, null, 0, H.sill, [MAT.cap, MAT.wall], { info }); m.userData.rise = 'wall';
-    m = prism(w.poly, null, H.head, H.storey, [MAT.cap, MAT.wall], { info }); m.userData.rise = 'wall';
+    let m = prism(w.poly, null, 0, H.sill, MAT.wall, { info }); m.userData.rise = 'wall';
+    m = prism(w.poly, null, H.head, H.storey - 0.01, MAT.wall, { info }); m.userData.rise = 'wall';
+    m = prism(w.poly, null, H.storey - 0.01, H.storey, MAT.cap, { info, cast: false }); m.userData.rise = 'wall';
     m = prism(inset(w.poly, 0.12), null, H.sill, H.head, MAT.glass, { info, cast: false }); m.userData.rise = 'wall'; m.renderOrder = 3;
     m = prism(w.poly, null, H.sill - 0.04, H.sill, MAT.frame, { info }); m.userData.rise = 'wall';
   });
@@ -400,7 +403,7 @@ function facingOpen(P) {   // look along the longest free sight line from the sp
 }
 function sightClear(ax, ay, bx, by) {
   const d = Math.hypot(bx - ax, by - ay), n = Math.ceil(d / 0.05);
-  for (let i = 1; i < n - 2; i++) if (blocked(ax + (bx - ax) * i / n, ay + (by - ay) * i / n)) return false;
+  for (let i = 1; i < n - 7; i++) if (blocked(ax + (bx - ax) * i / n, ay + (by - ay) * i / n)) return false;
   return true;
 }
 
@@ -552,7 +555,7 @@ function buildGlow(items) {
       grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(s, 20), new THREE.LineBasicMaterial({ color: new THREE.Color(3, 2.3, 1.2), toneMapped: false, transparent: true, opacity: .95 })));
       if (it.poly) {   // a curtain of light along the room outline
         const cs = new THREE.ExtrudeGeometry(shape(poly, it.holes?.map(h => h.slice(0, -1))), { depth: 1.2, bevelEnabled: false });
-        const cm = glowMat(0.07); const curtain = new THREE.Mesh(cs, cm); curtain.renderOrder = 5; grp.add(curtain);
+        const cm = glowMat(0.07); const curtain = new THREE.Mesh(cs, cm); curtain.renderOrder = 5; curtain.userData.curtain = true; grp.add(curtain);
       }
       const b = it.poly ? bounds(poly) : it.bbox;
       c = it.poly ? centroid(poly) : [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]; top = z[1]; it._z = z;
@@ -564,7 +567,7 @@ function buildGlow(items) {
     const lab = document.createElement('div'); lab.className = 'wkTag'; lab.textContent = it.n; lab.title = it.label || '';
     lab.onclick = () => select(it.n); lab.style.display = 'none';
     V.$('#wkL').append(lab);
-    const L = { el: lab, p: [c[0], c[1], Math.max(top, 2.6) + 1.3], item: it.n, grp };
+    const L = { el: lab, p: [c[0], c[1], Math.max(top, 2.6) + 1.3], pw: it.poly ? 1.2 : ((it._z[0] + it._z[1]) / 2), item: it.n, grp };
     V.labels.push(L);
     V.glowData.push({ it, grp, c, top, L, t0: 0 });
   });
@@ -593,6 +596,19 @@ function step(d) {
 }
 function goTo(g) {
   const z = g.it._z || [0, 1], cz = (z[0] + z[1]) / 2;
+  if (V.mode === 'walk' && g.it.poly) {
+    const poly = g.it.poly.slice(0, -1), [cx, cy] = g.c;
+    let best = null;
+    for (let r = 0.6; r < 6; r += 0.3) for (let k = 0; k < 24; k++) {
+      const a = k / 24 * Math.PI * 2, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      if (inPoly(x, y, poly) && free(x, y, 0.3) && sightClear(x, y, cx, cy)) best = { x, y };
+    }
+    if (!best && free(cx, cy)) best = { x: cx, y: cy };
+    if (!best) return;
+    const yaw = best.x === cx && best.y === cy ? V.P.yaw : Math.atan2(cy - best.y, cx - best.x);
+    V.P.anim = { t0: performance.now(), from: { ...V.P }, to: { x: best.x, y: best.y, yaw: unwrap(V.P.yaw, yaw), pitch: -0.18 } };
+    return;
+  }
   if (V.mode === 'walk') {
     // stand where you can see it: nearest free spot 1.3-2.6 m away with a clear line of sight
     const z0 = V.P.z;
@@ -600,13 +616,13 @@ function goTo(g) {
     for (const r of [1.1, 1.5, 2.0, 2.6, 3.3, 0.8]) {
       for (let k = 0; k < 36; k++) {
         const a = k / 36 * Math.PI * 2, x = g.c[0] + Math.cos(a) * r, y = g.c[1] + Math.sin(a) * r;
-        if (free(x, y) && sightClear(x, y, g.c[0], g.c[1])) { const d = Math.hypot(x - V.P.x, y - V.P.y); if (!best || d < best.d) best = { x, y, d }; }
+        if (free(x, y) && indoors(x, y) && sightClear(x, y, g.c[0], g.c[1])) { const d = Math.hypot(x - V.P.x, y - V.P.y); if (!best || d < best.d) best = { x, y, d }; }
       }
       if (best) break;
     }
     if (!best) return;
     const yaw = Math.atan2(g.c[1] - best.y, g.c[0] - best.x);
-    const pitch = Math.atan2(cz + z0 - (z0 + 1.62), Math.hypot(g.c[0] - best.x, g.c[1] - best.y));
+    const pitch = Math.atan2((V.ifc ? cz : z0 + cz) - (z0 + 1.62), Math.hypot(g.c[0] - best.x, g.c[1] - best.y));
     V.P.anim = { t0: performance.now(), from: { ...V.P }, to: { x: best.x, y: best.y, yaw: unwrap(V.P.yaw, yaw), pitch } };
   } else {
     const t = new THREE.Vector3(g.c[0], g.c[1], cz).applyMatrix4(V.world.matrixWorld);
@@ -631,7 +647,8 @@ function setMode(m, quiet) {
   V.root.classList.toggle('walking', m === 'walk');
   V.controls.enabled = m === 'orbit';
   V.ceil?.forEach(c => c.visible = m === 'walk');
-  V.eyeLight.intensity = m === 'walk' ? 2.2 : 0;
+  V.eyeLight.intensity = m === 'walk' ? 0.9 : 0;
+  V.bloom.strength = m === 'walk' ? 0.5 : 0.85; V.bloom.threshold = m === 'walk' ? 1.05 : 0.92;
   applyCut();
   if (m === 'walk' && was !== 'walk') {
     // swoop down from the orbit camera to eye height
@@ -680,7 +697,8 @@ function loop() {
     const k = (0.75 + 0.25 * Math.sin(now / 380 + g.it.n)) * pop * (isSel || g.hot ? 1.8 : dim ? 0.35 : 1);
     g.grp.children.forEach((c, i) => { if (c.material) c.material.opacity = Math.min(1, (c.userData.op ??= c.material.opacity) * k); });
     const beam = g.grp.userData.beam; if (beam) { const bh = V.mode === 'walk' ? 0.5 : Math.max(2.6, g.top) + 1.2 - g.top; beam.scale.y = bh * (1 + 0.3 * (pop - 1)); beam.position.z = g.top + beam.scale.y / 2; }
-    g.grp.children.forEach(c => { if (c.userData.xray) c.visible = V.mode !== 'walk' || isSel; });
+    g.grp.children.forEach(c => { if (c.userData.xray) c.visible = V.mode !== 'walk'; if (c.userData.curtain) c.visible = V.mode !== 'walk'; });
+    if (V.mode === 'walk') g.grp.children.forEach(c => { if (c.material && !c.isLineSegments) c.material.opacity = Math.min(c.material.opacity * (g.it.poly ? 0.3 : 0.4), isSel ? 0.22 : 0.16); });
     g.L.el.classList.toggle('on', isSel); g.L.el.classList.toggle('dim', !!dim);
   });
   placeLabels();
@@ -731,7 +749,7 @@ function placeLabels() {
   V.labels.forEach(L => {
     if (L.room && (walk || V.rise || (V.items.length && !V.roomLabels) || (!V.items.length && V.roomLabels === false))) { L.el.style.display = 'none'; return; }
     if (L.item && L.el.style.display === 'none') return;
-    _v.set(L.p[0], L.p[1], (L.item && walk ? (V.P.z + Math.min(L.p[2], 2.2)) : (L.p[2] + (V.P && V.ifc && !L.item ? V.P.z : 0)))).applyMatrix4(V.world.matrixWorld);
+    _v.set(L.p[0], L.p[1], (L.item && walk ? (V.ifc ? L.pw : V.P.z + L.pw) : (L.p[2] + (V.P && V.ifc && !L.item ? V.P.z : 0)))).applyMatrix4(V.world.matrixWorld);
     const dist = _v.distanceTo(V.camera.position);
     _v.project(V.camera);
     const vis = _v.z < 1 && Math.abs(_v.x) < 1.2 && Math.abs(_v.y) < 1.2 && !(L.room && dist > V.span * 2.2);
@@ -753,7 +771,7 @@ function lookInfo() {
   const glow = V.glowData?.find(g => g.grp.visible && V.ray.intersectObject(g.grp, true).length);
   if (glow) {
     const it = glow.it;
-    info.innerHTML = `<span class="n">${it.n}</span><b>${esc(it.label || it.kind)}</b><small>${it.value != null ? esc(fmt(it.value)) + ' ' : ''}counted in the answer · ${hit ? hit.distance.toFixed(1) + ' m away' : ''}</small>`;
+    info.innerHTML = `<span class="n">${it.n}</span><b>${esc(it.label || it.kind)}</b><small>${it.value != null ? esc(fmt(it.value)) + (it.kind === 'room' || it.poly ? ' m² · ' : ' · ') : ''}in the answer${hit ? ' · ' + hit.distance.toFixed(1) + ' m away' : ''}</small>`;
     info.classList.add('on', 'gl');
   } else if (hit && hit.object.userData.info && hit.object.userData.info.t !== 'room' && hit.object.userData.info.t !== 'wall') {
     const i = hit.object.userData.info;
@@ -766,6 +784,7 @@ function lookInfo() {
   else if (V.ifc && V.levels?.[V.lvl]) { here.innerHTML = `<small>storey</small><b>${esc(V.levels[V.lvl].name)}</b><span>floor at ${V.levels[V.lvl].z.toFixed(2)} m</span>`; here.classList.add('on'); }
   else here.classList.remove('on');
 }
+const indoors = (x, y) => !V.g?.rooms || V.g.kind !== 'swiss' || V.g.rooms.some(r => !r.outdoor && inPoly(x, y, r.poly));
 function inPoly(x, y, p) { let c = false; for (let i = 0, j = p.length - 1; i < p.length; j = i++) { const [xi, yi] = p[i], [xj, yj] = p[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
 
 function pickAt(e, fly) {
