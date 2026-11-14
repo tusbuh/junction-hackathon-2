@@ -15,7 +15,11 @@
   async function load(e) {
     const r = await realFetch(fileUrl(e));
     if (!r.ok) return json({ detail: 'static file missing: ' + e.f }, 404);
-    const body = e.z ? r.body.pipeThrough(new DecompressionStream('gzip')) : r.body;
+    let body = r.body;
+    if (e.z) {   // .gz files are decoded here; a host that already sent them with Content-Encoding: gzip hands over plain bytes
+      const buf = new Uint8Array(await r.arrayBuffer());
+      body = buf[0] === 0x1f && buf[1] === 0x8b ? new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip')) : buf;
+    }
     return new Response(body, { status: e.s || 200, headers: { 'Content-Type': e.t } });
   }
   const cache = new Map();
@@ -79,7 +83,12 @@
   const mapUrl = v => { if (typeof v !== 'string' || !v.includes('/api/')) return v; const r = parse(v); const e = r && M.get[keyOf(r)]; return e && !e.z ? fileUrl(e) : v; };
   for (const [C, prop] of [[HTMLImageElement, 'src'], [HTMLAnchorElement, 'href']]) {
     const d = Object.getOwnPropertyDescriptor(C.prototype, prop);
-    Object.defineProperty(C.prototype, prop, { configurable: true, enumerable: d.enumerable, get: d.get, set(v) { d.set.call(this, mapUrl(v)); } });
+    Object.defineProperty(C.prototype, prop, { configurable: true, enumerable: d.enumerable, get: d.get, set(v) {
+      // recorded BoQ exports keep the app's download name (<drawing>_BoQ.csv / .pdf)
+      const m = typeof v === 'string' && v.match(/\/api\/boq\.(csv|pdf)\?/);
+      if (m) { const p = parse(v)?.u.searchParams.get('path') || ''; this.setAttribute('download', p.split('/').pop().replace(/\.[^.]+$/, '') + '_BoQ.' + m[1]); }
+      d.set.call(this, mapUrl(v));
+    } });
   }
   const sa = Element.prototype.setAttribute;
   Element.prototype.setAttribute = function (n, v) { return sa.call(this, n, (n === 'src' || n === 'href') ? mapUrl(v) : v); };

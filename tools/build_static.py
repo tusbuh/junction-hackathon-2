@@ -263,12 +263,92 @@ def copy_front_end(ndraw):
     h = h.replace('"three":"/static/vendor/three.module.js"', '"three":"./static/vendor/three.module.js"')
     h = h.replace('<script type="importmap">',
                   f'<script src="{DATA_DIR}/manifest.js"></script>\n<script src="static/offline.js"></script>\n<script type="importmap">', 1)
-    badge = (f'<a class="ppStatic" href="LICENSES.html" title="Static build: answers for {ndraw} drawings were recorded from the real app. '
+    badge = (f'<a class="ppStatic" style="position:fixed;left:17px;top:47px;z-index:30;font:600 9.5px/1 Inter,system-ui,sans-serif;'
+             f'color:#9fb3c8;background:rgba(10,16,24,.82);border:1px solid rgba(159,179,200,.3);border-radius:4px;padding:2px 6px;text-decoration:none" href="LICENSES.html" title="Static build: answers for {ndraw} drawings were recorded from the real app. '
              f'Data licences and credits">static demo · {ndraw} drawings · data licences</a>\n')
     h = h.replace('</body>', badge + '</body>', 1)
-    assert '/static/' not in h, 'absolute /static/ path left in index.html'
+    assert not re.search(r'''["'(]/static/''', h), 'absolute /static/ path left in index.html'
     open(os.path.join(SITE, 'index.html'), 'w', encoding='utf-8').write(h)
 
 
+def table_row(path):
+    src = engine.source_of(path)
+    lic = os.path.join(engine.DATA, 'data', src, 'LICENSE.md')
+    for line in open(lic, encoding='utf-8'):
+        cells = [x.strip() for x in line.strip().strip('|').split('|')]
+        if len(cells) >= 5 and cells[0] == os.path.basename(path):
+            return dict(title=cells[1], source=cells[4])
+    return {}
+
+
+LIC_URL = {'CC-BY-4.0': 'https://creativecommons.org/licenses/by/4.0/', 'CC-BY-NC-SA-4.0': 'https://creativecommons.org/licenses/by-nc-sa/4.0/',
+           'MIT': 'https://opensource.org/license/mit', 'LicenseRef-KIT-unrestricted': 'https://www.ifcwiki.org/index.php?title=KIT_IFC_Examples'}
+MIT_TEXT = open(os.path.join(engine.DATA, 'data', 'ifc_bench', 'LICENSE.md'), encoding='utf-8').read().split('```')[1].strip()
+
+
+def write_licenses():
+    from pinpoint.wow import credit
+    rows, seen = [], set()
+    for p in INCLUDE + sorted(set(IFC.values()) - set(INCLUDE)):
+        if p in seen:
+            continue
+        seen.add(p)
+        cr, tr = credit(p), table_row(p)
+        src = tr.get('source') or {'swiss_dwellings': 'https://doi.org/10.5281/zenodo.7788422',
+                                    'cubicasa5k': 'https://zenodo.org/records/2613548'}.get(engine.source_of(p), '')   # from their LICENSE.md
+        rows.append((p, cr['licence'], cr['credit'], tr.get('title', ''), src))
+    md = ['# Licences and credits of the drawings in this static demo', '',
+          'This static build shows only drawings whose licence allows public redistribution with attribution. Each drawing is',
+          'shown with its credit line under it. Answers, highlights, 3D meshes, element cards and bills of quantities derived',
+          'from a drawing are shared under the same licence as that drawing (for CubiCasa5K: CC BY-NC-SA 4.0, non-commercial).',
+          'Questions inherit the licence of the drawing they ask about; the ifc_bench questions are IFC-Bench v2,',
+          'Copyright (c) 2025 Sylvain Hellin, CC BY 4.0 (https://huggingface.co/datasets/sylvainhellin/ifc-bench).', '',
+          'Not included: CubiCasa5K beyond two example plans, US drawing sets (opening_design), the CC BY-ND and GPL IFC models,',
+          'HABS, Finna, Europeana and Wikimedia scans, any per-question evaluation file and any test-split file.', '',
+          '| drawing (dataset path) | what | licence | credit | source |', '|---|---|---|---|---|']
+    for p, lic, cr, title, src in rows:
+        md.append(f'| `{p}` | {title or "-"} | [{lic}]({LIC_URL.get(lic, "")}) | {cr} | {src or "-"} |')
+    md += ['', '## Licence texts', '',
+           '- CC BY 4.0: https://creativecommons.org/licenses/by/4.0/',
+           '- CC BY-NC-SA 4.0: https://creativecommons.org/licenses/by-nc-sa/4.0/',
+           '- KIT IFC examples: "for unrestricted use", source to cite: Institute for Automation and Applied Informatics (IAI) /',
+           '  Karlsruhe Institute of Technology (KIT), https://www.ifcwiki.org/index.php?title=KIT_IFC_Examples',
+           '- MIT (Fantasy office building 3, Copyright (c) 2025 TUM Students, BIM Fundamentals SS2025):', '', '```', MIT_TEXT, '```', '',
+           '## Third-party code', '', '- three.js (static/vendor), Copyright 2010-2024 Three.js Authors, MIT licence.', '']
+    txt = '\n'.join(md)
+    open(os.path.join(SITE, 'LICENSES.md'), 'w', encoding='utf-8').write(txt)
+    import html
+    open(os.path.join(SITE, 'LICENSES.html'), 'w', encoding='utf-8').write(
+        '<!doctype html><meta charset="utf-8"><title>PINPOINT static demo: licences</title>'
+        '<body style="font:14px/1.5 system-ui,sans-serif;max-width:1100px;margin:30px auto;padding:0 16px">'
+        '<p><a href="./">&larr; back to the demo</a> &middot; <a href="LICENSES.md">LICENSES.md</a></p>'
+        f'<pre style="white-space:pre-wrap">{html.escape(txt)}</pre></body>')
+    return rows
+
+
+NETLIFY = '''# Netlify: publish this folder as-is (no build step)
+[build]
+  publish = "."
+  command = ""
+
+[[headers]]
+  for = "/pp-data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.md"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+'''
+
+
 if __name__ == '__main__':
-    main()
+    if '--front' in sys.argv:   # front end + licences only (keeps the recorded pp-data/)
+        shutil.rmtree(os.path.join(SITE, 'static'), ignore_errors=True)
+        copy_front_end(len(INCLUDE))
+    else:
+        main()
+    write_licenses()
+    open(os.path.join(SITE, 'netlify.toml'), 'w').write(NETLIFY)
+    open(os.path.join(SITE, '.nojekyll'), 'w').close()   # GitHub Pages: serve every file as-is
