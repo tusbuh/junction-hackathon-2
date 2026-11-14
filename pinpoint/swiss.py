@@ -4,6 +4,15 @@ import re, ezdxf, numpy as np
 from ezdxf import bbox as ebbox
 from shapely.geometry import Polygon, Point, box
 
+# Parse one entity query at import time (single-threaded, under the import lock) so pyparsing settles the arity of
+# ezdxf's parse actions before request threads run their first queries concurrently. Seen once after a cold restart:
+# "TypeError: <lambda>() missing 1 required positional argument: 't'" from msp.query(); not reproduced since.
+try:
+    from ezdxf.query import entity_matcher as _em
+    _em('LWPOLYLINE[layer=="DOOR"]')
+except Exception:
+    pass
+
 OUTDOOR = {'balcon','balcone','balkon','loggia','terrasse','terrazza'}
 UNIT_RE = re.compile(r'^(Whg\.|App\.)\s*([A-Z])$')
 NUM_RE = re.compile(r'^U?\d+\.\d+$')
