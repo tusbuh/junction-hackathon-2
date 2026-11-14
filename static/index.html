@@ -4,20 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PINPOINT</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2213%22 fill=%22none%22 stroke=%22%23ffb020%22 stroke-width=%223%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%224%22 fill=%22%23ffb020%22/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2213%22 fill=%22none%22 stroke=%22%231DB954%22 stroke-width=%223%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%224%22 fill=%22%231DB954%22/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="/static/receipt.css">
+<link rel="stylesheet" href="/static/spotify.css" id="spotifyCss">
 <script type="importmap">{"imports":{"three":"/static/vendor/three.module.js"}}</script>
 </head>
 <body>
-<header class="top">
-  <div class="brand">
-    <svg class="logo" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="2" fill="currentColor"/><path d="M16 0v7M16 25v7M0 16h7M25 16h7" stroke="currentColor" stroke-width="2"/></svg>
-    <div><b>PINPOINT</b><span>every answer comes with a receipt</span></div>
+<nav class="side" id="sideNav" aria-label="PINPOINT">
+  <div class="sideBox navBox">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="16" cy="16" r="5" fill="currentColor"/></svg>
+      <div><b>PINPOINT</b><span>every answer comes with a receipt</span></div>
+    </div>
+    <div class="feat" id="feat">
+      <button class="navBtn" id="navAsk" type="button" title="Ask a question about this drawing (/)">Ask</button>
+      <button class="navBtn" id="navRace" type="button" title="Cost race: the same questions, frontier VLM vs PINPOINT (R)">Cost race</button>
+      <button class="tbtn" id="tourBtn" title="Guided tour: count, area, 2D ⇆ 3D, door schedule, walk, BoQ, cost race">Tour</button>
+      <button class="tbtn" id="sbBtn" title="Scoreboard: every dataset question auto-graded against ground truth">Scores</button>
+    </div>
   </div>
+  <div class="sideBox libBox">
+    <div class="libH"><b>Your library</b><button type="button" id="libAll" title="Browse every drawing (⌘K)">Browse all</button></div>
+    <div class="libList" id="sideSrc"></div>
+  </div>
+</nav>
 
+<header class="top">
   <button class="docBtn" id="docBtn" title="Choose a drawing (⌘K)">
     <span class="srcTag" id="srcTag">—</span>
     <span class="docName" id="docName">pick a drawing</span>
@@ -33,22 +46,13 @@
       <div class="sl" id="chips"></div>
     </div>
   </form>
-
-  <div class="meter" id="meter" role="button" tabindex="0" title="Measured CPU time × €0.04/vCPU-h + LLM tokens (0 by default). Click for the cost race (R)">
-    <div class="m"><label>cost</label><b id="mLast">€0</b></div>
-    <div class="m"><label>time</label><b id="mLat">–</b></div>
-    <div class="m"><label>LLM</label><b id="mLlm">0</b></div>
-    <div class="m vs"><label>frontier VLM</label><b id="mVlm">–</b></div>
-    <div class="m save"><label>cheaper <u>race ▸</u></label><b id="mSave">–</b></div>
-  </div>
-  <button class="tbtn" id="tourBtn" title="Guided tour: count, area, 2D ⇆ 3D, door schedule, walk, BoQ, cost race">▶ Tour</button>
-  <button class="tbtn" id="sbBtn" title="Scoreboard: every dataset question auto-graded against ground truth">▦ Scores</button>
+  <div class="topHype">0 LLM calls · every number receipted</div>
 </header>
 
 <main id="main">
   <section class="stage" id="stage" data-mode="sheet">
     <div class="views" id="views">
-      <div class="view sheetv blue" id="sheetv">
+      <div class="view sheetv" id="sheetv">
         <div class="pan" id="pan">
           <img id="sheetImg" alt="">
           <svg id="ov" class="ov"><defs>
@@ -141,9 +145,31 @@
   <div class="mh"><h2>Scoreboard <small>preview set · every question auto-graded against ground truth</small></h2><button id="sbX">✕</button></div>
   <div id="sbBody"></div>
 </div></div>
+<footer class="player" id="player">
+  <div class="np">
+    <div class="npTile" id="npTile">—</div>
+    <div class="npTx"><b id="npTitle">pick a drawing</b><span id="npSub">ready: ask a question</span></div>
+  </div>
+  <div class="pc">
+    <div class="pcBtns">
+      <button type="button" id="pPrev" title="Previous counted item (←)"><svg viewBox="0 0 16 16"><path d="M3 2h2v12H3zM14 2v12L6 8z" fill="currentColor"/></svg></button>
+      <button type="button" id="pPlay" class="play" title="Play the guided tour"><svg class="i-play" viewBox="0 0 16 16"><path d="M4 2.5v11L13.5 8z" fill="currentColor"/></svg><svg class="i-stop" viewBox="0 0 16 16"><path d="M4 3h3v10H4zM9 3h3v10H9z" fill="currentColor"/></svg></button>
+      <button type="button" id="pNext" title="Next counted item (→)"><svg viewBox="0 0 16 16"><path d="M11 2h2v12h-2zM2 2v12l8-6z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="pBar"><span id="pL">0</span><div class="pTrack" id="pTrack"><i id="pFill"></i></div><span id="pR">0</span></div>
+  </div>
+  <div class="meter" id="meter" role="button" tabindex="0" title="Measured CPU time × €0.04/vCPU-h + LLM tokens (0 by default). Click for the cost race (R)">
+    <div class="m"><label>cost</label><b id="mLast">€0</b></div>
+    <div class="m"><label>time</label><b id="mLat">–</b></div>
+    <div class="m"><label>LLM</label><b id="mLlm">0</b></div>
+    <div class="m vs"><label>frontier VLM</label><b id="mVlm">–</b></div>
+    <div class="m save"><label>cheaper <u>race ▸</u></label><b id="mSave">–</b></div>
+  </div>
+</footer>
 <footer class="credits">Drawings: Stoa Junction 2026 dataset · Swiss Dwellings CC BY 4.0 · CubiCasa5K CC BY-NC-SA 4.0 · opening_design CC BY-SA 4.0 · three.js MIT</footer>
 <script type="module" src="/static/app.js"></script>
 <script type="module" src="/static/wow.js"></script>
 <script type="module" src="/static/audit.js"></script>
+<script type="module" src="/static/shell.js"></script>
 </body>
 </html>

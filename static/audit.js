@@ -112,7 +112,7 @@ async function showcase() {
 function mount() {
   const anchor = document.querySelector('#tourBtn');
   const b = document.createElement('button'); b.id = 'auBtn'; b.type = 'button'; b.className = 'wowBtn au-btn';
-  b.innerHTML = '⚠ Audit <span class="au-badge" hidden></span>'; b.title = 'Drawing audit: where this drawing disagrees with itself (A)';
+  b.innerHTML = 'Audit <span class="au-badge" hidden></span>'; b.title = 'Drawing audit: where this drawing disagrees with itself (A)';
   b.onclick = () => openAudit();
   if (anchor) anchor.before(b); else (document.querySelector('.top') || document.body).append(b);
   let last = null;

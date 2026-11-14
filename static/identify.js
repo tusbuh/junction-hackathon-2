@@ -22,7 +22,7 @@ function dom() {
   const tip = document.createElement('div'); tip.id = 'idTip'; tip.className = 'idTip'; tip.hidden = true; document.body.append(tip);
   const host = document.querySelector('.top') || document.body;
   const b = document.createElement('button'); b.id = 'idBtn'; b.className = 'wowBtn'; b.type = 'button';
-  b.innerHTML = '⌖ Identify'; b.title = 'Click any element to see what it is, its size, properties and source (I)';
+  b.innerHTML = 'Identify'; b.title = 'Click any element to see what it is, its size, properties and source (I)';
   b.onclick = () => toggle();
   const anchor = document.querySelector('#tourBtn'); if (anchor) anchor.before(b); else host.append(b);
 }
