@@ -98,3 +98,5 @@
   .wkSeg button { padding: 7px 9px; }
   .wkHelp { display: none; }
 }
+
+.wkT small[data-cut]:not([data-cut=''])::after { content: ' · ' attr(data-cut); color: #ffb020; }

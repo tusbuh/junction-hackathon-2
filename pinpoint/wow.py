@@ -67,7 +67,7 @@ def walk(path: str = Query(...), q: str = ''):
         ifc = engine.ifc_for(path)
         if not os.path.exists(engine.abspath(ifc)):
             raise HTTPException(404, 'IFC model not in this split')
-        return JSONResponse(dict(kind='ifc', model=ifc, mesh=f'/api/mesh?path={quote(ifc)}', credit=credit(ifc)))
+        return JSONResponse(dict(kind='ifc', model=ifc, mesh=f'/api/mesh_local?path={quote(ifc)}', credit=credit(ifc)))
     raise HTTPException(400, 'walkthrough needs vector geometry (Swiss DXF or IFC)')
 
 
@@ -77,3 +77,21 @@ def boq(path: str = Query(...)):
     safe(path)
     from . import boq as B
     return JSONResponse(_num(B.build(path)))
+
+
+_mesh_lock = __import__('threading').Lock()
+
+
+@router.get('/api/mesh_local')
+def mesh_local(path: str = Query(...)):
+    """IFC tessellation re-centred on a float64 origin (georeferenced models lose ~0.5 m to float32 otherwise)."""
+    from fastapi.responses import FileResponse
+    from .server import safe
+    full = safe(path)
+    out = os.path.join(engine.CACHE, os.path.splitext(os.path.basename(full))[0] + '.local.mesh.bin')
+    with _mesh_lock:
+        if not os.path.exists(out):
+            from .mesh import build
+            build(full, out + '.tmp', local=True)
+            os.replace(out + '.tmp', out)
+    return FileResponse(out, media_type='application/octet-stream', headers={'Cache-Control': 'max-age=86400'})

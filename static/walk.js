@@ -492,11 +492,13 @@ function ifcStorey(i) {
 }
 function applyCut() {
   if (!V.ifcMesh) return;
-  const on = V.mode === 'walk';
+  const orbitCut = V.mode !== 'walk' && V.cutLvl != null && V.levels?.[V.cutLvl];
+  const on = V.mode === 'walk' || !!orbitCut;
   V.clip = V.clip || new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
   V.renderer.localClippingEnabled = true;
   V.ifcMesh.material.clippingPlanes = on ? [V.clip] : [];
-  V.clip.constant = on ? V.ifcCut : 1e6;
+  V.clip.constant = V.mode === 'walk' ? V.ifcCut : orbitCut ? orbitCut.z + 1.2 : 1e6;
+  V.$('#wkSub').dataset.cut = orbitCut ? `section cut 1.2 m above ${orbitCut.name}` : '';
   V.ifcMesh.material.needsUpdate = true;
 }
 function storeyStep(d) { if (V.ifc && V.levels?.length > 1) ifcStorey(V.lvl + d); }
@@ -525,6 +527,12 @@ function showAnswer(q, a) {
     b.onmouseenter = () => hover(it.n, true); b.onmouseleave = () => hover(it.n, false);
     list.append(b);
   });
+  V.cutLvl = null;
+  if (V.ifc && a.storey && V.levels) {
+    const i = V.levels.findIndex(l => l.name === a.storey);
+    if (i >= 0) { V.cutLvl = i; if (V.lvl !== i) ifcStorey(i); }
+  }
+  applyCut();
   buildGlow(items);
 }
 const KIND_Z = { door: [0, 2.1], window: [0.9, 2.1], WC: [0, 0.45], basin: [0.7, 0.92], bathtub: [0, 0.6], shower: [0, 2.0] };
@@ -533,6 +541,7 @@ function glowMat(op) {
 }
 function buildGlow(items) {
   V.glowData = [];
+  V.glowK = Math.max(0.3, Math.min(1, 14 / Math.max(1, items.length)));
   items.forEach(it => {
     const grp = new THREE.Group(); grp.visible = false;
     let c, top;
@@ -543,7 +552,10 @@ function buildGlow(items) {
       const core = new THREE.Mesh(geo, glowMat(0.55)); core.renderOrder = 6; grp.add(core);
       const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), new THREE.LineBasicMaterial({ color: new THREE.Color(3, 2.4, 1.4), toneMapped: false, transparent: true, opacity: .9 }));
       grp.add(e);
-      geo.computeBoundingBox(); const b = geo.boundingBox;
+      const P = V.ifc.P, b = { min: { x: 1e9, y: 1e9, z: 1e9 }, max: { x: -1e9, y: -1e9, z: -1e9 } };
+      els.forEach(e => { for (let v = e.v0; v < e.v0 + e.nv; v++) { const x = P[v * 3], y = P[v * 3 + 1], z = P[v * 3 + 2];
+        if (x < b.min.x) b.min.x = x; if (y < b.min.y) b.min.y = y; if (z < b.min.z) b.min.z = z; if (x > b.max.x) b.max.x = x; if (y > b.max.y) b.max.y = y; if (z > b.max.z) b.max.z = z; } });
+      geo.boundingSphere = new THREE.Sphere(new THREE.Vector3((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2), Math.hypot(b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z) / 2 + 0.01);
       c = [(b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2]; top = b.max.z; it._z = [b.min.z, b.max.z];
     } else if (it.poly || it.bbox) {
       const poly = it.poly ? it.poly.slice(0, -1) : boxPoly(it.bbox);
@@ -567,11 +579,17 @@ function buildGlow(items) {
     const lab = document.createElement('div'); lab.className = 'wkTag'; lab.textContent = it.n; lab.title = it.label || '';
     lab.onclick = () => select(it.n); lab.style.display = 'none';
     V.$('#wkL').append(lab);
-    const L = { el: lab, p: [c[0], c[1], Math.max(top, 2.6) + 1.3], pw: it.poly ? 1.2 : ((it._z[0] + it._z[1]) / 2), item: it.n, grp };
+    const L = { el: lab, p: [c[0], c[1], V.ifc ? top + 0.7 : Math.max(top, 2.6) + 1.3], pw: it.poly ? 1.2 : ((it._z[0] + it._z[1]) / 2), item: it.n, grp };
     V.labels.push(L);
     V.glowData.push({ it, grp, c, top, L, t0: 0 });
   });
+  glowBlend();
   if (!V.rise) revealGlow();
+}
+function glowBlend() {   // additive light in orbit; plain translucent amber up close (additive stacks into white-out)
+  (V.glowData || []).forEach(g => g.grp.traverse(o => { if (o.material && !o.isLineSegments) {
+    o.material.blending = V.mode === 'walk' ? THREE.NormalBlending : THREE.AdditiveBlending;
+    o.material.color.copy(AMBER).multiplyScalar(V.mode === 'walk' ? 1.0 : 2.2); o.material.needsUpdate = true; } }));
 }
 const inflate = (b, d) => [b[0] - d, b[1] - d, b[2] + d, b[3] + d];
 const bounds = p => { const xs = p.map(q => q[0]), ys = p.map(q => q[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
@@ -613,7 +631,7 @@ function goTo(g) {
     // stand where you can see it: nearest free spot 1.3-2.6 m away with a clear line of sight
     const z0 = V.P.z;
     let best = null;
-    for (const r of [1.1, 1.5, 2.0, 2.6, 3.3, 0.8]) {
+    for (const r of [1.8, 2.4, 1.4, 3.1, 1.1, 0.8]) {
       for (let k = 0; k < 36; k++) {
         const a = k / 36 * Math.PI * 2, x = g.c[0] + Math.cos(a) * r, y = g.c[1] + Math.sin(a) * r;
         if (free(x, y) && indoors(x, y) && sightClear(x, y, g.c[0], g.c[1])) { const d = Math.hypot(x - V.P.x, y - V.P.y); if (!best || d < best.d) best = { x, y, d }; }
@@ -648,7 +666,8 @@ function setMode(m, quiet) {
   V.controls.enabled = m === 'orbit';
   V.ceil?.forEach(c => c.visible = m === 'walk');
   V.eyeLight.intensity = m === 'walk' ? 0.9 : 0;
-  V.bloom.strength = m === 'walk' ? 0.5 : 0.85; V.bloom.threshold = m === 'walk' ? 1.05 : 0.92;
+  V.bloom.strength = m === 'walk' ? 0.35 : 0.85; V.bloom.threshold = m === 'walk' ? 1.05 : 0.92;
+  glowBlend();
   applyCut();
   if (m === 'walk' && was !== 'walk') {
     // swoop down from the orbit camera to eye height
@@ -694,11 +713,11 @@ function loop() {
     if (!on) return;
     const age = (now - g.t0) / 1000, pop = age < .5 ? 1 + (1 - ease(age / .5)) * 1.5 : 1;
     const isSel = V.sel === g.it.n, dim = V.sel && !isSel && !g.hot;
-    const k = (0.75 + 0.25 * Math.sin(now / 380 + g.it.n)) * pop * (isSel || g.hot ? 1.8 : dim ? 0.35 : 1);
+    const k = (0.75 + 0.25 * Math.sin(now / 380 + g.it.n)) * pop * (isSel || g.hot ? 1.8 / V.glowK : dim ? 0.35 : 1) * V.glowK;
     g.grp.children.forEach((c, i) => { if (c.material) c.material.opacity = Math.min(1, (c.userData.op ??= c.material.opacity) * k); });
-    const beam = g.grp.userData.beam; if (beam) { const bh = V.mode === 'walk' ? 0.5 : Math.max(2.6, g.top) + 1.2 - g.top; beam.scale.y = bh * (1 + 0.3 * (pop - 1)); beam.position.z = g.top + beam.scale.y / 2; }
+    const beam = g.grp.userData.beam; if (beam) { const bh = V.mode === 'walk' || V.ifc ? 0.5 : Math.max(2.6, g.top) + 1.2 - g.top; beam.scale.y = bh * (1 + 0.3 * (pop - 1)); beam.position.z = g.top + beam.scale.y / 2; }
     g.grp.children.forEach(c => { if (c.userData.xray) c.visible = V.mode !== 'walk'; if (c.userData.curtain) c.visible = V.mode !== 'walk'; });
-    if (V.mode === 'walk') g.grp.children.forEach(c => { if (c.material && !c.isLineSegments) c.material.opacity = Math.min(c.material.opacity * (g.it.poly ? 0.3 : 0.4), isSel ? 0.22 : 0.16); });
+    if (V.mode === 'walk') g.grp.children.forEach(c => { if (c.material && !c.isLineSegments) c.material.opacity = Math.min(c.material.opacity * (g.it.poly ? 0.3 : 0.4), isSel ? 0.4 : 0.28); });
     g.L.el.classList.toggle('on', isSel); g.L.el.classList.toggle('dim', !!dim);
   });
   placeLabels();

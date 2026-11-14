@@ -30,7 +30,8 @@ def storey_of(e):
     return c.Name if c is not None else None
 
 
-def build(ifc_path, out_path, include_spaces=True):
+def build(ifc_path, out_path, include_spaces=True, local=False):
+    """local=True: subtract a float64 origin (first vertex, x/y only) before float32, so georeferenced models keep mm precision."""
     t = time.time()
     f = ifcopenshell.open(ifc_path)
     s = ifcopenshell.geom.settings()
@@ -39,6 +40,7 @@ def build(ifc_path, out_path, include_spaces=True):
     s.set('apply-default-materials', True)
     it = ifcopenshell.geom.iterator(s, f, multiprocessing.cpu_count())
     pos, idx, elements = [], [], []
+    origin = None
     nv = ni = 0
     if it.initialize():
         while True:
@@ -49,7 +51,13 @@ def build(ifc_path, out_path, include_spaces=True):
                 if not it.next(): break
                 continue
             g = sh.geometry
-            v = np.asarray(g.verts, dtype=np.float32)
+            v = np.asarray(g.verts, dtype=np.float64)
+            if local:
+                if origin is None and len(v):
+                    origin = np.array([v[0], v[1], 0.0])
+                if origin is not None:
+                    v = (v.reshape(-1, 3) - origin).ravel()
+            v = v.astype(np.float32)
             fa = np.asarray(g.faces, dtype=np.uint32)
             if len(v) and len(fa):
                 rgb = PALETTE.get(cls)
@@ -69,7 +77,8 @@ def build(ifc_path, out_path, include_spaces=True):
     I = np.concatenate(idx) if idx else np.zeros(0, np.uint32)
     P3 = P.reshape(-1, 3)
     hdr = dict(elements=elements, bbox=[*P3.min(0).tolist(), *P3.max(0).tolist()] if len(P3) else None,
-               schema=f.schema, secs=round(time.time() - t, 1))
+               schema=f.schema, secs=round(time.time() - t, 1),
+               origin=origin.tolist() if origin is not None else None)
     hb = json.dumps(hdr, separators=(',', ':')).encode()
     hb += b' ' * ((4 - len(hb) % 4) % 4)
     with open(out_path, 'wb') as fo:
