@@ -54,3 +54,7 @@
 .rc-tol small { display: block; color: var(--rc-dim); font: 11px ui-monospace, Menlo, monospace; margin-top: 2px; }
 .rc-tol.ok small { color: var(--rc-ok); } .rc-tol.warn small { color: var(--rc-bad); }
 .rc-tl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--rc-dim); padding-top: 1px; }
+
+/* POLISH: citations are the point of the receipt, so show them in full (file · page · position · layer / GlobalId) */
+.rc-l small { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
+.rc-sec h4 { flex-wrap: wrap; row-gap: 2px; }

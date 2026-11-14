@@ -8,7 +8,7 @@
 .rcX { background: none; border: 1px solid #2a3a5a; color: #a7b4ca; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; }
 .rcTick { display: flex; gap: 14px; align-items: baseline; margin: 18px 0 10px; height: 26px; overflow: hidden; color: #6b7a94; font-size: 14px; }
 .rcQn { font: 700 18px 'JetBrains Mono', monospace; color: #eaf0f9; min-width: 70px; font-variant-numeric: tabular-nums; }
-.rcQ { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+.rcQ { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; line-height: 1.5; padding: 0 4px 2px 0; }
 .lane { display: grid; grid-template-columns: 1fr 250px; grid-template-areas: 'lh lv' 'tr lv'; gap: 6px 22px; padding: 16px 18px; border-radius: 14px; margin-top: 12px; background: #0b1426cc; border: 1px solid #1d2b47; }
 .lane .lh { grid-area: lh; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .lane .lh b { font-size: 20px; font-weight: 800; }

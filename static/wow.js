@@ -28,7 +28,7 @@ function mount() {
   const host = document.querySelector('.top') || document.body;
   const anchor = document.querySelector('#tourBtn');
   const w = mk('wowWalk', '🚶 Walk in 3D', 'Extrude this drawing into a 3D building and walk through it (W)', walk);
-  const q = mk('wowBoq', '▤ Quantities', 'Instant bill of quantities for this drawing (Q)', boq);
+  const q = mk('wowBoq', '▤ BoQ', 'Bill of quantities: instant quantity takeoff for this drawing (Q)', boq);
   if (anchor) { anchor.before(w); anchor.before(q); } else { host.append(w, q); }
   const sync = () => { const p = window.PP?.S?.file?.path || ''; w.disabled = !WALKABLE(p); w.title = w.disabled ? '3D needs vector geometry (Swiss DXF or IFC)' : 'Extrude this drawing into a 3D building and walk through it (W)'; };
   setInterval(sync, 700); sync();

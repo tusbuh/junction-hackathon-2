@@ -41,8 +41,8 @@
     <div class="m vs"><label>frontier VLM</label><b id="mVlm">–</b></div>
     <div class="m save"><label>cheaper <u>race ▸</u></label><b id="mSave">–</b></div>
   </div>
-  <button class="tbtn" id="tourBtn">▶ Tour</button>
-  <button class="tbtn" id="sbBtn">▦ Scoreboard</button>
+  <button class="tbtn" id="tourBtn" title="Guided tour: count, area, 2D ⇆ 3D, door schedule, walk, BoQ, cost race">▶ Tour</button>
+  <button class="tbtn" id="sbBtn" title="Scoreboard: every dataset question auto-graded against ground truth">▦ Scores</button>
 </header>
 
 <main id="main">
@@ -89,12 +89,13 @@
       <h1>Ask a blueprint anything.<br>Check the answer in seconds.</h1>
       <p class="lead">PINPOINT reads the geometry already inside CAD, PDF and IFC files, so every count, area and schedule row is boxed and numbered on the real drawing and lit up in the 3D model. No vision model ever guesses.</p>
       <div class="stats" id="splashStats">
-        <div><b id="spSwiss">–</b><label>correct on Swiss floor plans</label><small id="spSwissN"></small></div>
-        <div><b id="spIfc">–</b><label>correct on IFC models</label><small id="spIfcN"></small></div>
-        <div><b id="spCost">–</b><label>avg compute cost per question</label><small id="spCostN"></small></div>
-        <div><b id="spMs">–</b><label>median answer time</label></div>
+        <div><b id="spSwiss">–</b><label>Swiss CAD floor plans</label><small id="spSwissN"></small></div>
+        <div><b id="spIfc">–</b><label>IFC building models</label><small id="spIfcN"></small></div>
+        <div><b id="spUs">–</b><label>US drawing sets</label><small id="spUsN"></small></div>
+        <div><b id="spFi">–</b><label>Finnish raster scans</label><small id="spFiN"></small></div>
       </div>
-      <div class="wip" id="spWip">Raster scans (CubiCasa): detector in progress, not yet scored</div>
+      <div class="spCost" id="spCostRow" hidden><b id="spCost">–</b><span id="spCostN"></span></div>
+      <div class="wip" id="spWip">counts exact, areas / lengths / volumes within 2 % (Stoa's scoring) · per source, never blended</div>
       <div class="langs">Ask in <span>English</span><span>Deutsch</span><span>Suomi</span><span>Eesti</span><span>Dansk</span><span>Français</span><span>Italiano</span></div>
       <div class="cta"><button class="go" id="spTour">▶ Watch the guided tour</button><button id="spRace">€ Cost race</button><button id="spTry">Try it yourself</button></div>
       <div class="how"><b>/</b> ask · <b>← →</b> step through counted items · <b>1 2 3</b> 2D / split / 3D · <b>⌘K</b> pick a drawing · <b>R</b> cost race</div>

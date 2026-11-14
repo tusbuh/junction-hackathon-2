@@ -54,6 +54,7 @@ function focusFinding(a, f, host) {
   const r = { q: f.title, value: KIND[f.kind] || 'Discrepancy', unit: 'text', method: f.detail || '', items, view, model: f.model || a.model, steps: [], router: 'rules',
     receipt: { confidence: { level: 'check', colour: 'amber', score: 0.6, why: ['drawing audit finding'] }, checks: [], source: { file: a.file, licence: a.licence } } };
   $('#docName') && ($('#docName').textContent = a.file);
+  PP.credit && PP.credit(f.model || a.model || a.path, !!(f.model || a.model));   // licence credit of the drawing on screen
   if ($('#splash')) $('#splash').hidden = true;
   if ($('#srcTag')) $('#srcTag').textContent = (f.model || a.model) ? 'IFC' : 'PDF';
   const pr = PP.show(r);

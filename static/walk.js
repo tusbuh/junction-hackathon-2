@@ -230,7 +230,7 @@ export async function openWalk({ path, q, name, items, answer, mode, sel, overri
   try {
     const g = await (await fetch(`/api/walk?path=${encodeURIComponent(path)}&q=${encodeURIComponent(override ? '' : (q || ''))}`)).json();
     if (g.detail) throw new Error(g.detail);
-    V.$('#wkCredit').innerHTML = g.credit ? `<b>Data:</b> ${esc(g.credit.credit)}${g.credit.licence ? ` · <i>${esc(g.credit.licence)}</i>` : ''}` : '';
+    V.$('#wkCredit').innerHTML = g.credit ? `<b>Data</b>${g.credit.licence ? ` <i>${esc(g.credit.licence)}</i>` : ''} ${esc(g.credit.credit)}` : '';
     if (V.key !== path) { clearWorld(); V.key = path; V.g = g; if (g.kind === 'swiss') await buildSwiss(g); else await buildIfc(g); }
     let ans = g.answer;
     if (override && answer) ans = answer;

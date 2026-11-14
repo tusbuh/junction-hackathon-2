@@ -72,7 +72,7 @@ export async function openBoq({ path, name }) {
   B.b = b; B.sel = null;
   const ms = performance.now() - t0;
   B.$('#bqLoad').hidden = true;
-  B.$('#bqCredit').innerHTML = b.credit ? `<b>Data:</b> ${esc(b.credit.credit)}${b.credit.licence ? ` · <i>${esc(b.credit.licence)}</i>` : ''}` : '';
+  B.$('#bqCredit').innerHTML = b.credit ? `<b>Data</b>${b.credit.licence ? ` <i>${esc(b.credit.licence)}</i>` : ''} ${esc(b.credit.credit)}` : '';
   if (b.kind === 'none') {
     B.$('#bqSub').textContent = '';
     B.$('#bqKpi').innerHTML = '';

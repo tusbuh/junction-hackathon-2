@@ -20,6 +20,7 @@ const S = { cat: [], src: 'swiss_dwellings', file: null, total: 0, n: 0, last: n
 
 const fmtEur = v => {
   if (!v) return '€0';
+  if (v >= 1) return '€' + v.toFixed(2);
   if (v >= 0.01) return '€' + v.toFixed(3);
   const d = Math.min(10, Math.max(2, 1 - Math.floor(Math.log10(v))));
   return '€' + v.toFixed(d);
@@ -48,24 +49,22 @@ async function splash() {
     // honest per-source numbers straight from data/eval/*.json; never one blended headline
     const d = await (await fetch('/api/scoreboard')).json();
     const by = Object.fromEntries(d.map(x => [x.source, x])), fmtN = x => x.toLocaleString('en');
-    for (const [src, id] of [['swiss_dwellings', 'Swiss'], ['ifc_models', 'Ifc']]) {
+    for (const [src, id] of [['swiss_dwellings', 'Swiss'], ['ifc_models', 'Ifc'], ['opening_design', 'Us'], ['cubicasa5k', 'Fi']]) {
       const s = by[src];
-      if (!s || !s.graded) continue;
-      countUp($('#sp' + id), 100 * s.correct / s.graded, x => x.toFixed(1) + '%');
-      $('#sp' + id + 'N').textContent = `${fmtN(s.correct)} / ${fmtN(s.graded)} auto-graded questions`;
+      if (!s || !s.graded) { $('#sp' + id).parentElement.hidden = true; continue; }
+      const pc = 100 * s.correct / s.graded;
+      $('#sp' + id).parentElement.classList.toggle('part', s.correct < s.graded);
+      countUp($('#sp' + id), pc, x => x.toFixed(1) + '%');
+      $('#sp' + id + 'N').textContent = `${fmtN(s.correct)} / ${fmtN(s.graded)} correct`;
     }
     const sc = d.filter(x => x.total), n = sc.reduce((a, x) => a + x.total, 0), e = sc.reduce((a, x) => a + x.eur, 0);
     if (n) {
-      const per = e / n, dec = per > 0 ? Math.max(2, Math.ceil(-Math.log10(per)) + 1) : 2;
-      $('#spCost').textContent = '€' + per.toFixed(dec);
       const v = sc.reduce((a, x) => a + x.vlm_eur, 0), r = e ? v / e : 0;
-      $('#spCostN').textContent = `CPU only, no LLM · mean over ${fmtN(n)} eval questions` +
-        (r ? ` · ~${r >= 1e6 ? (r / 1e6).toFixed(1) + 'M' : Math.round(r).toLocaleString('en')}× cheaper than a frontier VLM (est.)` : '');
+      $('#spCost').textContent = fmtEur(e);
+      $('#spCostN').innerHTML = `measured, all ${fmtN(n)} questions · 0 LLM calls` +
+        (r ? ` · frontier VLM est. €${v.toFixed(0)} · <em>~${Math.round(r).toLocaleString('en')}× cheaper</em>` : '');
+      $('#spCostRow').hidden = false;
     }
-    const ms = sc.map(x => x.median_ms).sort((a, b) => a - b);
-    $('#spMs').textContent = ms.length ? `${ms[ms.length >> 1] < 1 ? '<1' : Math.round(ms[ms.length >> 1])} ms` : '–';
-    const cc = by.cubicasa5k;
-    if (cc && cc.graded) $('#spWip').textContent = `Finnish raster scans (CubiCasa5K): ${(100 * cc.correct / cc.graded).toFixed(1)}% exact (${fmtN(cc.correct)} / ${fmtN(cc.graded)} counts) · leak-free YOLOv8n trained only on 213 non-Stoa plans + fi/en room-label OCR`;
   } catch (e) { }
 }
 function countUp(node, to, fmt, D = 1400) {
@@ -136,12 +135,18 @@ function selectFile(f) {
 // ---- data licence credit under every drawing (data/<source>/LICENSE.md, via /api/credit)
 const creditCache = new Map();
 const getCredit = p => { if (!creditCache.has(p)) creditCache.set(p, fetch(`/api/credit?path=${encodeURIComponent(p)}`).then(r => r.json()).catch(() => null)); return creditCache.get(p); };
-const creditHtml = c => c ? `<b>Data:</b> ${esc(c.credit)}${c.licence ? `<i>${esc(c.licence)}</i>` : ''}` : '';
+// licence tag first: the long author list may be cut off by the ellipsis, the licence never is
+const creditHtml = c => c ? `<b>Data</b>${c.licence ? `<i>${esc(c.licence)}</i>` : ''} ${esc(c.credit)}` : '';
 async function setCredits(f) {
   const isIfc = f.path.endsWith('.ifc');
   const [c2, c3] = await Promise.all([isIfc ? null : getCredit(f.path), S.has.model ? getCredit(ifcFor(f.path)) : null]);
   if (S.file !== f) return;
   $('#credit2d').innerHTML = creditHtml(c2); $('#credit3d').innerHTML = creditHtml(c3);
+}
+// views that show a drawing outside the picked file (audit findings) set the credit of what is actually on screen
+async function creditFor(p, model) {
+  const c = await getCredit(p);
+  $('#credit2d').innerHTML = model ? '' : creditHtml(c); $('#credit3d').innerHTML = model ? creditHtml(c) : '';
 }
 
 function clearResult() {
@@ -193,13 +198,15 @@ async function show(r) {
   renderReceipt(r, $('#receipt'), { onHover: (n, on) => hot(n, on), onFocus: it => it && select(it.n) });
   // cost meter
   const c = r.cost || {};
-  S.total += c.total_eur || 0; S.n++;
-  $('#mLast').textContent = fmtEur(c.total_eur);
-  $('#mLat').textContent = `${Math.round((c.seconds || 0) * 1000)} ms`;
-  $('#mLlm').textContent = c.llm_calls || 0;
-  $('#mVlm').textContent = fmtEur(c.vlm_baseline_eur);
-  $('#mSave').textContent = c.total_eur ? `${Math.round(c.vlm_baseline_eur / c.total_eur).toLocaleString('en')}×` : '∞';
-  const m = $('#meter'); m.classList.remove('flash'); m.offsetWidth; m.classList.add('flash');
+  if (r.cost) {   // audit findings and other pseudo-answers carry no cost: leave the meter as it was
+    S.total += c.total_eur || 0; S.n++;
+    $('#mLast').textContent = fmtEur(c.total_eur);
+    $('#mLat').textContent = `${Math.round((c.seconds || 0) * 1000)} ms`;
+    $('#mLlm').textContent = c.llm_calls || 0;
+    $('#mVlm').textContent = fmtEur(c.vlm_baseline_eur);
+    $('#mSave').textContent = c.total_eur && c.vlm_baseline_eur ? `${Math.round(c.vlm_baseline_eur / c.total_eur).toLocaleString('en')}×` : '–';
+    const m = $('#meter'); m.classList.remove('flash'); m.offsetWidth; m.classList.add('flash');
+  }
 
   // ---- views
   const v = r.view || {};
@@ -255,9 +262,12 @@ function addBadges(r) {
   }
   const cf = r.receipt?.confidence;
   if (cf) { const b = el('span', 'badge ' + ({ green: 'ok', amber: 'warn', red: 'bad' }[cf.colour] || ''), `● confidence ${esc(cf.level)}`); b.title = (cf.why || []).join('\n'); bd.append(b); }
-  const checks = S.items.filter(i => i.check);
+  // low-confidence detections and audit evidence are not printed-vs-computed cross-checks: badge them separately
+  const checks = S.items.filter(i => i.check && !['low confidence', 'audit'].includes(i.check.what));
   const bad = checks.filter(i => !i.check.ok).length;
   if (checks.length) bd.append(el('span', 'badge ' + (bad ? 'warn' : 'ok'), bad ? `⚠ ${bad}/${checks.length} cross-checks disagree` : `✓ ${checks.length}/${checks.length} cross-checks agree`));
+  const lowc = S.items.filter(i => i.check && i.check.what === 'low confidence').length;
+  if (lowc) bd.append(el('span', 'badge warn', `⚠ ${lowc} low-confidence detection${lowc > 1 ? 's' : ''}`));
   bd.append(el('span', 'badge cy', `${S.items.length} cited · ${r.router === 'rules' || !r.router ? '0 LLM' : esc(r.router)}`));
 }
 
@@ -569,7 +579,8 @@ function drawOverlay(items) {
     const room = it.kind === 'room' && it.value != null;
     const lab = el('div', 'lb' + (room ? ' room' : '') + (many && !room ? ' dot' : '') + (warn ? ' warn' : ''), room ? `${it.n} · ${fmtVal(it.value)} m²` : it.n);
     lab.dataset.n = it.n; lab.title = it.label || '';
-    if (warn && it.check.printed != null) lab.dataset.cx = `printed ${it.check.printed} ≠ computed ${fmtVal(it.check.computed ?? it.value)}`;
+    if (warn && it.check.what === 'low confidence') lab.dataset.cx = `low confidence ${fmtVal(it.check.computed)}`;
+    else if (warn && it.check.printed != null) lab.dataset.cx = `printed ${it.check.printed} ≠ computed ${fmtVal(it.check.computed ?? it.value)}`;
     lab.onmouseenter = () => hot(it.n, true); lab.onmouseleave = () => hot(it.n, false);
     lab.onclick = e => { e.stopPropagation(); select(it.n); };
     lab.onpointerdown = e => e.stopPropagation();
@@ -879,18 +890,20 @@ $('#sbBtn').onclick = async () => {
   const tot = d.reduce((a, x) => ({ g: a.g + x.graded, c: a.c + x.correct, e: a.e + x.eur, v: a.v + x.vlm_eur, n: a.n + x.total }), { g: 0, c: 0, e: 0, v: 0, n: 0 });
   const names = { swiss_dwellings: ['Swiss CAD floors', 'DXF + vector PDF · EN/DE/FR/IT'], ifc_models: ['IFC building models', 'IFC2x3/IFC4 · EN/ET/DA/DE'],
     cubicasa5k: ['Finnish raster plans', 'PNG scans · EN/FI'], opening_design: ['US drawing sets', 'PDF schedules'], ifc_bench: ['IFC-Bench v2', 'free-text BIM questions'] };
-  let h = `<div class="sbtot"><div><label>auto-graded accuracy</label><b style="color:var(--ok)">${(100 * tot.c / Math.max(tot.g, 1)).toFixed(1)}%</b></div>
+  // per source only (rows below): one blended accuracy would hide the weak source behind the strong ones
+  let h = `<div class="sbtot"><div><label>LLM calls in the scored path</label><b style="color:var(--ok)">0</b></div>
     <div><label>questions answered</label><b>${tot.n.toLocaleString('en')}</b></div>
     <div><label>total cost (PINPOINT)</label><b style="color:var(--ok)">${fmtEur(tot.e)}</b></div>
     <div><label>frontier VLM, same questions (est.)</label><b style="color:var(--ink2)">${fmtEur(tot.v)}</b></div></div>`;
-  d.forEach(x => {
+  const ORD = ['swiss_dwellings', 'ifc_models', 'opening_design', 'cubicasa5k'];
+  d.sort((a, b) => (ORD.indexOf(a.source) + 1 || 99) - (ORD.indexOf(b.source) + 1 || 99)).forEach(x => {
     const p = 100 * x.correct / Math.max(x.graded, 1), nm = names[x.source] || [x.source, ''];
     h += `<div class="sbrow"><div class="src"><b>${nm[0]}</b><small>${nm[1]}</small></div>
       <div><div class="bar"><i style="width:${p}%"></i></div><small class="muted">${Object.entries(x.by_type).map(([t, [a, b]]) => `${t} ${a}/${b}`).join(' · ')}</small></div>
-      <div class="pct">${p.toFixed(1)}%</div><div class="k"><b>${x.correct}/${x.graded}</b>correct</div><div class="k"><b>${x.median_ms} ms</b>median (warm)<br>€${(x.eur / Math.max(x.total, 1)).toExponential(1)} / question</div></div>`;
+      <div class="pct"${p < 100 ? ' style="color:var(--acc)"' : ''}>${p.toFixed(1)}%</div><div class="k"><b>${x.correct.toLocaleString('en')} / ${x.graded.toLocaleString('en')}</b>correct</div><div class="k"><b>${fmtEur(x.eur)}</b>CPU, all ${x.total.toLocaleString('en')} · ${x.median_ms < 1 ? '<1' : Math.round(x.median_ms)} ms median</div></div>`;
   });
   h += `<p class="sbnote">Counts must match exactly; areas, lengths and volumes within 2% (Stoa's rule). Cost = measured CPU time × €0.04/vCPU-hour, plus LLM tokens when the template-only router is used (0 calls in these runs).
-    The VLM estimate prices each sheet at ~1.6k image tokens per 1.15 MP at 200 dpi + prompt/answer tokens at $3/$15 per Mtok. Misses are kept visible: unmatched IFC questions refer to a model (FZK-Haus) whose IFC file is not in the preview set.</p>`;
+    The VLM figure is an estimate, not a run: list price for one ~4 MP image (~5.6k tokens) + prompt and answer per question at $3 / $15 per Mtok. Accuracy is shown per source, never blended; misses stay visible.</p>`;
   $('#sbBody').innerHTML = h; $('#sb').hidden = false;
 };
 $('#sbX').onclick = () => $('#sb').hidden = true;
@@ -940,6 +953,7 @@ async function tour() {
     try {
       if (st.race) { tourCap(i, st.cap()); await R.openRace(); await tourWait(2500); if (S.touring) tourCap(i, null); await tourWait(6000); break; }   // caption clears so the table is readable   // the race stays up as the closing frame
       const f = S.cat.find(x => x.path === st.path); if (!f) continue;
+      tourCap(i, '');   // scene title only, so the last scene's caption never sits over the next drawing while it loads
       if (S.file !== f) { S.userMode = st.mode || 'sheet'; selectFile(f); await tourWait(900); }
       if (st.boq) {
         tourCap(i, st.cap()); await B.openBoq({ path: f.path, name: f.name }); await tourWait(8500); B.close(); continue;
@@ -953,7 +967,6 @@ async function tour() {
         W.close(); continue;
       }
       S.userMode = st.mode;
-      tourCap(i, null);
       $('#q').value = '';
       for (const ch of st.q) { if (!S.touring) break; $('#q').value += ch; if (!STATIC) await sleep(14); }
       if (!S.touring) break;
@@ -980,5 +993,5 @@ document.addEventListener('keydown', e => {
 });
 if (new URLSearchParams(location.search).get('race')) openRace();
 
-window.PP = { S, SV, T, select, setMode, ask, hot, clearSel, selectFile, show, tour, openRace, fitBox };
+window.PP = { S, SV, T, select, setMode, ask, hot, clearSel, selectFile, show, tour, openRace, fitBox, credit: creditFor };
 boot();

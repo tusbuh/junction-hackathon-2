@@ -179,7 +179,8 @@ main { flex: 1; display: grid; grid-template-columns: 1fr 360px; min-height: 0; 
 
 /* ================= receipt ================= */
 .receipt { min-height: 0; overflow: auto; padding: 16px 16px 30px; border-left: 1px solid var(--line); background: linear-gradient(180deg, #0a1020, #070b14); }
-.rh { display: flex; align-items: baseline; justify-content: space-between; margin: 2px 0 10px; }
+.rh { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 2px 0 10px; }
+.rh .rsub { text-align: right; }
 .rh h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink2); margin: 0; display: flex; align-items: center; gap: 8px; }
 .rsub { font-size: 11px; color: var(--ink3); }
 .pill { font-family: var(--mono); background: var(--acc); color: #1a0d00; border-radius: 99px; padding: 0 7px; letter-spacing: 0; font-weight: 700; }
@@ -236,7 +237,7 @@ main { flex: 1; display: grid; grid-template-columns: 1fr 360px; min-height: 0; 
 .mh { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .mh h2 { margin: 0; font-size: 20px; } .mh small { color: var(--ink3); font-weight: 400; font-size: 13px; margin-left: 8px; }
 .mh button { background: none; border: 0; color: var(--ink2); font-size: 18px; }
-.sbrow { display: grid; grid-template-columns: 170px 1fr 120px 130px 120px; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.sbrow { display: grid; grid-template-columns: 170px 1fr 100px 130px 170px; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .sbrow .src b { display: block; font-size: 15px; } .sbrow .src small { color: var(--ink3); font-size: 11.5px; }
 .bar { height: 12px; background: var(--panel2); border-radius: 99px; overflow: hidden; position: relative; }
 .bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--ok), #9ff5cf); border-radius: 99px; animation: grow 1.1s cubic-bezier(.2,.8,.2,1) both; }
@@ -294,7 +295,7 @@ html.static .splash, html.static .splash *, html.static .answer, html.static .an
 .credit { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; padding: 4px 12px 5px; font-size: 10.5px; line-height: 1.35; color: var(--ink3); background: #05080fd9; border-top: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: auto; }
 .credit:hover { white-space: normal; color: var(--ink2); }
 .credit b { color: var(--ink2); font-weight: 600; }
-.credit i { font-style: normal; font-family: var(--mono); color: var(--cy); border: 1px solid #38d6ff44; border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.credit i { font-style: normal; font-family: var(--mono); color: var(--cy); border: 1px solid #38d6ff44; border-radius: 4px; padding: 0 4px; margin: 0 4px 0 6px; }
 .credit:empty { display: none; }
 .sheetv:not(.blue) .credit { background: rgba(244,241,234,.94); color: #3c4456; border-top-color: #d8d2c4; }
 .sheetv:not(.blue) .credit b { color: #1a2233; }
@@ -321,3 +322,16 @@ body.boqOpen .tourCap { left: 30%; }
 .meter label u { text-decoration: none; color: var(--ok); margin-left: 4px; letter-spacing: .04em; }
 body:has(.credit:not(:empty)) .credits { display: none; }
 @media (max-width: 1720px) { .top .tbtn, .top .wowBtn { padding-left: 9px; padding-right: 9px; font-size: 12px; } .meter .m { padding: 4px 8px; } }
+
+/* ================= header fit: every control visible from 1280 px up (POLISH) ================= */
+.docBtn { min-width: 170px; }
+.ask { min-width: 220px; }
+@media (max-width: 1800px) { .brand span { display: none; } .top { gap: 10px; } }
+@media (max-width: 1599px) { .meter .m:nth-child(2) { display: none; } }
+@media (max-width: 1400px) { .docBtn { min-width: 140px; } .top { padding-left: 12px; padding-right: 12px; gap: 8px; } }
+.splash .stats div.part b { color: var(--acc); }
+.splash .spCost { display: inline-flex; align-items: baseline; gap: 10px; margin: -12px auto 22px; padding: 8px 16px; border: 1px solid #3ddc9744; background: #3ddc970d; border-radius: 12px; font-size: 13px; color: var(--ink2); }
+.splash .spCost b { font: 800 20px var(--mono); color: var(--ok); }
+.splash .spCost em { font-style: normal; color: var(--ok); font-weight: 700; }
+.splash .wip { margin: 0 0 22px; }
+.splash .spCost { white-space: nowrap; }
