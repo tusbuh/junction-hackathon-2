@@ -847,6 +847,7 @@ function pick3d(e) {
   const map = hit.object === T.hlMesh ? T.hlMap : T.baseMap, o = hit.faceIndex * 3;
   let lo = 0, hi = map.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (map[m][0] <= o) lo = m; else hi = m - 1; }
   const e3 = map[lo][1];
+  dispatchEvent(new CustomEvent('pp:pick', { detail: { gid: e3.gid, cls: e3.cls } }));   // component identification (identify.js)
   const h = T.hl.find(h => h.els.includes(e3));
   if (h) select(h.it.n); else showPick(e3);
 }

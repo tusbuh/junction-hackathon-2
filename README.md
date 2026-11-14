@@ -86,6 +86,25 @@ Also audited with nothing to flag: all 550 printed room-area labels on the 65 Sw
 Notable accuracy rules found in the data: a washbasin is a bowl with a drain circle, a WC is a bowl without one
 (130/130); a shower is a free 4.5 cm floor drain (hob burners are 8 cm); assembled stairs count once.
 
+### Component identification: click any element, get a site-ready card (`⌖ Identify`, key `I`)
+
+Click any element on the 2D sheet, on an IFC plan, in the 3D model or in the walkthrough and an inspector card says
+**what it is** (wall, door, window, slab, column, stair, sanitary fixture, room/space…), **its type**, **its size**
+(clear opening width, leaf, swing radius, wall thickness and centre-line length, room net area and perimeter; IFC
+`OverallWidth/Height` and `Qto` sets), **its properties** (IFC Psets incl. `FireRating`, `IsExternal`, `LoadBearing`,
+material layer build-up, storey, host wall via `IfcRelFillsElement`; Swiss DXF: rooms on both sides of a door, the
+room a window lights, section hatch, SIA 416 use class from the printed room name) and **the exact source**
+(file, DXF layer + entity handle, or IFC GlobalId + STEP line + type object). Values a 2D plan does not contain
+(door height, sill height, fire rating) are listed as missing, never filled in. `/api/inspect?path=…&id=…` or `&x=&y=`.
+
+The parts list (`/api/parts?path=…`) answers "what does this drawing contain?": e.g. *36 doors of 9 types · 28
+windows of 10 types · 41 walls · 12 sanitary fixtures · 31 rooms*; every row lights its elements up in 2D and 3D.
+It also surfaced a data quirk: in 61 of the 65 Swiss plans some doors are **drawn twice** (identical DOOR polylines,
+leaf and swing arc stacked on top of each other; 265 pairs among 1,868 door thresholds). The dataset's door counts include
+the duplicates, so PINPOINT answers the same, but the card flags each one so a take-off counts the opening once.
+Vector PDF sheets identify the printed tag/text under the click; raster scans list detector symbols when the
+detector weights are present.
+
 ## Run
 
 ```bash
