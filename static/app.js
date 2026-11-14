@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from '/static/vendor/OrbitControls.js';
+import { renderReceipt } from '/static/receipt.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -146,10 +147,11 @@ async function setCredits(f) {
 function clearResult() {
   S.run++; S.items = []; S.sel = null;
   $('#answer').hidden = true;
-  $('#steps').innerHTML = '<li class="muted">Every step of the derivation appears here.</li>';
-  $('#ev').innerHTML = ''; $('#evN').textContent = '';
+  $('#receipt').innerHTML = RECEIPT0;
   drawOverlay([]); highlight3d([]);
 }
+
+const RECEIPT0 = '<div class="rh"><h3>Receipt</h3><span class="rsub">ask a question: the answer, how it was derived and every cited element appear here</span></div>';
 
 // ============================================================ ask
 $('#askForm').onsubmit = e => { e.preventDefault(); $('#sugg').hidden = true; $('#q').blur(); ask(); };
@@ -187,25 +189,8 @@ async function show(r) {
   const bd = $('#aBadges'); bd.innerHTML = '';
   $('#stepper').hidden = S.items.length < 1;
   updateStepper();
-  // receipt
-  const st = $('#steps'); st.innerHTML = '';
-  (r.steps || []).forEach((s, i) => { const li = el('li', '', esc(s)); li.style.animationDelay = (i * 70) + 'ms'; st.append(li); });
-  $('#rSub').textContent = r.router === 'rules' || !r.router ? 'rule router · 0 LLM calls' : r.router;
-  const ev = $('#ev'); ev.innerHTML = '';
-  $('#evN').textContent = S.items.length || '';
-  S.items.forEach((it, i) => {
-    const warn = it.check && !it.check.ok;
-    const sub = it.gid ? `${it.cls || ''} · ${it.gid}` : (it.kind || '');
-    let v = it.value != null ? `${fmtVal(it.value)}${r.unit && r.unit !== 'count' && r.unit !== 'text' ? ' ' + r.unit : ''}` : '';
-    if (it.check) v += it.check.what === 'low confidence' ? `<small>low confidence</small>` : `<small>${warn ? '≠' : '='} ${it.check.what ? 'Qto' : 'label'} ${it.check.printed}</small>`;
-    const row = el('div', 'e' + (warn ? ' warn' : ''), `<span class="n">${it.n}</span><span class="l">${esc(it.label || it.kind)}<small>${esc(sub)}</small></span><span class="v">${v}</span>`);
-    row.dataset.n = it.n;
-    row.style.animationDelay = Math.min(i * 22, 600) + 'ms';
-    row.onmouseenter = () => hot(it.n, true); row.onmouseleave = () => hot(it.n, false);
-    row.onclick = () => select(it.n);
-    ev.append(row);
-  });
-  if (S.items.length > 1 && r.unit && r.unit !== 'count' && r.unit !== 'text' && r.value != null) ev.append(el('div', 'sum', `<span>Σ ${S.items.length} items</span><b>${fmtVal(r.value)} ${esc(r.unit)}</b>`));
+  // receipt: answer, method, tolerance, confidence, cross-checks, itemized citations (click = light up on the drawing), source + licence
+  renderReceipt(r, $('#receipt'), { onHover: (n, on) => hot(n, on), onFocus: it => it && select(it.n) });
   // cost meter
   const c = r.cost || {};
   S.total += c.total_eur || 0; S.n++;

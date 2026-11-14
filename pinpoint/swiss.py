@@ -148,6 +148,16 @@ class Plan:
                              + ("all agree within 2%" if not bad else f"{bad} disagree (amber)"))
             return items, steps
 
+        def excluded(lst):
+            out = []
+            for r in lst:
+                if not r['area'] or indoor(r): continue
+                why = 'outdoor space (balcony/loggia/terrace)' if (r['name'] or '').lower() in OUTDOOR else \
+                      'unlabelled strip < 1.3 m wide, no fixtures: loggia / shaft, not net floor area'
+                out.append(dict(kind='excluded', label=f"{r['num']} {r['name'] or '(no label)'}".strip(), value=r['area'],
+                                bbox=r['bbox'], poly=r['poly'], reason=why))
+            return out
+
         def syms(lst, kind, how, layer):
             return dict(value=len(lst), unit='count', items=[dict(kind=kind, label=f"{kind} {i+1}", bbox=b) for i, b in enumerate(lst)],
                         method=how, steps=[f"Parsed DXF layer {layer}", how, f"Counted {len(lst)} distinct symbols"])
@@ -162,7 +172,7 @@ class Plan:
             u = m.group(1).upper()
             r = [r for r in self.rooms if r['unit'] == u and indoor(r)]
             it, st = rooms(r, f"Kept the {len(r)} indoor rooms inside apartment {u}'s UNIT_OUTLINE (balconies/loggias/terraces excluded), summed polygon areas")
-            return dict(value=round(sum(x['area'] for x in r), 2), unit='m²', items=it,
+            return dict(value=round(sum(x['area'] for x in r), 2), unit='m²', items=it, excluded=excluded([x for x in self.rooms if x['unit'] == u]),
                         method=f'sum of room polygons in apartment {u}', steps=st)
         if quoted and re.search(r'labelled|bezeichnung|désignation|désignées|denominazione|denominati', ql):
             lab = quoted[0]
@@ -174,7 +184,7 @@ class Plan:
         if is_area and re.search(r'numbered|nummerierten|numérotées|numerati|interni|intérieures', ql):
             r = [r for r in self.rooms if indoor(r)]
             it, st = rooms(r, f"Kept {len(r)} indoor numbered rooms (outdoor spaces excluded), summed polygon areas")
-            return dict(value=round(sum(x['area'] for x in r), 2), unit='m²', items=it, method='sum of indoor room polygons', steps=st)
+            return dict(value=round(sum(x['area'] for x in r), 2), unit='m²', items=it, excluded=excluded(self.rooms), method='sum of indoor room polygons', steps=st)
         if re.search(r'apartments|wohnungen|appartements|appartamenti', ql):
             labs = [t for t in self.texts if UNIT_RE.match(t[0])]
             items = []
