@@ -8,7 +8,23 @@
 
 # PINPOINT — every answer comes with a receipt
 
-**Submitted as:** AIRAM · Junction 2026 · Stoa challenge *"Make Blueprints Talk"*
+**Project name (form):** PINPOINT: blueprints that show · earlier draft name AIRAM · Junction 2026 · Stoa challenge *"Make Blueprints Talk"*
+
+## Form fields (Junction project submission)
+
+| field | value |
+|---|---|
+| Project Name | PINPOINT: blueprints that show |
+| Punchline | Ask your blueprints anything, in any language: exact answers with a receipt boxed on the real drawing. 100% on Swiss plans and IFC, about 72,000x cheaper than a frontier vision model. |
+| Description | Pitch + accuracy + cost + how it works below (form copy: shots_tmp/form/description.md) |
+| Challenge | Make Blueprints Talk (Stoa) |
+| Project Demo | NOT FILLED: the demo runs at localhost:8737 only; needs a public URL from the user |
+| Source Code | NOT FILLED: repo tusbuh/junction-hackathon-2 is private; the user decides whether to make it public or share access |
+| Video | NOT FILLED: no demo video recorded yet |
+| Other Link | empty |
+| Presentation | NOT FILLED: no deck yet |
+| Tech Challenge Participation | empty |
+| Team members | the user confirms on the Junction Team page |
 
 ## Pitch
 
@@ -20,8 +36,8 @@ and you get an exact answer with a receipt. Every counted item is boxed and numb
 is cited to its DXF entity, IFC GlobalId or schedule row, and the deviation from the reference is shown against Stoa's
 2 % tolerance. It turns a quantity takeoff, a door schedule check or a BoQ into seconds of verification. It also
 catches mistakes in the drawings themselves: a door schedule that lists 41 doors on plans that tag 39, and RC columns
-modelled twice in an IFC, each one an RFI before it becomes a wrong order on site. All of this costs about a hundred
-thousand times less than asking a frontier vision model.
+modelled twice in an IFC, each one an RFI before it becomes a wrong order on site. All of this costs about 72,000
+times less than asking a frontier vision model.
 
 ## How it works
 
