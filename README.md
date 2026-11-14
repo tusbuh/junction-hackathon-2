@@ -20,7 +20,7 @@ rewrite the *question* into a template; it never sees the drawing and never prod
 | IFC building models (EN/ET/DA/DE) | ifcopenshell: elements, storeys, quantities, 3D footprints | **97.7 %** (1025/1049); **100 %** of questions whose IFC is in the preview | 44 ms | ≈ €0.0000005 |
 | US drawing sets (schedule sheets) | rotation-aware vector words → schedule tables, highlighted rows | 70 % (40/57) | ~0.1 s | ≈ €0.000001 |
 | IFC-Bench v2 (free text) | deterministic intents over IFC facts, GlobalIds cited | not auto-graded (reference answer shown) | ~0.1 s | ≈ €0.000001 |
-| Finnish raster plans (PNG) | leak-free YOLOv8n (trained only on the 213 CubiCasa5K plans not in the Stoa set) + fi/en room-label OCR | 2728 / 4270 = 63.9 % exact (preview dev split) | — | — |
+| Finnish raster plans (PNG) | leak-free YOLOv8n (trained only on the 213 CubiCasa5K plans not in the Stoa set) + fi/en room-label OCR + fixture priors from the 213 training plans (≥1 shower/bathtub, ≥1 WC seat, ≥2 sinks) + nested-box de-duplication | 3042 / 4270 = 71.2 % exact (preview dev split; was 63.9 %; `python -m pinpoint.raster.breakdown` per template) | — | — |
 
 Open the **▦ Scoreboard** in the app for the live numbers. Counts must be exact; areas, lengths and volumes within 2 %.
 The 24 IFC misses all refer to FZK-Haus, whose IFC file is not part of the preview.
