@@ -56,6 +56,69 @@ class Model:
         while c is not None and not c.is_a('IfcBuildingStorey'):
             c=ue.get_aggregate(c) or ue.get_container(c)
         return c
+    def footprint_poly(self, e):
+        """2D (XY) footprint polygon of an element from its 3D tessellation"""
+        from shapely.geometry import Polygon
+        from shapely.ops import unary_union
+        try:
+            g = ifcopenshell.geom.create_shape(self.gs, e).geometry
+        except Exception:
+            return None
+        v, fa = g.verts, g.faces
+        tris = []
+        for i in range(0, len(fa), 3):
+            a, b, c = fa[i:i + 3]
+            t = Polygon([(v[3 * a], v[3 * a + 1]), (v[3 * b], v[3 * b + 1]), (v[3 * c], v[3 * c + 1])])
+            if t.area > 1e-6: tris.append(t)
+        return unary_union(tris) if tris else None
+
+    def exterior_walls(self):
+        """Walls on the building envelope, for models that do not carry Pset_WallCommon.IsExternal: per storey,
+        the union of wall + space footprints is the floor outline; a wall touching its outer boundary is exterior."""
+        if getattr(self, '_ext', None) is not None:
+            return self._ext
+        from shapely.ops import unary_union
+        walls = self.elems(['IfcWall', 'IfcWallStandardCase'])
+        by = {}
+        for w in walls:
+            by.setdefault(self._storey(w), []).append(w)
+        ext = set()
+        for st, ws in by.items():
+            fp = {w.id(): self.footprint_poly(w) for w in ws}
+            sp = [self.footprint_poly(x) for x in self.elems(['IfcSpace'], st)]
+            parts = [p for p in list(fp.values()) + sp if p is not None and not p.is_empty]
+            if not parts: continue
+            u = unary_union([p.buffer(0.15) for p in parts]).buffer(-0.15)
+            from shapely.geometry import Polygon as _P
+            geoms = [g for g in (u.geoms if hasattr(u, 'geoms') else [u]) if g.area > 4]
+            # outer outline + courtyards / light wells (holes larger than a shaft) are both outside air
+            rings = [g.exterior for g in geoms] + [r for g in geoms for r in g.interiors if _P(r).area > 4]
+            from shapely.geometry import Point
+            from shapely.prepared import prep
+            inside = prep(_P(geoms[0].exterior) if len(geoms) == 1 else unary_union([_P(g.exterior) for g in geoms]))
+            holes = [prep(_P(r)) for g in geoms for r in g.interiors if _P(r).area > 4]
+            wallu = prep(unary_union([p for p in fp.values() if p is not None]))
+            outside = lambda pt: not inside.contains(pt) or any(h.contains(pt) for h in holes)
+            for w in ws:
+                p = fp[w.id()]
+                if p is None or p.is_empty: continue
+                r = p.minimum_rotated_rectangle
+                c = list(r.exterior.coords)[:4]
+                e1 = (c[1][0] - c[0][0], c[1][1] - c[0][1]); e2 = (c[2][0] - c[1][0], c[2][1] - c[1][1])
+                l1, l2 = (e1[0] ** 2 + e1[1] ** 2) ** .5, (e2[0] ** 2 + e2[1] ** 2) ** .5
+                if min(l1, l2) < 1e-6: continue
+                n = (e2[0] / l2, e2[1] / l2) if l1 >= l2 else (e1[0] / l1, e1[1] / l1)   # normal = short-side direction
+                half = min(l1, l2) / 2
+                ctr = r.centroid
+                for sgn in (1, -1):
+                    for d in [half + 0.1 * k for k in range(1, 16)]:   # walk out through adjacent layers, up to 1.5 m
+                        pt = Point(ctr.x + sgn * n[0] * d, ctr.y + sgn * n[1] * d)
+                        if wallu.contains(pt): continue
+                        if outside(pt): ext.add(w.id())
+                        break
+        self._ext = ext
+        return ext
+
     def q(self, e, *names):
         ps=ue.get_psets(e, qtos_only=True)
         for qto in ps.values():

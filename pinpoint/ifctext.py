@@ -50,13 +50,22 @@ def answer(model, q):
     els = model.elems(CLASSES[cls_key]) if cls_key else []
     if cls_key == 'toilet':
         els = [e for e in els if re.search(r'toilet|wc|closet|klosett', (e.Name or '') + type_name(e), re.I)]
-    if re.search(r'exterior|external|outer|outside|facade|façade', ql) and cls_key in ('wall', 'door', 'window', 'slab'):
-        els = [e for e in els if psv(e, 'IsExternal') is True]; scope = 'exterior '
-    elif re.search(r'interior|internal|inner|inside', ql) and cls_key in ('wall', 'door', 'window', 'slab'):
-        els = [e for e in els if psv(e, 'IsExternal') is not True]; scope = 'interior '
-    else:
-        scope = ''
     steps = [f"Opened {f.schema} model: {len(f.by_type('IfcProduct'))} products, {len(model.storeys)} storeys"]
+    ext_q = re.search(r'exterior|external|outer|outside|facade|façade', ql)
+    int_q = re.search(r'interior|internal|inner|inside', ql)
+    scope = ''
+    if (ext_q or int_q) and cls_key in ('wall', 'door', 'window', 'slab'):
+        flagged = any(psv(e, 'IsExternal') is not None for e in els)
+        if flagged or cls_key != 'wall':
+            isext = lambda e: psv(e, 'IsExternal') is True
+        else:
+            # no Pset_WallCommon.IsExternal in this model: classify walls by geometry (envelope test)
+            ext_ids = model.exterior_walls()
+            isext = lambda e: e.id() in ext_ids
+            steps.append("No wall carries Pset_WallCommon.IsExternal: exterior = walls whose outer side faces open air "
+                         "(perpendicular probe through adjacent layers leaves the storey outline or enters a courtyard)")
+        els = [e for e in els if isext(e)] if ext_q else [e for e in els if not isext(e)]
+        scope = 'exterior ' if ext_q else 'interior '
     R = lambda text, items, how, extra=(): dict(value=text, unit='text', items=items, method=how, steps=steps + list(extra))
     item = lambda e, v=None: dict(gid=e.GlobalId, label=model.label(e), cls=e.is_a(), value=v,
                                   parts=[c.GlobalId for c in ue.get_decomposition(e) if hasattr(c, 'GlobalId')][:200])
