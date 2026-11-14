@@ -335,3 +335,5 @@ body:has(.credit:not(:empty)) .credits { display: none; }
 .splash .spCost em { font-style: normal; color: var(--ok); font-weight: 700; }
 .splash .wip { margin: 0 0 22px; }
 .splash .spCost { white-space: nowrap; }
+.dock .seg button, .dock .hint { white-space: nowrap; }
+.ask .sugg { min-width: min(620px, 70vw); }
