@@ -30,12 +30,43 @@ def dets(path):
     return tuple(tuple(sorted(d.items())) for d in D.detect(path))
 
 
+ROOM_KEYS = {'bedrooms', 'kitchens', 'bathrooms', 'wc_rooms', 'saunas', 'balconies', 'floors'}
+
+
+def ocr_answer(path, key, how):
+    """Room types and storeys come from the printed room codes (MH, K, KH, WC, S, PARV, "1. kerros"), read by OCR.
+    Fused with the detector where it helps: saunas = max(OCR, detector) because OCR never invents a sauna."""
+    from . import rooms
+    r = rooms.answer(path, key)
+    r['steps'].insert(0, f"Router ({how}): question → “{key.replace('_', ' ')}” = count printed room labels")
+    r['router'] = how
+    for it in r['items']:
+        it.setdefault('kind', 'room')
+    if D.WEIGHTS.exists() and (key == 'saunas' or not r.get('confident')):
+        d = detector_answer(path, key, how)
+        if d['value'] is not None and (key == 'saunas' and d['value'] > (r['value'] or 0) or not r.get('confident')):
+            d['steps'] = r['steps'] + [f"OCR {'not confident' if not r.get('confident') else 'found fewer'} ({r['value']}): using the symbol detector instead"] + d['steps']
+            d['method'] = 'OCR room labels → detector fallback'
+            return d
+    return r
+
+
 def answer(path, q):
-    if not D.WEIGHTS.exists():
-        return dict(value=None, unit=None, items=[], method='detector weights not trained yet', steps=['Raster detector weights missing'])
     key, how = route(q)
     if key is None:
         return dict(value=None, unit=None, items=[], method='not routed', steps=['No raster template matched'])
+    if key in ROOM_KEYS:
+        try:
+            return ocr_answer(path, key, how)
+        except Exception as e:   # OCR unavailable: fall through to the detector
+            if not D.WEIGHTS.exists():
+                return dict(value=None, unit=None, items=[], method='OCR unavailable', steps=[f'OCR failed: {e}'])
+    return detector_answer(path, key, how)
+
+
+def detector_answer(path, key, how):
+    if not D.WEIGHTS.exists():
+        return dict(value=None, unit=None, items=[], method='detector weights not trained yet', steps=['Raster symbol detector is still training'])
     ds = [dict(d) for d in dets(path)]
     thr = D.thresholds()
     cls = KEY_CLASSES[key]
