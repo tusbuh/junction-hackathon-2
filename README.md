@@ -1,6 +1,6 @@
 # PINPOINT — every answer comes with a receipt
 
-Stoa challenge "Make Blueprints Talk", Junction 2026.
+Stoa challenge "Make Blueprints Talk", Junction 2026 (team submission name: AIRAM).
 
 PINPOINT answers plain-language questions about construction drawings and BIM models, in any language. Every answer
 shows **where it came from**: the counted doors, toilets, rooms or schedule rows are boxed and numbered on the real
@@ -12,22 +12,63 @@ file (CAD layers, PDF vector text, IFC elements and quantities) and, for scanned
 Answers are exact lookups and sums over that geometry. A language model is optional and is only ever allowed to
 rewrite the *question* into a template; it never sees the drawing and never produces the answer.
 
+## What it does for a site engineer
+
+Site engineers lose hours a day hunting through drawing sets for one number. PINPOINT turns that hunt into a question
+with a checkable answer:
+
+| Site task | What you do in PINPOINT | What you get back |
+|---|---|---|
+| **Quantity takeoff** (counts, net floor areas, lengths, volumes) | Ask "How many WCs on this floor?" or "Net floor area of apartment A, excluding balconies?" in your own language | The value, every counted item boxed and numbered on the sheet, the ±2 % tolerance badge, and the items left out of the takeoff with the reason (balconies, loggias, shafts) |
+| **Door schedule** checks | Ask about door types, widths or frame materials on a schedule sheet (e.g. A-801) | The schedule rows that were read, highlighted where they sit on the sheet |
+| **Bill of quantities (BoQ)** | `Bill of quantities` (key `Q`) on any floor | Rooms, floor areas, doors, windows and sanitary fixtures for the whole floor, each line cross-checked against the dataset's own questions; CSV and PDF export |
+| **Drawing audit before an RFI** | `⚠ Audit` (key `A`) | Places where a drawing disagrees with itself (schedule vs plan tags, printed m² vs room outline, duplicated IFC elements), each with a short "what to double-check" list: raise an RFI, confirm a door mark before ordering the frame, delete a duplicate before the takeoff |
+| **As-built / model checks** | Ask about an IFC model, or click any element (`⌖ Identify`, key `I`) | Element type, size, Psets (fire rating, load-bearing, external), storey, host wall, and the exact source (IFC GlobalId + STEP line, or DXF layer + entity handle); values the drawing does not contain are listed as missing, never filled in |
+| **Site walk** | `🚶 Walk in 3D` (key `W`) | The 2D plan extruded into a building you can walk through, with the counted elements glowing |
+
 ## Results on the preview set (auto-graded against `questions.jsonl`)
 
-| source | what PINPOINT reads | accuracy | median latency | cost / question |
-|---|---|---|---|---|
-| Swiss floor plans (DXF + PDF, EN/DE/FR/IT) | DXF layers → symbols + room polygons, projected onto the PDF | **99.2 %** (2338/2358) | < 1 ms warm | ≈ €0.00000003 |
-| IFC building models (EN/ET/DA/DE) | ifcopenshell: elements, storeys, quantities, 3D footprints | **97.7 %** (1025/1049); **100 %** of questions whose IFC is in the preview | 44 ms | ≈ €0.0000005 |
-| US drawing sets (schedule sheets) | rotation-aware vector words → schedule tables, highlighted rows | 70 % (40/57) | ~0.1 s | ≈ €0.000001 |
-| IFC-Bench v2 (free text) | deterministic intents over IFC facts, GlobalIds cited | not auto-graded (reference answer shown) | ~0.1 s | ≈ €0.000001 |
-| Finnish raster plans (PNG) | leak-free YOLOv8n (trained only on the 213 CubiCasa5K plans not in the Stoa set) + fi/en room-label OCR + fixture priors from the 213 training plans (≥1 shower/bathtub, ≥1 WC seat, ≥2 sinks) + nested-box de-duplication | 3042 / 4270 = 71.2 % exact (preview dev split; was 63.9 %; `python -m pinpoint.raster.breakdown` per template) | — | — |
+Scoring is the challenge's: **counts must be exact; areas, lengths and volumes within 2 %**. Numbers below are from
+`/api/scoreboard` (per-question results in `data/eval/*.json`, written by `python -m pinpoint.evaluate`). Per source,
+never blended: the sources differ in kind and size.
 
-Open the **▦ Scoreboard** in the app for the live numbers. Counts must be exact; areas, lengths and volumes within 2 %.
-The 24 IFC misses all refer to FZK-Haus, whose IFC file is not part of the preview.
+| source | what PINPOINT reads | exact / graded | accuracy | median latency | measured cost, whole source |
+|---|---|---|---|---|---|
+| Swiss floor plans (DXF + PDF, EN/DE/FR/IT) | DXF layers → symbols + room polygons, projected onto the PDF | **2358 / 2358** (count 1614/1614, area 744/744) | **100 %** | 0.2 ms | €0.000052 |
+| IFC building models (EN/ET/DA/DE) | ifcopenshell: elements, storeys, quantities, 3D footprints | **1049 / 1049** (area 846/846, count 153/153, volume 34/34, length 16/16) | **100 %** | 38 ms | €0.00039 |
+| US drawing sets (opening_design schedule sheets) | rotation-aware vector words → schedule tables, highlighted rows | **61 / 64** (count 37/39, text 15/16, area 9/9) | **95.3 %** | 0.2 ms | €0.0000017 |
+| Finnish raster plans (CubiCasa5K PNG) | leak-free YOLOv8n (trained only on the 213 CubiCasa5K plans not in the Stoa set) + fi/en room-label OCR + fixture priors from those 213 plans + nested-box de-duplication | **3042 / 4270** (all count questions) | **71.2 %** | 0.6 ms (p95 158 ms) | €0.00088 |
+| IFC-Bench v2 (free text) | deterministic intents over IFC facts, GlobalIds cited | not auto-graded (reference answer shown) | — | — | — |
 
-**Cost.** Measured CPU time × €0.04 per vCPU-hour, plus LLM tokens when the optional router is used (0 calls in all
-runs above). The UI's cost meter shows this per answer next to an estimate of what a frontier VLM would cost for the
-same sheet (~1.6k image tokens per 1.15 MP at 200 dpi plus prompt/answer at $3/$15 per Mtok): typically 10⁴–10⁵× more.
+0 LLM calls in every run above. Open the **▦ Scoreboard** in the app for the live numbers.
+
+**Unseen drawings** (`/api/eval_all`, generated 2026-11-14 06:32; drawings from the full dataset that are *not* in the
+preview split and were never used for development): IFC models **858 / 858**, Swiss floor plans **892 / 898
+(99.3 %)**, IFC-Bench free text 467 / 467 answered (not auto-graded). The sample also includes 16 historic and archive drawings
+(4 each from europeana, finna, habs and wikimedia, 64 generic questions without reference answers): none is answered
+with a number, each returns an explained "can't answer, here's why". Across the whole unseen sample: **0 crashes,
+0 silent failures**.
+
+**CubiCasa room-label OCR** (`/api/eval_all`, Tesseract fin+eng, preview): kitchens 70/75, bathrooms 55/60, floors
+97/108, balconies 28/35, bedrooms 52/72, WC 41/60, saunas 48/77. Weakest classes are where the remaining raster misses are.
+
+(`/api/eval_all` still shows the earlier CubiCasa snapshot of 2728 / 4270 = 63.9 %; the scoreboard's 3042 / 4270 is the
+current `data/eval/cubicasa5k.json` after the de-duplication and priors change.)
+
+## Cost
+
+Measured CPU time × €0.04 per vCPU-hour, plus LLM tokens when the optional router is used (0 calls in all runs
+above). From `/api/race` (same `data/eval/*.json`):
+
+| | PINPOINT (measured) | frontier VLM (list-price estimate) |
+|---|---|---|
+| all 7,741 graded preview questions | **€0.0013** (120 s CPU) | €170.48 |
+| per question | ≈ €0.00000017 | ≈ €0.022 |
+| Swiss floor plans, 2,358 questions | €0.000052 | €51.93 |
+
+The VLM column is an estimate, not a measurement: ~1.6k image tokens per 1.15 MP at 200 dpi plus prompt/answer at
+$3/$15 per Mtok. On these numbers a frontier VLM would cost roughly 10⁵× more for the same questions. The UI's cost meter
+shows both per answer; click it (or press `R`) for the cost race.
 
 ## How it works
 
@@ -38,6 +79,11 @@ file ─► format adapter ─► geometry index ─► question router ─► e
         IFC  (ifcopenshell) elements, storeys, Qto      → optional tiny LLM: template only
         PNG  (YOLO)         symbol + room detections
 ```
+
+A hybrid: vector parsing where the file has vectors, a small fine-tuned detector (YOLOv8n) plus OCR where it only has
+pixels, and an optional frontier model that only rewrites the question. **No LLM is in the scored path.** Same-name
+files in several formats are the same drawing: PINPOINT uses the vector one (DXF/IFC over PDF over PNG), and the
+`ifc_models` plan PDFs are linked to the IFC they were rendered from.
 
 Verification is built in, not bolted on:
 - **Cross-checks**: the printed area label on a Swiss plan vs the area computed from the room polygon; IFC `Qto`
@@ -58,7 +104,7 @@ e.g. `80.33 vs 80.34 m², within tolerance (off by 0.01 %)`); a **confidence col
 geometry, model data, PDF text layer, or a detector on pixels; cross-checks agree or disagree); the **cross-checks**;
 an **itemized list** where each line cites its source (`file p.1 at (x, y) pt · DXF ROOM_OUTLINE polygon`,
 `model.ifc · IfcDoor GlobalId …`, `scan.png at pixel (x, y)`, `sheet p.1 · schedule row`) and lights up on the drawing
-when clicked; items excluded from the take-off with the reason (balconies, loggias, shafts); and the source file's
+when clicked; items excluded from the takeoff with the reason (balconies, loggias, shafts); and the source file's
 licence and credit.
 
 ### Drawing audit: where a drawing disagrees with itself (`⚠ Audit`, key `A`, `/api/audit?path=…`)
@@ -67,10 +113,10 @@ Each check reads the same fact twice, independently, and turns amber when the tw
 printed m² room labels vs the ROOM_OUTLINE polygon (Swiss CAD); door marks in the **door schedule** vs **door tags**
 on the floor-plan pages; door swings (arc + leaf, recognised from the vector linework) with no door tag near them;
 a schedule-only sheet vs the door tags of the project's earlier plan issue (revision check); IFC elements with
-identical geometry (double-counted in every quantity take-off), near-complete overlaps, and IfcSpace `Qto` floor
+identical geometry (double-counted in every quantity takeoff), near-complete overlaps, and IfcSpace `Qto` floor
 area vs the footprint of the space's own 3D body. Every drawing also gets a short **"what a site engineer should
 double-check"** list (raise an RFI, confirm a door mark before ordering the frame, delete a duplicate before the
-take-off). `★ Errors we found in the dataset` (`/?audit=showcase`) shows the real ones, each one click from its evidence:
+takeoff). `★ Errors we found in the dataset` (`/?audit=showcase`) shows the real ones, each one click from its evidence:
 
 | Drawing | Finding (measured from the files) |
 |---|---|
@@ -101,9 +147,21 @@ The parts list (`/api/parts?path=…`) answers "what does this drawing contain?"
 windows of 10 types · 41 walls · 12 sanitary fixtures · 31 rooms*; every row lights its elements up in 2D and 3D.
 It also surfaced a data quirk: in 61 of the 65 Swiss plans some doors are **drawn twice** (identical DOOR polylines,
 leaf and swing arc stacked on top of each other; 265 pairs among 1,868 door thresholds). The dataset's door counts include
-the duplicates, so PINPOINT answers the same, but the card flags each one so a take-off counts the opening once.
+the duplicates, so PINPOINT answers the same, but the card flags each one so a takeoff counts the opening once.
 Vector PDF sheets identify the printed tag/text under the click; raster scans list detector symbols when the
 detector weights are present.
+
+### 3D walkthrough, bill of quantities, cost race, guided tour
+
+- **`🚶 Walk in 3D`** (key `W`): any Swiss plan or IFC model as a walkable building; the elements in the current
+  answer glow, and clicking one opens its Identify card.
+- **`Bill of quantities`** (key `Q`): the whole floor's BoQ, every line cross-checked against the dataset's own
+  questions, CSV and PDF export (`/api/boq`, `/api/boq.csv`, `/api/boq.pdf`).
+- **Cost race** (click the cost meter, key `R`, or `?race=1`): measured PINPOINT cost vs the frontier-VLM list-price
+  estimate, per source, from `data/eval/*.json`.
+- **`▶ Tour`**: a 7-scene captioned tour (exact count, area within 2 %, 2D ⇆ 3D, door schedule, walkthrough, BoQ,
+  cost race). Captions are built from the live answers; no number is typed into the tour.
+- `?static=1` (or prefers-reduced-motion) shows final numbers without count-up animation, for screenshots.
 
 ## Run
 
@@ -121,9 +179,40 @@ matches (its token cost is added to the meter).
 App: pick a drawing, ask (or click an example question), hover a receipt row to locate it, click to zoom. "Run all
 questions on this drawing" grades every dataset question for that file live.
 
-## Licences and credits
+## LICENSES
 
-Drawings and questions come from the Stoa Junction 2026 dataset and keep their licences (see each
-`data/<source>/LICENSE.md`): Swiss Dwellings CC BY 4.0, CubiCasa5K CC BY-NC-SA 4.0, Kalervo et al. 2019 (detector weights
-and derived labels keep CC BY-NC-SA; trained only on the 213 CubiCasa5K plans that are not in the Stoa set, zero overlap asserted), opening_design CC BY-SA 4.0, IFC models per file. three.js (MIT),
-ifcopenshell (LGPL), PyMuPDF (AGPL), ezdxf (MIT), ultralytics (AGPL).
+The Stoa Junction 2026 dataset is for **non-commercial use in the Junction challenge**. Every drawing keeps its own
+licence, listed with its credit in `data/<source>/LICENSE.md`; PINPOINT shows that credit **under every drawing it
+displays** (2D sheet and 3D view) and in every answer's receipt. Questions inherit the licence of the drawing they
+ask about.
+
+**CubiCasa5K — CC BY-NC-SA 4.0** (https://creativecommons.org/licenses/by-nc-sa/4.0/). Floor plan images from
+CubiCasa5K, © 2019 CubiCasa. Credit: Ahti Kalervo, Juha Ylioinas, Markus Häikiö, Antti Karhu, Juho Kannala,
+"CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis", SCIA 2019,
+https://zenodo.org/records/2613548. Non-commercial use only. **ShareAlike:** the detector weights, derived labels and
+anything else adapted from CubiCasa5K are shared under the same CC BY-NC-SA 4.0 licence. The detector was trained only
+on the 213 CubiCasa5K plans that are not in the Stoa set (zero overlap asserted).
+
+**Swiss Dwellings — CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/). Swiss Dwellings v3.0.0 by Matthias
+Standfest, Michael Franzen, Yvonne Schröder, Luis Gonzalez Medina, Yarilo Villanueva Hernandez, Jan Hendrik Buck,
+Yen-Ling Tan, Milena Niedzwiecka, Rachele Colmegna (Archilyse AG), doi:10.5281/zenodo.7788422. The drawings were
+rendered by Stoa from the published geometry (labels, language and numbering added); Archilyse AG does not endorse them.
+
+**opening_design — CC BY-SA 4.0 and MIT**: OpeningDesign, Madison, Wisconsin (https://github.com/OpeningDesign) and the
+project team named in each title block; MIT for 104_Janesville and Schultz_Residence (© 2014 Ryan Schultz).
+ShareAlike: adaptations of CC BY-SA files are shared under CC BY-SA 4.0.
+
+**ifc_models / ifc_bench — per file** (see each `LICENSE.md`): KIT models (IAI / Karlsruhe Institute of Technology),
+MIT models (DigitalHub, RWTH Aachen; Chesapeake Bay Bridge-Tunnel, buildingSMART Community; ResBIM, Xing Liang),
+GPL-3.0 models (BIMserver.org). IFC-Bench v2 questions © 2025 Sylvain Hellin, CC BY 4.0 (Hellin, Nousias & Borrmann).
+
+**NoDerivatives (ND) files stay unchanged.** Duplex and Medical-Dental Clinic (buildingSMART) are handled under the
+stricter CC BY-ND 3.0: PINPOINT never writes an edited copy of an ND file. It only reads them and draws its evidence
+as a separate overlay on top of the unchanged drawing.
+
+**Other sources** (full dataset): finna (Helsinki City Archives, Architecture & Design Museum) CC BY 4.0; habs (HABS/
+HAER/HALS, Library of Congress) public domain; europeana and wikimedia per file. Credit each file as given in its
+`LICENSE.md`.
+
+**Software**: three.js (MIT), ifcopenshell (LGPL), PyMuPDF (AGPL), ezdxf (MIT), ultralytics (AGPL), Tesseract
+(Apache 2.0).
