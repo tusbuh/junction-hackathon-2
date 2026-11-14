@@ -2,8 +2,10 @@
 
 Live app: `http://127.0.0.1:8737` (add `?static=1` for screen recordings, so counters show final values instantly).
 Every number below comes from `/api/scoreboard`, `/api/eval_all`, `/api/race` or a committed file (README.md,
-`static/findings.json`). Header, left to right: drawing picker, ask box, cost meter (click = cost race), `🚶 Walk in 3D`
-(W), `▤ BoQ` (Q), `⚠ Audit` (A), `⌖ Identify` (I), `▶ Tour`, `▦ Scores`. Where a value is computed live on screen, the script says "read it off the screen" rather than
+`static/findings.json`). Layout: top bar = drawing picker + ask box; left sidebar = `Ask`, `Audit` (A), `Identify` (I),
+`3D walkthrough` (W), `BoQ` (Q), `Cost race` (R), `Tour`, `Scores`, plus "Your library" (one row per source); bottom
+player bar = current drawing + answer, ‹ / › step through counted items, the round play button runs the tour, cost
+meter on the right (click = cost race). Where a value is computed live on screen, the script says "read it off the screen" rather than
 quoting a number. **Keep the licence credit line under the drawing visible in every shot.**
 
 Audience: Stoa's founding tech team and a construction engineer. Speak like a site engineer: takeoff, door schedule,
@@ -35,7 +37,7 @@ Stoa's own scoring."
 > on the right says *how*: a bowl symbol with no drain circle is a WC; a washbasin has one. Each line cites the file,
 > the DXF layer and the position on the sheet: click a line, the drawing zooms there."
 
-**Point at:** the itemized receipt rows, the method line, `0 LLM calls` in the cost meter.
+**Point at:** the itemized receipt rows, the method line, `0 LLM calls` in the cost meter (bottom right).
 
 ## 0:45 – 1:00 · The 2 % tolerance badge (area takeoff)
 
@@ -55,7 +57,7 @@ reason.
 
 ## 1:00 – 1:25 · Drawing audit (catching real errors before the RFI)
 
-**Do:** `⚠ Audit` (key `A`) → `★ Errors we found in the dataset` → Sports Complex door package.
+**Do:** `Audit` (key `A`) → `★ Errors we found in the dataset` → Sports Complex door package.
 
 **Say:**
 > "Here PINPOINT catches mistakes in the drawings themselves. On this US drawing set the door schedule lists 41 doors, but the
@@ -68,7 +70,7 @@ geometry, so the concrete volume in every takeoff is over-counted.
 
 ## 1:25 – 1:45 · Click-to-identify components (as-built check)
 
-**Do:** `⌖ Identify` (key `I`) → click a door on the plan, then a wall in the IFC model.
+**Do:** `Identify` (key `I`) → click a door on the plan, then a wall in the IFC model.
 
 **Say:**
 > "Click any element and you get a site-ready card: what it is, its type, its size (clear opening, leaf, swing,
@@ -82,7 +84,7 @@ takeoff counts the opening once.
 ## 1:45 – 2:05 · 2D ⇆ 3D and the walkthrough
 
 **Do:** IFC plan `bsc-esplanades … 4-korrus` in split view (key `2`), ask in Estonian:
-`Mitu ust on näidatud korruse „4.korrus“ plaanil?` → click a numbered door → then `🚶 Walk in 3D` (key `W`) on the
+`Mitu ust on näidatud korruse „4.korrus“ plaanil?` → click a numbered door → then `3D walkthrough` (key `W`) on the
 Swiss plan.
 
 **Say:**
@@ -92,7 +94,7 @@ Swiss plan.
 
 ## 2:05 – 2:25 · Bill of quantities
 
-**Do:** `▤ BoQ` (key `Q`) on the Swiss plan → hover a line → show CSV/PDF export.
+**Do:** `BoQ` (key `Q`) on the Swiss plan → hover a line → show CSV/PDF export.
 
 **Say:**
 > "One click: the whole floor's BoQ, with rooms, net areas, doors, windows and sanitary fixtures, every line traceable to
@@ -101,7 +103,7 @@ Swiss plan.
 
 ## 2:25 – 2:45 · Cost race against frontier models
 
-**Do:** click the cost meter (key `R`).
+**Do:** click the cost meter in the bottom bar, or `Cost race` in the sidebar (key `R`).
 
 **Say:**
 > "Same 7,741 graded questions, two ways. A frontier vision model would cost about €170 at list price, and that's an
@@ -114,7 +116,7 @@ Swiss plan.
 
 ## 2:45 – 3:00 · Guided tour + close
 
-**Do:** `▶ Tour` (let it run in the background while closing; it plays count → area → 2D/3D → door schedule → walk →
+**Do:** `Tour` in the sidebar or the play button in the bottom bar (let it run in the background while closing; it plays count → area → 2D/3D → door schedule → walk →
 BoQ → cost race, captions built from the live answers).
 
 **Say:**
