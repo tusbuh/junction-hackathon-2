@@ -75,16 +75,42 @@ def answer(path, q):
     return detector_answer(path, key, how)
 
 
+# Priors measured on the SVG annotations of the 213 leak-free training plans (data/full/cubicasa_free_ids.json),
+# never on test plans: 200/213 have >= 1 shower/bathtub, 203/213 >= 1 WC seat, 197/213 >= 2 sinks (kitchen + basin).
+# A plan drawn without a bathroom is rarer than the detector missing a small symbol, so the count never goes below.
+PRIOR_MIN = {'showers_bathtubs': 1, 'toilets': 1, 'sinks': 2}
+# shower threshold re-tuned together with the prior and the de-duplication on the 25 held-out leak-free plans
+PRIOR_N = {'showers_bathtubs': '200', 'toilets': '203', 'sinks': '197'}
+THR_OVERRIDE = {'shower': 0.15}
+CONTAIN = 0.5   # a box with > 50 % of its area inside a stronger same-class box is the same object (TTA / nested storey)
+
+
+def _inside(a, b):
+    ix = max(0, min(a[2], b[2]) - max(a[0], b[0])) * max(0, min(a[3], b[3]) - max(a[1], b[1]))
+    return ix > CONTAIN * min((a[2] - a[0]) * (a[3] - a[1]), (b[2] - b[0]) * (b[3] - b[1]))
+
+
+def dedup(ds):
+    keep = []
+    for d in sorted(ds, key=lambda d: -d['conf']):
+        if not any(e['cls'] == d['cls'] and _inside(d['bbox'], e['bbox']) for e in keep):
+            keep.append(d)
+    return keep
+
+
 def detector_answer(path, key, how):
     if not D.WEIGHTS.exists():
         return dict(value=None, unit=None, items=[], method='detector weights not trained yet', steps=['Raster symbol detector is still training'])
     ds = [dict(d) for d in dets(path)]
-    thr = D.thresholds()
+    thr = {**D.thresholds(), **THR_OVERRIDE}
     cls = KEY_CLASSES[key]
-    keep = [d for d in ds if d['cls'] in cls and d['conf'] >= thr.get(d['cls'], 0.25)]
+    raw = [d for d in ds if d['cls'] in cls and d['conf'] >= thr.get(d['cls'], 0.25)]
+    keep = dedup(raw)
     near = [d for d in ds if d['cls'] in cls and thr.get(d['cls'], 0.25) * 0.6 <= d['conf'] < thr.get(d['cls'], 0.25)]
     val = len(keep)
     if key == 'floors': val = max(1, val)
+    prior = PRIOR_MIN.get(key, 0)
+    if val < prior: val = prior
     if key == 'saunas':   # a sauna room and its stove are the same sauna
         rooms = [d for d in keep if d['cls'] == 'room_sauna']
         val = max(len(rooms), len([d for d in keep if d['cls'] == 'sauna_stove']))
@@ -93,7 +119,10 @@ def detector_answer(path, key, how):
              for d in sorted(keep, key=lambda d: (d['bbox'][1], d['bbox'][0]))]
     steps = [f"Router ({how}): question → “{key.replace('_', ' ')}” = detector classes {', '.join(cls)}",
              f"YOLOv8n detector (fine-tuned only on the 213 CubiCasa5K plans that are not in the Stoa set, so no test plan was seen; CubiCasa5K CC BY-NC-SA 4.0) on 4 rotations, boxes fused: {len(ds)} detections",
-             f"Kept {len(keep)} {'/'.join(LABEL[c] for c in cls)} above the per-class threshold tuned on 25 held-out leak-free plans"]
+             f"Kept {len(keep)} {'/'.join(LABEL[c] for c in cls)} above the per-class threshold tuned on 25 held-out leak-free plans"
+             + (f" ({len(raw) - len(keep)} duplicate box(es) inside a stronger one dropped)" if len(raw) > len(keep) else '')]
+    if len(keep) < prior:
+        steps.append(f"Detector saw {len(keep)}; answering {prior}: {prior}+ is what {PRIOR_N[key]} of the 213 leak-free CubiCasa5K training plans show (a small symbol is missed far more often than it is absent)")
     if near:
         steps.append(f"{len(near)} borderline detection(s) just below threshold not counted — check them if the count looks off")
     return dict(value=val, unit='count', items=items, method=f"detector count of {'/'.join(cls)}", steps=steps, router=how)
