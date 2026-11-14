@@ -38,6 +38,7 @@ function dom() {
     <div class="wkM" id="wkMeth"></div>
     <div class="wkItems" id="wkItems"></div>
     <div class="wkNav"><button id="wkPrev">‹ prev</button><span id="wkStep">all</span><button id="wkNext">next ›</button></div>
+    <button class="wkAuto" id="wkAuto" title="Visit every counted item hands-free (T)">▶ Auto tour</button>
   </aside>
   <div class="wkMiniW"><canvas id="wkMini" width="440" height="440"></canvas><span>plan · click to teleport</span></div>
   <div class="wkHere" id="wkHere"></div>
@@ -56,6 +57,7 @@ function dom() {
   q('#wkX').onclick = close;
   q('#wkSeg').onclick = e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.v); };
   q('#wkLab').onclick = () => { V.roomLabels = !(V.roomLabels ?? !V.items.length); q('#wkLab').classList.toggle('on', V.roomLabels); };
+  q('#wkAuto').onclick = () => autoTour(!V.auto);
   q('#wkPrev').onclick = () => step(-1);
   q('#wkNext').onclick = () => step(1);
   q('#wkMini').onclick = miniClick;
@@ -67,6 +69,8 @@ function dom() {
     if (e.code === 'KeyN' || e.code === 'ArrowRight' && V.mode === 'orbit') step(1);
     if (e.code === 'KeyB' || e.code === 'ArrowLeft' && V.mode === 'orbit') step(-1);
     if (e.code === 'KeyL') V.$('#wkLab').click();
+    if (e.code === 'KeyT') { autoTour(!V.auto); return; }
+    if (V.auto && /Key[WASD]|Arrow/.test(e.code)) autoTour(false);
     if (e.code === 'KeyF') setMode(V.mode === 'walk' ? 'orbit' : 'walk');
     if (e.code === 'PageUp' || e.code === 'KeyE') storeyStep(1);
     if (e.code === 'PageDown' || e.code === 'KeyQ') storeyStep(-1);
@@ -236,6 +240,7 @@ export async function openWalk({ path, q, name, items, answer, mode, sel, overri
   help();
 }
 export function close() {
+  if (V.auto) autoTour(false);
   V.open = false; V.root.hidden = true; document.body.classList.remove('wkOpen');
   if (document.pointerLockElement) document.exitPointerLock();
   V.mode = 'orbit';
@@ -278,7 +283,7 @@ async function buildSwiss(g) {
   V.ceil = [];
   g.rooms.forEach(r => {
     const info = { t: 'room', label: `${r.num}${r.name ? ' ' + r.name : ''}`, sub: r.area != null ? `${fmt(r.area)} m² net floor area${r.printed != null ? ` · label ${fmt(r.printed)} m²` : ''}${r.unit ? ` · apartment ${r.unit}` : ''}` : '' };
-    const m = prism(r.poly, r.holes, -0.005, 0.0, floorMat(r.name), { cast: false, info }); m.userData.room = r; m.userData.rise = 'floor';
+    const m = prism(r.poly, r.holes, -0.005, 0.0, r.wet && !r.name ? MAT.tile : floorMat(r.name), { cast: false, info }); m.userData.room = r; m.userData.rise = 'floor';
     if (!r.outdoor) { const c = prism(r.poly, r.holes, H.storey, H.storey + 0.02, MAT.ceil, { cast: false }); c.castShadow = false; c.visible = false; V.ceil.push(c); }
   });
   // walls: dark section-cut cap on top, plaster sides
@@ -507,6 +512,7 @@ function storeyStep(d) { if (V.ifc && V.levels?.length > 1) ifcStorey(V.lvl + d)
 
 // ------------------------------------------------------------------ answer + glowing evidence
 function showAnswer(q, a) {
+  if (V.auto) autoTour(false);
   const A = V.$('#wkAns');
   V.glow?.forEach(o => V.world.remove(o)); V.glow = [];
   V.labels = V.labels.filter(l => { if (l.item) { l.el.remove(); return false; } return true; });
@@ -661,6 +667,13 @@ function goTo(g) {
     flyOrbit(t.clone().add(dir.multiplyScalar(d)), t);
   }
 }
+function autoTour(on) {
+  clearInterval(V.auto); V.auto = null;
+  V.$('#wkAuto').classList.toggle('on', !!on); V.$('#wkAuto').textContent = on ? '■ Stop tour' : '▶ Auto tour';
+  if (!on || !V.items.length) return;
+  const go = () => step(1);
+  go(); V.auto = setInterval(go, V.mode === 'walk' ? 3400 : 2600);
+}
 const unwrap = (a, b) => { while (b - a > Math.PI) b -= 2 * Math.PI; while (b - a < -Math.PI) b += 2 * Math.PI; return b; };
 function flyOrbit(pos, tgt, ms = 900) {
   V.userMoved = true;
@@ -704,9 +717,9 @@ function help() {
   const lock = !!document.pointerLockElement;
   const lv = V.levels?.length > 1 ? ` · <b>Q/E</b> storey (${esc(V.levels[V.lvl]?.name || '')})` : '';
   V.$('#wkHelp').innerHTML = V.mode === 'walk'
-    ? (lock ? `<b>W A S D</b> walk · <b>mouse</b> look · <b>Shift</b> run · <b>N</b> next glowing item${lv} · <b>Esc</b> release mouse`
+    ? (lock ? `<b>W A S D</b> walk · <b>mouse</b> look · <b>Shift</b> run · <b>N</b> next item · <b>T</b> auto tour${lv} · <b>Esc</b> release mouse`
             : `<b>Click</b> to look with the mouse (or drag) · <b>W A S D</b> walk · <b>N</b> next item${lv} · <b>Esc</b> back to orbit`)
-    : `<b>drag</b> orbit · <b>scroll</b> zoom · <b>right-drag</b> pan · <b>F</b> or <b>Walk inside</b> for first person · <b>← →</b> step items · <b>Esc</b> close`;
+    : `<b>drag</b> orbit · <b>scroll</b> zoom · <b>right-drag</b> pan · <b>F</b> or <b>Walk inside</b> for first person · <b>← →</b> step items · <b>T</b> auto tour · <b>Esc</b> close`;
 }
 
 // ------------------------------------------------------------------ main loop

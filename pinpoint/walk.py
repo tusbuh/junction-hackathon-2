@@ -76,6 +76,7 @@ def build(stem):
             bx = p.bounds
             windows.append(dict(poly=_coords(p), width=round(max(bx[2] - bx[0], bx[3] - bx[1]), 2), bbox=[round(v, 3) for v in bx]))
 
+    fxc = [((b[0] + b[2]) / 2, (b[1] + b[3]) / 2) for b in plan.wc + plan.basin + plan.tub + plan.shower]
     rooms = []
     for r in plan.rooms:
         if not r['poly']:
@@ -84,7 +85,8 @@ def build(stem):
                           poly=[[round(x, 3), round(y, 3)] for x, y in r['poly']][:-1],
                           holes=[[[round(x, 3), round(y, 3)] for x, y in h][:-1] for h in (r.get('holes') or [])],
                           outdoor=(r['name'] or '').lower() in {'balcon', 'balcone', 'balkon', 'loggia', 'terrasse', 'terrazza'},
-                          shaft=bool(r.get('shaft'))))
+                          shaft=bool(r.get('shaft')),
+                          wet=any(Polygon(r['poly']).contains(Point(x, y)) for x, y in fxc)))
     fx = []
     for kind, lst in (('WC', plan.wc), ('washbasin', plan.basin), ('bathtub', plan.tub), ('shower', plan.shower)):
         for b in lst:

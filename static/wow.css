@@ -175,3 +175,6 @@
 .bqRow .d em.gt { color: #0b1a10; background: #3ddc97; cursor: help; }
 .bqKpi .gtK { border-color: #3ddc9788; background: #3ddc9712; animation: bqPop .5s both; }
 .bqKpi .gtK b { color: #3ddc97; }
+
+.wkAuto { margin-top: 8px; width: 100%; background: linear-gradient(135deg, #1a2440, #101827); border: 1px solid #ffb02088; color: #ffd27a; border-radius: 9px; padding: 7px; font-weight: 800; font-size: 12.5px; }
+.wkAuto.on { background: linear-gradient(135deg, #ffb020, #ff7a1a); color: #1a0d00; }
