@@ -1,0 +1,100 @@
+/* ===== WOW track: 3D walkthrough + bill of quantities ===== */
+.wk { position: fixed; inset: 0; z-index: 200; background: #05080f; overflow: hidden; color: #eaf0f9; font: 14px/1.45 Inter, system-ui, sans-serif; }
+.wk canvas#wkC { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+.wk.walking canvas#wkC { cursor: crosshair; }
+.wkLabels { position: absolute; inset: 0; pointer-events: none; }
+.wkRoom { position: absolute; left: 0; top: 0; pointer-events: none; white-space: nowrap; font-size: 11.5px; color: #1d2433; background: rgba(255,255,255,.82);
+  padding: 2px 7px; border-radius: 6px; box-shadow: 0 2px 10px #0005; text-align: center; line-height: 1.25; }
+.wkRoom b { font: 700 11px 'JetBrains Mono', monospace; color: #6b4a00; }
+.wkRoom small { display: block; font: 600 10.5px 'JetBrains Mono', monospace; color: #44506a; }
+.wkRoom.out { background: rgba(200,220,255,.7); }
+.wkTag { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; min-width: 26px; height: 26px; padding: 0 7px; border-radius: 13px;
+  display: grid; place-items: center; font: 800 12.5px 'JetBrains Mono', monospace; color: #1a0d00; background: #ffb020;
+  box-shadow: 0 0 0 2px #fff6, 0 0 22px #ff9a00, 0 0 4px #ffcf6b; transition: opacity .2s, background .2s; }
+.wkTag.on { background: #fff; box-shadow: 0 0 0 3px #ffb020, 0 0 30px #ffb020; z-index: 3; }
+.wkTag.dim { opacity: .35 !important; }
+
+.wkTop { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 16px; padding: 14px 18px;
+  background: linear-gradient(180deg, rgba(5,8,15,.92), rgba(5,8,15,0)); pointer-events: none; }
+.wkTop > * { pointer-events: auto; }
+.wkT { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.wkK { font: 800 10.5px 'JetBrains Mono', monospace; letter-spacing: .22em; color: #ffb020; }
+.wkT b { font: 700 17px 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wkT small { color: #a7b4ca; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wkSeg { display: flex; background: rgba(14,22,38,.85); border: 1px solid #2a3a5a; border-radius: 12px; padding: 4px; backdrop-filter: blur(10px); }
+.wkSeg button { background: none; border: 0; padding: 8px 16px; border-radius: 9px; color: #a7b4ca; font-weight: 700; }
+.wkSeg button.on { background: linear-gradient(135deg, #ffb020, #ff7a1a); color: #1a0d00; box-shadow: 0 0 20px #ffb02055; }
+.wkTgl { background: rgba(14,22,38,.85); border: 1px solid #2a3a5a; border-radius: 10px; padding: 9px 12px; color: #a7b4ca; font-weight: 700; font-size: 12.5px; }
+.wkTgl.on { color: #ffd27a; border-color: #ffb02088; }
+.wkX { width: 40px; height: 40px; border-radius: 10px; border: 1px solid #2a3a5a; background: rgba(14,22,38,.85); font-size: 16px; }
+.wkX:hover { border-color: #ffb020; }
+
+.wkAns { position: absolute; left: 18px; top: 92px; width: 300px; max-height: calc(100% - 210px); display: flex; flex-direction: column;
+  background: rgba(10,16,28,.78); border: 1px solid #2a3a5a; border-radius: 14px; padding: 14px; backdrop-filter: blur(14px);
+  box-shadow: 0 20px 60px #0008; animation: wkIn .5s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes wkIn { from { opacity: 0; transform: translateX(-20px); } }
+.wkQ { color: #a7b4ca; font-size: 12.5px; }
+.wkV { display: flex; align-items: baseline; gap: 8px; margin: 2px 0; }
+.wkV b { font: 900 42px/1.05 Inter, sans-serif; color: #ffb020; text-shadow: 0 0 30px #ff9a0066; }
+.wkV span { color: #a7b4ca; font-weight: 600; }
+.wkM { font-size: 11.5px; color: #6b7a94; margin-bottom: 8px; }
+.wkItems { overflow: auto; display: flex; flex-direction: column; gap: 3px; margin: 0 -4px; padding: 0 4px; }
+.wkItems button { display: flex; align-items: center; gap: 8px; text-align: left; background: #0e1626; border: 1px solid #1c2840; border-radius: 8px; padding: 5px 8px; font-size: 12.5px; }
+.wkItems button span { font: 800 11px 'JetBrains Mono', monospace; background: #ffb020; color: #1a0d00; border-radius: 10px; min-width: 22px; text-align: center; padding: 1px 4px; }
+.wkItems button i { margin-left: auto; font: 600 11px 'JetBrains Mono', monospace; color: #a7b4ca; font-style: normal; }
+.wkItems button:hover { border-color: #ffb020; }
+.wkItems button.on { border-color: #fff; background: #2a1d05; }
+.wkNav { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.wkNav button { flex: 0 0 auto; background: #131d31; border: 1px solid #2a3a5a; border-radius: 8px; padding: 5px 10px; font-weight: 700; font-size: 12px; }
+.wkNav span { flex: 1; text-align: center; font: 700 12px 'JetBrains Mono', monospace; color: #a7b4ca; }
+
+.wkMiniW { position: absolute; right: 18px; top: 92px; width: 220px; background: rgba(10,16,28,.78); border: 1px solid #2a3a5a; border-radius: 14px;
+  padding: 8px; backdrop-filter: blur(14px); }
+.wkMiniW canvas { width: 100%; aspect-ratio: 1; display: block; cursor: pointer; }
+.wkMiniW span { display: block; text-align: center; font-size: 10.5px; color: #6b7a94; }
+
+.wkCross { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px; pointer-events: none; display: none; }
+.wk.walking .wkCross { display: block; }
+.wkCross i { position: absolute; inset: 8px; border-radius: 50%; border: 2px solid #fffc; box-shadow: 0 0 8px #000a; }
+.wkCross.lock i { inset: 9px; background: #fff; }
+
+.wkInfo { position: absolute; left: 50%; top: calc(50% + 34px); transform: translateX(-50%); pointer-events: none; opacity: 0; transition: opacity .2s;
+  background: rgba(10,16,28,.8); border: 1px solid #2a3a5a; border-radius: 10px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.wkInfo.on { opacity: 1; }
+.wkInfo.gl { border-color: #ffb020; box-shadow: 0 0 24px #ff9a0055; }
+.wkInfo .n { font: 800 11px 'JetBrains Mono', monospace; background: #ffb020; color: #1a0d00; border-radius: 10px; padding: 1px 6px; }
+.wkInfo small { color: #a7b4ca; }
+.wkHere { position: absolute; left: 50%; top: 84px; transform: translateX(-50%); text-align: center; pointer-events: none; opacity: 0; transition: opacity .3s; }
+.wkHere.on { opacity: 1; }
+.wkHere small { display: block; font: 700 10px 'JetBrains Mono', monospace; letter-spacing: .2em; color: #ffb020; text-transform: uppercase; }
+.wkHere b { display: block; font-size: 22px; font-weight: 800; text-shadow: 0 2px 12px #000; }
+.wkHere span { color: #d6deea; font: 600 13px 'JetBrains Mono', monospace; text-shadow: 0 2px 8px #000; }
+
+.wkHelp { position: absolute; left: 50%; bottom: 74px; transform: translateX(-50%); background: rgba(10,16,28,.75); border: 1px solid #1c2840;
+  border-radius: 10px; padding: 6px 14px; font-size: 12px; color: #a7b4ca; white-space: nowrap; backdrop-filter: blur(8px); }
+.wkHelp b { color: #eaf0f9; font: 700 11px 'JetBrains Mono', monospace; background: #1c2840; border-radius: 4px; padding: 1px 5px; }
+
+.wkFoot { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 18px; background: linear-gradient(0deg, rgba(5,8,15,.95), rgba(5,8,15,0));
+  font-size: 11px; color: #6b7a94; pointer-events: none; }
+.wkStats { display: none; }
+.wkAssume { color: #a7b4ca; }
+.wkCredit { margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wkCredit b { color: #a7b4ca; }
+
+.wkLoad { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(5,8,15,.6); pointer-events: none; }
+.wkLoad b { font-size: 18px; }
+.wkLoad small { color: #a7b4ca; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.wkRing { width: 54px; height: 54px; border-radius: 50%; border: 3px solid #2a3a5a; border-top-color: #ffb020; animation: wkSpin .9s linear infinite; }
+@keyframes wkSpin { to { transform: rotate(360deg); } }
+
+/* launcher buttons */
+.wowBtn { background: linear-gradient(135deg, #1a2440, #101827); border: 1px solid #ffb02088; color: #ffd27a; border-radius: 10px; padding: 7px 12px; font-weight: 800; font-size: 12.5px; white-space: nowrap; box-shadow: 0 0 18px #ffb02022; }
+.wowBtn:hover { border-color: #ffb020; box-shadow: 0 0 24px #ffb02055; color: #fff; }
+.wowBtn[disabled] { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+@media (max-width: 760px) {
+  .wkAns { width: calc(100% - 36px); top: auto; bottom: 120px; max-height: 34%; }
+  .wkMiniW { width: 130px; }
+  .wkSeg button { padding: 7px 9px; }
+  .wkHelp { display: none; }
+}

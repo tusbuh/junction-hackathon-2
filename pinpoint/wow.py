@@ -1,0 +1,79 @@
+"""WOW-track endpoints: 3D walkthrough geometry and the instant bill of quantities. Mounted by server.py."""
+import os, json
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
+from . import engine
+
+router = APIRouter()
+
+
+def _num(o):
+    """numpy scalars -> plain JSON numbers."""
+    import numpy as np
+    if isinstance(o, dict):
+        return {k: _num(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_num(v) for v in o]
+    if isinstance(o, np.generic):
+        return o.item()
+    return o
+
+
+def credit(path):
+    """Licence + credit line for a dataset file, read from data/<source>/LICENSE.md (table row, else 'All files:')."""
+    src = engine.source_of(path)
+    lic = os.path.join(engine.DATA, 'data', src, 'LICENSE.md')
+    name = os.path.basename(path)
+    if not os.path.exists(lic):
+        return dict(licence=None, credit=f'Stoa Junction 2026 dataset · {src}')
+    txt = open(lic, encoding='utf-8').read()
+    for line in txt.splitlines():
+        cells = [c.strip() for c in line.strip().strip('|').split('|')]
+        if len(cells) >= 4 and cells[0] == name:
+            return dict(licence=cells[2], credit=cells[3])
+    for line in txt.splitlines():
+        if line.startswith('All files:'):
+            m = line.split('Credit:', 1)
+            lic_id = line.split(':', 1)[1].split('Credit:')[0].strip().rstrip('.')
+            return dict(licence=lic_id, credit=(m[1] if len(m) > 1 else line).strip())
+    return dict(licence=None, credit=f'Stoa Junction 2026 dataset · {src} (see LICENSE.md)')
+
+
+@router.get('/api/credit')
+def credit_api(path: str = Query(...)):
+    return JSONResponse(credit(path))
+
+
+def _stem(path):
+    if engine.source_of(path) != 'swiss_dwellings':
+        return None
+    return os.path.splitext(os.path.basename(path))[0]
+
+
+@router.get('/api/walk')
+def walk(path: str = Query(...), q: str = ''):
+    from .server import safe
+    safe(path)
+    stem = _stem(path)
+    if stem:
+        from . import walk as W
+        out = dict(W.build(stem))
+        out['credit'] = credit(path)
+        if q.strip():
+            out['answer'] = W.answer_items(stem, q.strip())
+        return JSONResponse(_num(out))
+    if engine.source_of(path) in ('ifc_models', 'ifc_bench') or path.endswith('.ifc'):
+        from urllib.parse import quote
+        ifc = engine.ifc_for(path)
+        if not os.path.exists(engine.abspath(ifc)):
+            raise HTTPException(404, 'IFC model not in this split')
+        return JSONResponse(dict(kind='ifc', model=ifc, mesh=f'/api/mesh?path={quote(ifc)}', credit=credit(ifc)))
+    raise HTTPException(400, 'walkthrough needs vector geometry (Swiss DXF or IFC)')
+
+
+@router.get('/api/boq')
+def boq(path: str = Query(...)):
+    from .server import safe
+    safe(path)
+    from . import boq as B
+    return JSONResponse(_num(B.build(path)))

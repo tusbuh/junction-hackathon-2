@@ -97,6 +97,9 @@ def mesh(path: str = Query(...)):
     return FileResponse(out, media_type='application/octet-stream', headers={'Cache-Control': 'max-age=86400'})
 
 
+from .wow import router as _wow_router  # WOW track: 3D walkthrough + bill of quantities
+app.include_router(_wow_router)
+
 app.mount('/static', StaticFiles(directory=STATIC), name='static')
 
 if __name__ == '__main__':
