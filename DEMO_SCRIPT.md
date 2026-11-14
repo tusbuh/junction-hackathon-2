@@ -2,7 +2,8 @@
 
 Live app: `http://127.0.0.1:8737` (add `?static=1` for screen recordings, so counters show final values instantly).
 Every number below comes from `/api/scoreboard`, `/api/eval_all`, `/api/race` or a committed file (README.md,
-`static/findings.json`). Where a value is computed live on screen, the script says "read it off the screen" rather than
+`static/findings.json`). Header, left to right: drawing picker, ask box, cost meter (click = cost race), `🚶 Walk in 3D`
+(W), `▤ BoQ` (Q), `⚠ Audit` (A), `⌖ Identify` (I), `▶ Tour`, `▦ Scores`. Where a value is computed live on screen, the script says "read it off the screen" rather than
 quoting a number. **Keep the licence credit line under the drawing visible in every shot.**
 
 Audience: Stoa's founding tech team and a construction engineer. Speak like a site engineer: takeoff, door schedule,
@@ -12,7 +13,7 @@ BoQ, as-built, RFI.
 
 ## 0:00 – 0:15 · The pain (splash screen)
 
-**Show:** the splash with the per-source scoreboard.
+**Show:** the splash: four per-source cards and the green cost strip under them.
 
 **Say:**
 > "A site engineer loses hours a day hunting through drawing sets for one number: how many WCs on level 3, the net
@@ -20,8 +21,9 @@ BoQ, as-built, RFI.
 > PINPOINT reads the drawing like an engineer does, from the geometry in the file, and gives you a receipt for every
 > answer."
 
-**Point at:** Swiss floor plans 2358/2358, IFC models 1049/1049, US drawing sets 61/64, Finnish scans 3042/4270.
-"Per source, never blended. Counts exact, quantities within 2 %, which is Stoa's own scoring."
+**Point at:** Swiss CAD floor plans 2,358/2,358, IFC building models 1,049/1,049, US drawing sets 61/64, Finnish raster
+scans 3,124/4,270 (amber: honest, not hidden). "Per source, never blended. Counts exact, quantities within 2 %, which is
+Stoa's own scoring."
 
 ## 0:15 – 0:45 · Ask box, receipt and citations (quantity takeoff)
 
@@ -41,10 +43,15 @@ BoQ, as-built, RFI.
 loggias, terraces and other outdoor spaces?`
 
 **Say:**
-> "80.33 square metres against the reference 80.34: within 0.01 %, inside the 2 % limit. Every room in the sum is
-> shaded and cited, and the balcony is listed as *excluded, with the reason*. That's a takeoff a QS can sign off."
+> "80.33 square metres against the reference 80.34: within 0.01 %, inside the 2 % limit. All nine rooms in the sum are
+> shaded and cited, and each one is checked against its own printed m² label. That's a takeoff a QS can sign off."
 
-**Point at:** the green tolerance badge, the "excluded" list, the cross-check (printed m² label vs room polygon).
+**Point at:** the green tolerance badge, the per-room `= label` checks, the cross-check (Σ printed m² labels = Σ room
+polygons, 74.89 = 74.89 m² on the 7 rooms that carry a label).
+
+**If asked about balconies:** this floor has none. On `site1088_bldg2216_floor10132` ask the apartment C area question:
+82.09 m² (exact), and the receipt lists `1.21 Loggia` and `1.30 Balkon` under *Excluded from the take-off*, with the
+reason.
 
 ## 1:00 – 1:25 · Drawing audit (catching real errors before the RFI)
 
@@ -85,7 +92,7 @@ Swiss plan.
 
 ## 2:05 – 2:25 · Bill of quantities
 
-**Do:** `Bill of quantities` (key `Q`) on the Swiss plan → hover a line → show CSV/PDF export.
+**Do:** `▤ BoQ` (key `Q`) on the Swiss plan → hover a line → show CSV/PDF export.
 
 **Say:**
 > "One click: the whole floor's BoQ, with rooms, net areas, doors, windows and sanitary fixtures, every line traceable to
@@ -98,10 +105,12 @@ Swiss plan.
 
 **Say:**
 > "Same 7,741 graded questions, two ways. A frontier vision model would cost about €170 at list price, and that's an
-> estimate we label as one. PINPOINT measured €0.0013 of CPU for all of them, about two minutes on a laptop. That's
-> roughly a hundred thousand times cheaper, and it's exact. No LLM is in the scored path. A small fine-tuned detector
-> reads the scans, vector parsing reads the CAD, and a frontier model is optional and only ever rephrases the
+> estimate we label as one. PINPOINT measured €0.0024 of CPU for all of them, about three and a half minutes on a
+> laptop. That's roughly seventy thousand times cheaper. No LLM is in the scored path. Two small fine-tuned detectors
+> read the scans, vector parsing reads the CAD, and a frontier model is optional and only ever rephrases the
 > question."
+
+**Read off the screen:** €170.48 vs €0.0024, 72,135× (from `/api/race`; changes only if `data/eval/*.json` changes).
 
 ## 2:45 – 3:00 · Guided tour + close
 
@@ -117,8 +126,13 @@ BoQ → cost race, captions built from the live answers).
 
 ### Backup facts (only if asked; all from `/api/eval_all` or README)
 
-- Finnish scans: leak-free YOLOv8n trained only on the 213 CubiCasa5K plans not in the Stoa set; room-label OCR
-  kitchens 70/75, bathrooms 55/60, saunas 48/77 (the weakest class).
+Quote CubiCasa from `/api/scoreboard` (3,124 / 4,270). `/api/eval_all` still holds the earlier 2,728 snapshot for the
+dev split (README says so); its *unseen* and room-label numbers below are current.
+
+- Finnish scans: leak-free YOLOv8n + YOLO11s ensemble, both trained only on the 213 CubiCasa5K plans not in the Stoa
+  set; room-label OCR kitchens 70/75, bathrooms 55/60, saunas 48/77 (the weakest class). Wrong answers stay visible in
+  red with the low-confidence detections in amber.
+- Drawn-twice doors: 265 stacked pairs on 61 of 65 Swiss plans (recount: `/api/parts` on every Swiss plan).
 - Swiss audit: all 550 printed room-area labels on the 65 Swiss plans agree with their outlines (±2 %).
 - IFC audit: 16,484 elements and 263 spaces in 9 models fingerprinted; molio space 603 Qto 8.70 m² vs body
   footprint 10.08 m².
@@ -128,6 +142,6 @@ BoQ → cost race, captions built from the live answers).
 ### Licence lines to keep on screen
 
 - Swiss plans: *Swiss Dwellings v3.0.0, Archilyse AG, doi:10.5281/zenodo.7788422, CC BY 4.0. Drawing rendered by Stoa
-  from the dataset geometry.*
+  from the dataset geometry* (the on-screen credit quotes Stoa's LICENSE.md verbatim, so it reads "rendered by us").
 - Finnish scans: *CubiCasa5K, © 2019 CubiCasa, Kalervo et al., SCIA 2019, CC BY-NC-SA 4.0. Non-commercial.*
 - US sets: *OpeningDesign, CC BY-SA 4.0.* IFC models: per file (shown automatically under the 3D view).
