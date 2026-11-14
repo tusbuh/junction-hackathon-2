@@ -229,6 +229,7 @@ export async function openWalk({ path, q, name, items, answer, mode, sel, overri
     return;
   }
   V.$('#wkLoad').hidden = true;
+  V.$('#wkLab').hidden = !!V.ifc;
   setMode('orbit', true);
   if (mode === 'walk') setTimeout(() => setMode('walk', true), 3400);
   if (sel) setTimeout(() => select(+sel), mode === 'walk' ? 5000 : 3600);
@@ -535,6 +536,15 @@ function showAnswer(q, a) {
   }
   applyCut();
   buildGlow(items);
+  ghost();
+}
+// many items spread over storeys and no section cut: ghost the building so the glow inside shows through
+function ghost() {
+  if (!V.ifcMesh) return;
+  const on = V.mode !== 'walk' && V.cutLvl == null && (V.glowData?.length || 0) > 0;
+  const m = V.ifcMesh.material;
+  m.transparent = on; m.opacity = on ? 0.16 : 1; m.depthWrite = !on; m.needsUpdate = true;
+  V.root.classList.toggle('ghost', on);
 }
 const KIND_Z = { door: [0, 2.1], window: [0.9, 2.1], wc: [0, 0.45], basin: [0.7, 0.92], washbasin: [0.7, 0.92], bathtub: [0, 0.6], shower: [0, 2.0], wall: [0, 2.62] };
 function glowMat(op) {
@@ -577,7 +587,7 @@ function buildGlow(items) {
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 8, 1, true), glowMat(0.55));
     beam.rotation.x = Math.PI / 2; beam.position.set(c[0], c[1], top + 0.5); grp.add(beam); grp.userData.beam = beam;
     V.world.add(grp); V.glow.push(grp);
-    const lab = document.createElement('div'); lab.className = 'wkTag'; lab.textContent = it.n; lab.title = it.label || '';
+    const lab = document.createElement('div'); lab.className = 'wkTag' + (items.length > 40 ? ' dot' : ''); lab.textContent = items.length > 40 ? '' : it.n; lab.title = `${it.n} · ${it.label || ''}`;
     lab.onclick = () => select(it.n); lab.style.display = 'none';
     V.$('#wkL').append(lab);
     const L = { el: lab, p: [c[0], c[1], V.ifc ? top + 0.7 : Math.max(top, 2.6) + 1.3], pw: it.poly ? 1.2 : ((it._z[0] + it._z[1]) / 2), item: it.n, grp };
@@ -667,6 +677,7 @@ function setMode(m, quiet) {
   V.controls.enabled = m === 'orbit';
   V.ceil?.forEach(c => c.visible = m === 'walk');
   V.eyeLight.intensity = m === 'walk' ? 0.9 : 0;
+  ghost();
   V.bloom.strength = m === 'walk' ? 0.35 : 0.85; V.bloom.threshold = m === 'walk' ? 1.05 : 0.92;
   glowBlend();
   applyCut();
