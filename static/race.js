@@ -47,17 +47,34 @@ export function close() { R.open = false; R.run++; if (R.root) R.root.hidden = t
 
 export async function openRace() {
   dom(); R.root.hidden = false; R.open = true; document.body.classList.add('raceOpen');
-  if (!R.d) R.d = await (await fetch('/api/race')).json();
+  if (!R.d) R.d = await load();
   return play();
+}
+
+// /api/race (pinpoint/race.py); if a server started before race.py existed, rebuild the same totals from
+// /api/scoreboard, which reads the same data/eval/*.json files (only the question ticker and CPU-seconds are missing).
+async function load() {
+  const r = await fetch('/api/race');
+  if (r.ok) return r.json();
+  const sb = await (await fetch('/api/scoreboard')).json();
+  const sources = sb.map(x => ({ source: x.source, n: x.total, graded: x.graded, correct: x.correct, eur: x.eur, median_ms: x.median_ms, vlm_eur: x.vlm_eur })).sort((a, b) => b.n - a.n);
+  const total = ['n', 'graded', 'correct', 'eur', 'vlm_eur'].reduce((o, k) => (o[k] = sources.reduce((a, x) => a + x[k], 0), o), {});
+  return { sources, total, file: 'data/eval/*.json', sample: [], cpu_eur_per_h: 0.04, partial: true,
+    vlm: { eur_per_q: total.vlm_eur / total.n, sources: [{ what: 'list price, Sonnet-class frontier VLM: $3 / Mtok input, $15 / Mtok output; ~1.6k image tokens per 1.15 MP', url: 'https://www.anthropic.com/pricing' }] } };
 }
 
 function play() {
   const d = R.d, T = d.total, V = d.vlm, $ = R.$, run = ++R.run, inst = STATIC();
   R.root.classList.remove('done');
   $('#rcN').textContent = fmtN(T.n);
+  if (d.partial) {
+    $('#rcVsub').textContent = `list-price estimate · ${eur(V.eur_per_q)} per question`;
+    $('#rcPsub').textContent = `geometry already in the CAD / PDF / IFC file · 0 LLM calls · €${d.cpu_eur_per_h.toFixed(2)} / vCPU-hour`;
+  } else {
   $('#rcVsub').textContent = `one ~${(V.px / 1e6).toFixed(0)} MP image (~${fmtN(V.img_tokens)} tokens) + ${V.prompt_tokens} prompt tokens in, ~${V.answer_tokens} out, per question · ${eur(V.eur_per_q)} each`;
   $('#rcPsub').textContent = `geometry already in the CAD / PDF / IFC file · 0 LLM calls · ${T.secs.toFixed(1)} s CPU in total · €${d.cpu_eur_per_h.toFixed(2)} / vCPU-hour`;
-  $('#rcPacc').innerHTML = `<em class="ok">${fmtN(T.correct)} / ${fmtN(T.graded)} correct</em> (counts exact, measures within 2%) · ${T.secs.toFixed(1)} s CPU for all ${fmtN(T.n)}`;
+  }
+  $('#rcPacc').innerHTML = `<em class="ok">${fmtN(T.correct)} / ${fmtN(T.graded)} correct</em> (counts exact, measures within 2%)` + (T.secs != null ? ` · ${T.secs.toFixed(1)} s CPU for all ${fmtN(T.n)}` : '');
   const r = T.vlm_eur / T.eur, pct = 100 * T.eur / T.vlm_eur;
   $('#rcPct').textContent = `${pct.toPrecision(2)}%`;
   $('#rcX1').textContent = ratio(r);
@@ -66,7 +83,7 @@ function play() {
     d.sources.map(s => `<tr><td>${esc(NAMES[s.source] || s.source)}</td><td>${fmtN(s.n)}</td><td class="ok">${fmtN(s.correct)} / ${fmtN(s.graded)}</td>
       <td class="pp">${eur(s.eur)}</td><td>${s.median_ms < 1 ? '<1' : s.median_ms.toFixed(0)} ms</td><td class="vl">${eur(s.vlm_eur)}</td><td><b>${ratio(s.vlm_eur / s.eur)}×</b></td></tr>`).join('') +
     `<tr class="tot"><td>all</td><td>${fmtN(T.n)}</td><td class="ok">${fmtN(T.correct)} / ${fmtN(T.graded)}</td><td class="pp">${eur(T.eur)}</td><td></td><td class="vl">${eur(T.vlm_eur)}</td><td><b>${ratio(r)}×</b></td></tr>`;
-  $('#rcF').innerHTML = `<b>*</b> The VLM side is an <b>estimate</b>, not a run: list-price tokens for one ${(V.px / 1e6).toFixed(0)} MP image per question (conservative; a whole sheet at legible 200 dpi is larger).
+  $('#rcF').innerHTML = `<b>*</b> The VLM side is an <b>estimate</b>, not a run: list-price tokens for ${V.px ? `one ${(V.px / 1e6).toFixed(0)} MP image` : 'one sheet image'} per question (conservative; a whole sheet at legible 200 dpi is larger).
     Sources: ${V.sources.map(s => `${esc(s.what)} — <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url.replace('https://', ''))}</a>`).join('; ')}.
     PINPOINT: measured CPU seconds × €${d.cpu_eur_per_h.toFixed(2)}/vCPU-hour, per question, read from <code>${esc(d.file)}</code> (warm cache). Grading: counts exact, area/length/volume within 2%.`;
   // log axis
