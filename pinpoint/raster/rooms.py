@@ -91,12 +91,23 @@ def label_height(words):
     return hs[len(hs) // 2] if hs else None
 
 
-FLOOR_RX = re.compile(r'^(KERROS|KRS\.?|KELLARI|ULLAKKO|POHJAKERROS|PARVI|VINTTI|KELLARIKERROS)$', re.I)
+FLOOR_RX = re.compile(r'^(\d\.?)?(KERROS|KRS\.?|KELLARI|ULLAKKO|POHJAKERROS|PARVI|VINTTI|KELLARIKERROS|ALAKERTA|YLÄKERTA|YLAKERTA)$', re.I)
+FLOOR_WORDS = ['KERROS', 'ALAKERTA', 'YLÄKERTA', 'KELLARI', 'POHJAKERROS', 'KELLARIKERROS']
+PAIRED = {'ALAKERTA', 'YLÄKERTA', 'YLAKERTA'}     # "lower floor" / "upper floor": the other one is drawn too
 
 
 def floors(words):
-    caps = [w for w in words if FLOOR_RX.match(w['text'].strip('.,:'))]
-    return caps
+    caps = []
+    for w in words:
+        t = w['text'].strip('.,:;').upper()
+        if FLOOR_RX.match(t) or (len(t) >= 6 and w['conf'] >= 60 and any(_ed1(t, f) for f in FLOOR_WORDS)):
+            caps.append(w)
+    # one caption read twice (two binarisations / rotations) counts once
+    out = []
+    for w in sorted(caps, key=lambda w: -w['conf']):
+        if not any(abs(w['bbox'][0] - k['bbox'][0]) < 20 and abs(w['bbox'][1] - k['bbox'][1]) < 20 for k in out):
+            out.append(w)
+    return out
 
 
 # every dwelling has at least one kitchen and one bathroom: if no label is legible we answer the minimum and
@@ -108,7 +119,10 @@ def count(ocr, cls):
     ws = ocr['words']
     if cls == 'floors':
         caps = floors(ws)
-        return max(1, len(caps)), caps
+        n = len(caps)
+        if any(re.sub(r'[^A-ZÄ]', '', c['text'].upper()) in PAIRED for c in caps):
+            n = max(n, 2)
+        return max(1, n), caps
     lh = label_height(ws)
     # a lone "K" on the same line right after OH / RT is the kitchen part of a combined "OH + RT + K" label
     for w in ws:

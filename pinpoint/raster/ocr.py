@@ -11,6 +11,10 @@ import os, re, json, hashlib
 import numpy as np
 import cv2
 
+# Tesseract spawns one OpenMP thread per core per call; with several plans in flight that oversubscribes the
+# machine (load > 200 observed). One thread per call, parallelism across plans instead.
+os.environ.setdefault('OMP_THREAD_LIMIT', '1')
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 CACHE = os.path.join(ROOT, 'data/cache/ocr')
 SCALE = 4
