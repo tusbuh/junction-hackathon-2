@@ -5,6 +5,8 @@ Every number below comes from `/api/scoreboard`, `/api/eval_all`, `/api/race` or
 `static/findings.json`). Header, left to right: drawing picker, ask box, cost meter (click = cost race), `🚶 Walk in 3D`
 (W), `▤ BoQ` (Q), `⚠ Audit` (A), `⌖ Identify` (I), `▶ Tour`, `▦ Scores`. Where a value is computed live on screen, the script says "read it off the screen" rather than
 quoting a number. **Keep the licence credit line under the drawing visible in every shot.**
+Optional looks (not yet chosen): `?theme=a` (dark blueprint) or `?theme=b` (paper editorial), combinable with `?static=1`.
+In both, the buttons carry the same words without the pictogram prefix (e.g. `Walk in 3D`, `Tour`, `Cost race`).
 
 Audience: Stoa's founding tech team and a construction engineer. Speak like a site engineer: takeoff, door schedule,
 BoQ, as-built, RFI.

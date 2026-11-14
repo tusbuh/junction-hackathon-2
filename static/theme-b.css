@@ -368,6 +368,10 @@ html.theme-b {
   & .bqRow .d small, & .bqRow .q small { color: var(--ink3); }
   & .bqRow .d small b { color: var(--ink2); }
   & .bqRow .ev { color: var(--cy); background: rgba(31, 79, 168, .08); }
+  & .bqRow .d em.gt { color: #fff; background: var(--ok); }
+  & .bqRow .d em.ok { color: var(--ok); background: rgba(44, 122, 75, .1); }
+  & .bqKpi .gtK { border-color: var(--ok); background: rgba(44, 122, 75, .08); }
+  & .bqKpi .gtK b { color: var(--ok); }
   & .bqSel, & .bqMsg, & .bqTools button { background: var(--card); border: 1.5px solid var(--ink); color: var(--ink); box-shadow: var(--key); }
   & .bqSel .id, & .bqSel b { color: var(--red); }
   & .bqSel small { color: var(--ink2); }
@@ -395,6 +399,8 @@ html.theme-b {
   & .idAct button, & .idX { background: var(--card); border: 1.5px solid var(--ink); color: var(--ink); box-shadow: var(--key); }
   & .idAct button[data-all] { background: var(--ink); color: var(--paper); }
   & .idKind { background: var(--paper); color: var(--ink); border-color: var(--ink); }
+  & .idWarn, & .idNote.warn { background: rgba(163, 98, 10, .08); border-color: rgba(163, 98, 10, .5); color: #6e4206; }
+  & .idNote { border-left-color: var(--line2); }
 
   & .au-modal { background: rgba(30, 24, 14, .45); backdrop-filter: none; }
   & .au-card { background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-radius: 14px; box-shadow: 0 5px 0 var(--ink); --warn: var(--red); --dim: var(--ink3); }
