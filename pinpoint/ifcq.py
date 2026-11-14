@@ -29,14 +29,15 @@ class Model:
         return (a, 'Qto NetFloorArea') if a else (self.footprint(s), 'computed from IfcSpace 3D geometry (footprint)')
     def elems(self, classes, storey=None):
         out=[]
+        typed_terms = 'IfcFlowTerminal' in classes and ('IfcSanitaryTerminal' in classes or 'IfcLightFixture' in classes)
         for c in classes:
-            if c == 'IfcFlowTerminal':
+            if c == 'IfcFlowTerminal' and typed_terms:
                 continue
             try: out += self.f.by_type(c, include_subtypes=False) if c=='IfcWall' else self.f.by_type(c)
             except RuntimeError: pass
         # IFC2x3 has no IfcSanitaryTerminal / IfcLightFixture occurrences: they are IfcFlowTerminals typed by
         # IfcSanitaryTerminalType / IfcLightFixtureType. Keep only the terminals whose type matches.
-        if 'IfcFlowTerminal' in classes or 'IfcLightFixture' in classes:
+        if typed_terms:
             want = {f'{c}Type' for c in classes if c != 'IfcFlowTerminal'}
             ft = self.f.by_type('IfcFlowTerminal') if self.f.schema == 'IFC2X3' else []
             typed = [(e, ue.get_type(e)) for e in ft]

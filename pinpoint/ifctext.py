@@ -75,6 +75,34 @@ def answer(model, q):
                                                     "Answering “not in model” instead of guessing"])
         return R('\n'.join(f"{model.label(e)}: {n} = {v}" for e, n, v in hits[:20]), [item(e) for e, _, _ in hits], 'property-set search',
                  [f"Found {len(hits)} properties matching “{key}…”"])
+    # --- one element cited by its GlobalId (22-char IFC base64): answer its attributes and quantities directly
+    gm = re.search(r'(?<![0-9A-Za-z_$])([0-9A-Za-z_$]{22})(?![0-9A-Za-z_$])', q)
+    if gm:
+        try:
+            e = f.by_guid(gm.group(1))
+        except Exception:
+            e = None
+        if e is not None:
+            facts = {}
+            sc = model.lscale
+            for a in ('OverallWidth', 'OverallHeight'):
+                v = getattr(e, a, None)
+                if v: facts[a.replace('Overall', '').lower()] = f"{v * sc:.2f} m"
+            for qn, unit in (('Width', 'm'), ('Height', 'm'), ('Length', 'm'), ('Depth', 'm'), ('Thickness', 'm'), ('NetArea', 'm²'), ('GrossArea', 'm²'),
+                             ('NetFloorArea', 'm²'), ('NetSideArea', 'm²'), ('NetVolume', 'm³'), ('GrossVolume', 'm³')):
+                v = model.q(e, qn)
+                k = re.sub(r'(?<!^)([A-Z])', r' \1', qn).lower()
+                if v and k not in facts:
+                    facts[k] = f"{v * (sc if unit == 'm' else 1):.2f} {unit}"
+            st = model._storey(e)
+            mats = [m.Name for m in (ue.get_materials(e) or []) if getattr(m, 'Name', None)]
+            asked = next((k for k in facts if k.split()[-1] in ql), None)
+            head = f"The {asked} of {e.is_a()[3:].lower()} {gm.group(1)} ({model.label(e)}) is {facts[asked]}." if asked else \
+                f"{e.is_a()} {gm.group(1)}: {model.label(e)}."
+            rest = [f"{k}: {v}" for k, v in facts.items() if k != asked] + ([f"type: {type_name(e)}"] if type_name(e) else []) + \
+                ([f"storey: {st.Name}"] if st is not None else []) + ([f"material: {', '.join(mats[:4])}"] if mats else [])
+            return R(head + ('\n' + '; '.join(rest) if rest else ''), [item(e)], 'element lookup by GlobalId',
+                     [f"Looked up GlobalId {gm.group(1)} → {e.is_a()} “{model.label(e)}”", 'Read its attributes and base quantities (unit-scaled)'])
     # --- metadata
     if re.search(r'software|ifc standard|schema|authoring|application', ql):
         h = f.header.file_name

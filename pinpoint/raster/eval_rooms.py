@@ -20,9 +20,8 @@ for q in Q:
     k = next((k for k, (pre, c) in TPL.items() if q['question'].startswith(pre)), None)
     if not k: continue
     p = engine.abspath(q['path'])
-    f = glob.glob(os.path.join(ocr.CACHE, os.path.splitext(os.path.basename(p))[0] + '-*.json'))
-    if not f: miss += 1; continue
-    o = json.load(open(f[0]))
+    o = ocr.cached(p)
+    if o is None: miss += 1; continue
     v, _ = rooms.count(o, TPL[k][1]); v = max(v, rooms.MINIMUM.get(TPL[k][1], 0))
     acc[k][0] += v == q['answer']; acc[k][1] += 1
     conf[k][(q['answer'], v)] += 1

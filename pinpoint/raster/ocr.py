@@ -4,7 +4,7 @@ CubiCasa plans carry Finnish room labels (MH, K, KH, KPH, PH, WC, SAUNA, PARVEKE
 ("1. kerros") in any of four orientations, a few pixels tall, on top of wall linework and coloured fills.
 Recipe: upscale x4 -> two binarisations (Otsu for clean prints, adaptive for text on coloured fills) ->
 strip long horizontal/vertical lines -> Tesseract sparse-text mode (psm 11) on all 4 rotations -> map every
-word box back to plan pixels -> merge duplicates (keep the most confident reading).
+word box back to plan pixels -> merge identical duplicates.
 Results are cached per plan in data/cache/ocr/<name>.json, so a question costs one dictionary lookup.
 """
 import os, re, json, hashlib
@@ -14,7 +14,7 @@ import cv2
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 CACHE = os.path.join(ROOT, 'data/cache/ocr')
 SCALE = 4
-VERSION = 1
+VERSION = 2
 ROTS = ((0, None), (90, cv2.ROTATE_90_CLOCKWISE), (180, cv2.ROTATE_180), (270, cv2.ROTATE_90_COUNTERCLOCKWISE))
 
 
@@ -71,22 +71,33 @@ def run(path, min_conf=40):
                 bx = _unrotate(rot, x, y, x + w, y + h, W, H)
                 words.append(dict(text=t, conf=round(c, 1), rot=rot, mode=mode,
                                   bbox=[round(v / SCALE, 1) for v in bx]))
-    # merge readings of the same word (two binarisations x rotations): keep the most confident
+    # merge identical readings of the same word (two binarisations); different readings of one spot are all
+    # kept: a confident misreading in the wrong rotation ("m") must not hide the true label ("MH", conf 58)
     words.sort(key=lambda w: -w['conf'])
     keep = []
     for w in words:
-        if any(_iou(w['bbox'], k['bbox']) > 0.4 for k in keep):
+        if any(_iou(w['bbox'], k['bbox']) > 0.4 and w['text'].upper() == k['text'].upper() for k in keep):
             continue
         keep.append(w)
     return dict(size=[w0, h0], words=keep)
 
 
+def cache_path(path):
+    st = os.stat(path)
+    key = hashlib.md5(f'{os.path.basename(path)}|{st.st_size}|{VERSION}'.encode()).hexdigest()[:10]
+    return os.path.join(CACHE, f'{os.path.splitext(os.path.basename(path))[0]}-{key}.json')
+
+
+def cached(path):
+    """OCR result if already computed, else None (never runs Tesseract)."""
+    f = cache_path(path)
+    return json.load(open(f)) if os.path.exists(f) else None
+
+
 def words(path):
     """Cached OCR of a plan image."""
     os.makedirs(CACHE, exist_ok=True)
-    st = os.stat(path)
-    key = hashlib.md5(f'{os.path.basename(path)}|{st.st_size}|{VERSION}'.encode()).hexdigest()[:10]
-    f = os.path.join(CACHE, f'{os.path.splitext(os.path.basename(path))[0]}-{key}.json')
+    f = cache_path(path)
     if os.path.exists(f):
         return json.load(open(f))
     out = run(path)
