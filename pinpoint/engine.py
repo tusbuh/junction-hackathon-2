@@ -16,8 +16,19 @@ VLM_EUR_PER_MTOK_IN, VLM_EUR_PER_MTOK_OUT = 2.8, 14.0   # frontier VLM list pric
 _lock = threading.Lock()
 
 
-def abspath(p):
-    return os.path.join(DATA, p)
+def abspath(p, fetch=False):
+    """Local path of dataset-relative `p`: the unpacked split first, then files cached from the full
+    dataset; with fetch=True a missing file is pulled from the full zip by range request (fullset.py)."""
+    a = os.path.join(DATA, p)
+    if os.path.exists(a):
+        return a
+    from . import fullset
+    b = fullset.local(p)
+    if os.path.exists(b):
+        return b
+    if fetch:
+        return fullset.fetch(p) or a
+    return a
 
 
 @functools.lru_cache(maxsize=None)
@@ -112,7 +123,7 @@ def ask_swiss(path, q):
 @functools.lru_cache(maxsize=6)
 def ifc_model(ifc_rel):
     from .ifcq import Model
-    return Model(abspath(ifc_rel))
+    return Model(abspath(ifc_rel, fetch=True))
 
 
 def ifc_for(path):
@@ -143,8 +154,8 @@ def plan_view(path, storey=None):
 
 def ask_ifc(path, q):
     ifc = ifc_for(path)
-    if not os.path.exists(abspath(ifc)):
-        return dict(value=None, unit=None, items=[], method='model not in dataset', steps=[f'{ifc} is not in this dataset split'])
+    if not os.path.exists(abspath(ifc, fetch=True)):
+        return dict(value=None, unit=None, items=[], method='model not in dataset', steps=[f'{ifc} is not in this dataset split nor in the full dataset'])
     with _lock:
         from .router import canonical_ifc
         m = ifc_model(ifc)

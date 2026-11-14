@@ -90,13 +90,13 @@ class Model:
             return dict(value=None, unit=None, items=[], method='not routed', steps=st0 + ['No rule matched'])
         els = self.elems(cls, storey)
         st = st0 + [f"Selected {len(els)} elements of class {' / '.join(cls)}"]
-        if re.search(r'length|pikkus|længde|länge', ql):
+        if re.search(r'length|how long|pikkus|kui pikk|længde|hvor lang|länge|wie lang|lengte|hoe lang|längd|hur lång|pituus|kuinka pitk|longueur|lunghezza|longitud', ql):
             v = lambda e: round((self.q(e, 'Length') or 0) * self.lscale, 3)
             return dict(value=round(sum(v(e) for e in els), 3), unit='m', items=it(els, v), method='sum of Qto Length', steps=st + ['Summed BaseQuantities Length (unit-scaled to m)'])
         if re.search(r'side area|külgpind|sideareal|seitenfläche', ql):
             v = lambda e: round(self.q(e, 'NetSideArea') or 0, 3)
             return dict(value=round(sum(v(e) for e in els), 3), unit='m²', items=it(els, v), method='sum of Qto NetSideArea', steps=st + ['Summed BaseQuantities NetSideArea'])
-        if re.search(r'volume|maht|volumen|rumfang', ql):
+        if re.search(r'volume|maht|volumen|rumfang|tilavuus|volym', ql):
             v = lambda e: round(self.q(e, 'NetVolume') or 0, 3)
             return dict(value=round(sum(v(e) for e in els), 3), unit='m³', items=it(els, v), method='sum of Qto NetVolume', steps=st + ['Summed BaseQuantities NetVolume'])
         if re.search(r'area|pind|areal|fläche', ql):

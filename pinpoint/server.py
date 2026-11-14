@@ -14,10 +14,12 @@ _mesh_lock = threading.Lock()
 
 
 def safe(path):
-    full = os.path.realpath(os.path.join(DATA, path))
-    if not full.startswith(os.path.realpath(DATA) + os.sep) or not os.path.exists(full):
-        raise HTTPException(404, 'not found')
-    return full
+    from . import fullset
+    for base in (DATA, fullset.FILES):
+        full = os.path.realpath(os.path.join(base, path))
+        if full.startswith(os.path.realpath(base) + os.sep) and os.path.exists(full):
+            return full
+    raise HTTPException(404, 'not found')
 
 
 class Ask(BaseModel):
