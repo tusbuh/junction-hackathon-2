@@ -42,7 +42,7 @@ never blended: the sources differ in kind and size.
 
 0 LLM calls in every run above. Open the **▦ Scoreboard** in the app for the live numbers.
 
-**Unseen drawings** (`/api/eval_all`, generated 2026-11-14 06:32; drawings from the full dataset that are *not* in the
+**Unseen drawings** (`/api/eval_all`; drawings from the full dataset that are *not* in the
 preview split and were never used for development): IFC models **858 / 858**, Swiss floor plans **892 / 898
 (99.3 %)**, IFC-Bench free text 467 / 467 answered (not auto-graded). The sample also includes 16 historic and archive drawings
 (4 each from europeana, finna, habs and wikimedia, 64 generic questions without reference answers): none is answered
@@ -52,8 +52,8 @@ with a number, each returns an explained "can't answer, here's why". Across the 
 **CubiCasa room-label OCR** (`/api/eval_all`, Tesseract fin+eng, preview): kitchens 70/75, bathrooms 55/60, floors
 97/108, balconies 28/35, bedrooms 52/72, WC 41/60, saunas 48/77. Weakest classes are where the remaining raster misses are.
 
-(`/api/eval_all` still shows the earlier CubiCasa snapshot of 2728 / 4270 = 63.9 %; the scoreboard's 3124 / 4270 is the
-current `data/eval/cubicasa5k.json`.)
+(`/api/eval_all` builds its dev split live from the same `data/eval/*.json` files as the scoreboard, so both report
+CubiCasa 3124 / 4270.)
 
 **CubiCasa follow-up (RASTER4): 3042 → 3124 / 4270 (71.2 % → 73.2 %).** The three steps below are measured on preview, and
 `python -m pinpoint.raster.breakdown old.json new.json` prints the per-template delta:

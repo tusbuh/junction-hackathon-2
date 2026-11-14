@@ -126,8 +126,8 @@ BoQ → cost race, captions built from the live answers).
 
 ### Backup facts (only if asked; all from `/api/eval_all` or README)
 
-Quote CubiCasa from `/api/scoreboard` (3,124 / 4,270). `/api/eval_all` still holds the earlier 2,728 snapshot for the
-dev split (README says so); its *unseen* and room-label numbers below are current.
+CubiCasa is 3,124 / 4,270 in both `/api/scoreboard` and `/api/eval_all` (eval_all builds its dev split live from the
+same `data/eval/*.json`); its *unseen* and room-label numbers below are current.
 
 - Finnish scans: leak-free YOLOv8n + YOLO11s ensemble, both trained only on the 213 CubiCasa5K plans not in the Stoa
   set; room-label OCR kitchens 70/75, bathrooms 55/60, saunas 48/77 (the weakest class). Wrong answers stay visible in

@@ -39,11 +39,14 @@ def summarise(rows, src_key):
     return out
 
 
-def main():
+def build():
+    """Assemble the scoreboard from the current eval files (same data/eval/*.json that /api/scoreboard reads)."""
     dev = []
-    for f in sorted(glob.glob(os.path.join(engine.ROOT, 'data/eval/*.json'))):
+    files = sorted(glob.glob(os.path.join(engine.ROOT, 'data/eval/*.json')))
+    for f in files:
         dev += json.load(open(f))
-    res = dict(generated=time.strftime('%Y-%m-%d %H:%M'), scoring='counts exact; area/length/volume within 2%; short text graded, narrative text answered-only',
+    newest = max((os.path.getmtime(f) for f in files), default=time.time())
+    res = dict(generated=time.strftime('%Y-%m-%d %H:%M', time.localtime(newest)), scoring='counts exact; area/length/volume within 2%; short text graded, narrative text answered-only',
                dev=dict(note='preview split (rules were developed on it)', sources=summarise(dev, lambda r: engine.source_of(r['path']))))
     rb = os.path.join(ACC, 'robust.json')
     if os.path.exists(rb):
@@ -63,6 +66,11 @@ def main():
     if cc:
         res['cubicasa_room_labels'] = dict(note='Tesseract fin+eng room-label OCR (bedrooms, kitchens, bathrooms, WC, saunas, balconies, storeys); '
                                                 'preview = dev, val300 = held-out Stoa plans', **cc)
+    return res
+
+
+def main():
+    res = build()
     json.dump(res, open(OUT, 'w'), ensure_ascii=False, indent=1)
     for part in ('dev', 'unseen'):
         if part in res:

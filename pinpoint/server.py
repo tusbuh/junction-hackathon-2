@@ -68,11 +68,13 @@ def scoreboard():
 @app.get('/api/eval_all')
 def eval_all():
     """Per-source / per-question-type accuracy: dev split vs unseen full-dataset drawings (python -m pinpoint.eval_all)."""
-    import json
-    f = os.path.join(ROOT, 'data/eval_all.json')
-    if not os.path.exists(f):
-        raise HTTPException(404, 'run python -m pinpoint.eval_all first')
-    return JSONResponse(json.load(open(f)))
+    # Built live from data/eval/*.json (the files /api/scoreboard reads), so the two can never disagree.
+    # The old cached data/eval_all.json went stale whenever an eval was re-run without re-running eval_all.
+    from . import eval_all as ea
+    res = ea.build()
+    if not res['dev']['sources']:
+        raise HTTPException(404, 'run python -m pinpoint.evaluate first')
+    return JSONResponse(res)
 
 
 @app.get('/api/sheet')
