@@ -79,6 +79,28 @@ def boq(path: str = Query(...)):
     return JSONResponse(_num(B.build(path)))
 
 
+@router.get('/api/boq.csv')
+def boq_csv(path: str = Query(...)):
+    from fastapi.responses import Response
+    from .server import safe
+    safe(path)
+    from . import boq as B
+    name = os.path.splitext(os.path.basename(path))[0]
+    return Response(B.to_csv(_num(B.build(path)), path), media_type='text/csv; charset=utf-8',
+                    headers={'Content-Disposition': f'attachment; filename="{name}_BoQ.csv"'})
+
+
+@router.get('/api/boq.pdf')
+def boq_pdf(path: str = Query(...)):
+    from fastapi.responses import Response
+    from .server import safe
+    safe(path)
+    from . import boq as B
+    name = os.path.splitext(os.path.basename(path))[0]
+    return Response(B.to_pdf(_num(B.build(path)), path), media_type='application/pdf',
+                    headers={'Content-Disposition': f'attachment; filename="{name}_BoQ.pdf"'})
+
+
 _mesh_lock = __import__('threading').Lock()
 
 

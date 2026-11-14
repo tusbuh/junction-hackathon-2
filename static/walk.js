@@ -207,7 +207,7 @@ function prism(outer, holes, z0, z1, mat, opts = {}) {
 const boxPoly = b => [[b[0], b[1]], [b[2], b[1]], [b[2], b[3]], [b[0], b[3]]];
 
 // ------------------------------------------------------------------ open / close
-export async function openWalk({ path, q, name, items, answer, mode, sel } = {}) {
+export async function openWalk({ path, q, name, items, answer, mode, sel, override } = {}) {
   dom();
   V.root.hidden = false; V.open = true; document.body.classList.add('wkOpen');
   if (!init()) { V.$('#wkLoadT').textContent = 'WebGL is not available in this browser.'; return; }
@@ -216,12 +216,13 @@ export async function openWalk({ path, q, name, items, answer, mode, sel } = {})
   V.$('#wkName').textContent = name || path.split('/').pop();
   const key = path + '|' + (q || '');
   try {
-    const g = await (await fetch(`/api/walk?path=${encodeURIComponent(path)}&q=${encodeURIComponent(q || '')}`)).json();
+    const g = await (await fetch(`/api/walk?path=${encodeURIComponent(path)}&q=${encodeURIComponent(override ? '' : (q || ''))}`)).json();
     if (g.detail) throw new Error(g.detail);
     V.$('#wkCredit').innerHTML = g.credit ? `<b>Data:</b> ${esc(g.credit.credit)}${g.credit.licence ? ` · <i>${esc(g.credit.licence)}</i>` : ''}` : '';
     if (V.key !== path) { clearWorld(); V.key = path; V.g = g; if (g.kind === 'swiss') await buildSwiss(g); else await buildIfc(g); }
     let ans = g.answer;
-    if (g.kind === 'ifc') ans = answer || (q ? await (await fetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, question: q }) })).json() : null);
+    if (override && answer) ans = answer;
+    else if (g.kind === 'ifc') ans = answer || (q ? await (await fetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, question: q }) })).json() : null);
     showAnswer(q, ans);
   } catch (e) {
     V.$('#wkLoadT').textContent = 'No 3D for this drawing'; V.$('#wkLoadS').textContent = String(e.message || e);
@@ -535,7 +536,7 @@ function showAnswer(q, a) {
   applyCut();
   buildGlow(items);
 }
-const KIND_Z = { door: [0, 2.1], window: [0.9, 2.1], WC: [0, 0.45], basin: [0.7, 0.92], bathtub: [0, 0.6], shower: [0, 2.0] };
+const KIND_Z = { door: [0, 2.1], window: [0.9, 2.1], wc: [0, 0.45], basin: [0.7, 0.92], washbasin: [0.7, 0.92], bathtub: [0, 0.6], shower: [0, 2.0], wall: [0, 2.62] };
 function glowMat(op) {
   return new THREE.MeshBasicMaterial({ color: AMBER.clone().multiplyScalar(2.2), transparent: true, opacity: op, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
 }
@@ -559,13 +560,13 @@ function buildGlow(items) {
       c = [(b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2]; top = b.max.z; it._z = [b.min.z, b.max.z];
     } else if (it.poly || it.bbox) {
       const poly = it.poly ? it.poly.slice(0, -1) : boxPoly(it.bbox);
-      const z = KIND_Z[it.kind] || (it.poly ? [0, 0.08] : [0, 1.0]);
+      const z = KIND_Z[(it.kind || '').toLowerCase()] || (it.poly ? [0, 0.08] : [0, 1.0]);
       const s = new THREE.ExtrudeGeometry(shape(it.poly ? poly : boxPoly(inflate(it.bbox, 0.04)), it.holes?.map(h => h.slice(0, -1))), { depth: z[1] - z[0], bevelEnabled: false });
       s.translate(0, 0, z[0] + 0.002);
       const core = new THREE.Mesh(s, glowMat(it.poly ? 0.45 : 0.6)); core.renderOrder = 6; grp.add(core);
       const xr = glowMat(it.poly ? 0.08 : 0.28); xr.depthTest = false; const xray = new THREE.Mesh(s, xr); xray.renderOrder = 7; xray.userData.xray = true; grp.add(xray);
       grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(s, 20), new THREE.LineBasicMaterial({ color: new THREE.Color(3, 2.3, 1.2), toneMapped: false, transparent: true, opacity: .95 })));
-      if (it.poly) {   // a curtain of light along the room outline
+      if (it.poly && it.kind !== 'wall') {   // a curtain of light along the room outline
         const cs = new THREE.ExtrudeGeometry(shape(poly, it.holes?.map(h => h.slice(0, -1))), { depth: 1.2, bevelEnabled: false });
         const cm = glowMat(0.07); const curtain = new THREE.Mesh(cs, cm); curtain.renderOrder = 5; curtain.userData.curtain = true; grp.add(curtain);
       }
