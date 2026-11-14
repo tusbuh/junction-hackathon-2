@@ -15,7 +15,7 @@ const SRC_TAG = { swiss_dwellings: 'DXF+PDF', ifc_models: 'IFC', ifc_bench: 'IFC
 // ?static=1 (screenshots, video) or prefers-reduced-motion: every count-up / sweep shows its final state instantly
 const STATIC = new URLSearchParams(location.search).has('static') || matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (STATIC) document.documentElement.classList.add('static');
-const S = { cat: [], src: 'swiss_dwellings', file: null, total: 0, n: 0, last: null, mode: 'sheet', blue: true, sel: null, items: [], run: 0,
+const S = { cat: [], src: 'swiss_dwellings', file: null, total: 0, n: 0, last: null, mode: 'sheet', blue: !document.documentElement.classList.contains('themed'), sel: null, items: [], run: 0,
   has: { sheet: false, model: false } };
 
 const fmtEur = v => {
