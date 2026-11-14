@@ -1,0 +1,17 @@
+{
+  "voice": "Samantha",
+  "rate": 182,
+  "scenes": [
+    {"id": "s00_title", "text": "PINPOINT. Blueprints that show their work."},
+    {"id": "s01_pain", "text": "A site engineer loses hours every day hunting through drawing sets for one number. General A.I. reads a drawing like a photo, and guesses. PINPOINT reads the geometry inside the file, and every answer comes with a receipt. Graded the way Stoa grades: counts exact, quantities within two percent."},
+    {"id": "s02_count", "text": "Let's ask, in German: how many W.C.s are on this plan? Four. Each one is boxed and numbered on the real sheet, and it matches the ground truth exactly. The receipt says how: a bowl with no drain circle is a W.C., cited to the D.X.F. layer and its position on the sheet."},
+    {"id": "s03_area", "text": "Now an area takeoff. The net floor area of apartment A: eighty point three three square metres, against a reference of eighty point three four. Within zero point zero one percent. All nine rooms are shaded, and each one is checked against its own printed label."},
+    {"id": "s04_audit", "text": "PINPOINT also catches errors in the drawings themselves. On this U.S. sports complex, the door schedule lists forty-one doors, but the plans tag only thirty-nine. Door one-eighteen C has no tag anywhere. That's an R.F.I. before the supplier orders frames off the wrong list."},
+    {"id": "s05_bim", "text": "An Estonian office floor, asked in Estonian. Forty-two doors, exact. Pick door three, and the sheet and the B.I.M. model fly to the same door, by its I.F.C. GlobalId."},
+    {"id": "s06_walk", "text": "Any 2D plan becomes a building you can walk through, with the counted W.C.s glowing. Brief your crew before they ever set foot on site."},
+    {"id": "s07_boq", "text": "One click gives the whole floor's bill of quantities: rooms, net areas, doors, windows and sanitary fixtures. Every line traced to the drawing, and ready to export as C.S.V. or P.D.F."},
+    {"id": "s08_race", "text": "And the cost. The same seven thousand, seven hundred and forty-one graded questions. A frontier vision model: about a hundred and seventy euros, at list price. PINPOINT: less than a quarter of a cent, measured. About seventy-two thousand times cheaper, with zero L.L.M. calls in the scored path."},
+    {"id": "s09_scores", "text": "Every source is scored on its own, never blended. Swiss C.A.D. plans and I.F.C. models: one hundred percent. Finnish raster scans: seventy-three percent, with every miss left visible."},
+    {"id": "s10_end", "text": "PINPOINT. Every answer comes with a receipt."}
+  ]
+}

@@ -1,0 +1,157 @@
+{
+ "lead": 0.5,
+ "scenes": [
+  {
+   "id": "s00_title",
+   "minT": 4.5,
+   "card": "title"
+  },
+  {
+   "id": "s01_pain",
+   "minT": 19.0,
+   "captions": [
+    [
+     0,
+     "Site engineers lose hours hunting drawing sets for <em>one number</em>"
+    ],
+    [
+     8.6,
+     "PINPOINT reads the <em>geometry inside the file</em>. Every answer gets a receipt."
+    ]
+   ]
+  },
+  {
+   "id": "s02_count",
+   "minT": 19.5,
+   "captions": [
+    [
+     0,
+     "Ask in any language: <em>“Wie viele WCs …?”</em>"
+    ],
+    [
+     6.2,
+     "<em>4 WCs</em>, each boxed on the real sheet · exact match"
+    ],
+    [
+     11.6,
+     "Each one cited: file, DXF layer, position on the sheet"
+    ]
+   ]
+  },
+  {
+   "id": "s03_area",
+   "minT": 17.0,
+   "captions": [
+    [
+     0,
+     "Area takeoff: apartment A, net floor area"
+    ],
+    [
+     4.0,
+     "<em>80.33 m²</em> vs 80.34 m² reference · within <em>0.01%</em> (limit 2%)"
+    ],
+    [
+     10.4,
+     "9 rooms shaded, each checked against its printed m² label"
+    ]
+   ]
+  },
+  {
+   "id": "s04_audit",
+   "minT": 20.0,
+   "captions": [
+    [
+     0,
+     "Drawing audit: errors found <em>in the dataset itself</em>"
+    ],
+    [
+     7.6,
+     "Door schedule lists <em>41</em> doors · plans tag only <em>39</em>"
+    ],
+    [
+     13.0,
+     "Door 118.C has no tag: raise the <em>RFI</em> before frames are ordered"
+    ]
+   ]
+  },
+  {
+   "id": "s05_bim",
+   "minT": 14.5,
+   "captions": [
+    [
+     0,
+     "Asked in Estonian: <em>“Mitu ust …?”</em>"
+    ],
+    [
+     4.4,
+     "<em>42 doors</em>, exact · drawing and BIM model synced by <em>IFC GlobalId</em>"
+    ]
+   ]
+  },
+  {
+   "id": "s06_walk",
+   "minT": 13.5,
+   "captions": [
+    [
+     0,
+     "Any 2D plan becomes a building you can <em>walk through</em>"
+    ],
+    [
+     6.5,
+     "Counted WCs glow · step inside at eye height"
+    ]
+   ]
+  },
+  {
+   "id": "s07_boq",
+   "minT": 14.0,
+   "captions": [
+    [
+     0,
+     "One click: the whole floor's <em>bill of quantities</em>"
+    ],
+    [
+     7.0,
+     "Every line traced to the drawing · CSV and PDF export"
+    ]
+   ]
+  },
+  {
+   "id": "s08_race",
+   "minT": 21.0,
+   "captions": [
+    [
+     0,
+     "Same <em>7,741</em> graded questions, two ways"
+    ],
+    [
+     3.6,
+     "Frontier VLM est. <em>€170.48</em> vs PINPOINT <em>€0.0024</em> measured"
+    ],
+    [
+     12.2,
+     "<em>~72,135× cheaper</em> · 0 LLM calls in the scored path"
+    ]
+   ]
+  },
+  {
+   "id": "s09_scores",
+   "minT": 14.0,
+   "captions": [
+    [
+     0,
+     "Scored per source, <em>never blended</em>"
+    ],
+    [
+     4.6,
+     "Swiss <em>2,358/2,358</em> · IFC <em>1,049/1,049</em> · Finnish scans <em>3,124/4,270</em>"
+    ]
+   ]
+  },
+  {
+   "id": "s10_end",
+   "minT": 8.0,
+   "card": "end"
+  }
+ ]
+}
