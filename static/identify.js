@@ -307,7 +307,7 @@ function mount() {
   new MutationObserver(() => { if (ID.lit || ID.sel) draw2d(); }).observe($('#ov'), { attributes: true, attributeFilter: ['viewBox'] });
   const P = new URLSearchParams(location.search);
   if (P.get('identify')) setTimeout(function go() {
-    if (!window.PP?.S?.file || !SV()?.url) return setTimeout(go, 300);
+    if (!window.PP?.S?.file || (window.PP.S.has?.sheet && !SV()?.url)) return setTimeout(go, 300);
     toggle(true).then(() => {
       const id = P.get('iid'); if (id) inspect({ id });
       const lt = P.get('ilit'); if (lt && ID.parts?.groups) { const [gi, ti] = lt.split(':').map(Number); const t = ID.parts.groups[gi]?.types[ti]; if (t) lightUp({ key: `t:${gi}:${ti}`, ids: t.ids, label: t.name }); }

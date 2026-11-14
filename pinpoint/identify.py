@@ -670,7 +670,14 @@ def ifc_card(path, gid):
         Pp('Tag', e.Tag, 'IfcElement.Tag (mark / ID on drawings)')
     if getattr(e, 'Description', None):
         Pp('Description', e.Description)
-    title = term + (f' · {e.Name}' if e.Name and e.Name != tname else '')
+    nm = e.Name or ''
+    if ':' in nm:   # Revit-style "Family:Type:Type:ElementId" -> "Family : Type"
+        seg = []
+        for x in (x.strip() for x in nm.split(':')):
+            if x and not x.isdigit() and x not in seg:
+                seg.append(x)
+        nm = ' : '.join(seg)
+    title = term + (f' · {nm}' if nm and nm != tname else '')
     if c == 'IfcSpace':
         title = f"Space {e.Name or ''}" + (f" · {e.LongName}" if getattr(e, 'LongName', None) else '')
     src += [dict(k='File', v=os.path.basename(ifc) + f' ({f.schema})'), dict(k='Class', v=c + (f'.{e.PredefinedType}' if getattr(e, 'PredefinedType', None) else '')),
