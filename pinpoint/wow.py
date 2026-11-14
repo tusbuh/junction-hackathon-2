@@ -129,3 +129,31 @@ def mesh_local(path: str = Query(...)):
             build(full, out + '.tmp', local=True)
             os.replace(out + '.tmp', out)
     return FileResponse(out, media_type='application/octet-stream', headers={'Cache-Control': 'max-age=86400'})
+
+
+# ---------------------------------------------------------------- component identification (click any element)
+@router.get('/api/parts')
+def parts(path: str = Query(...)):
+    from .server import safe
+    safe(path)
+    from . import identify as I
+    try:
+        return JSONResponse(_num(I.parts(path)))
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return JSONResponse(dict(kind='none', why=f'{type(e).__name__}: {e}', credit=credit(path)))
+
+
+@router.get('/api/inspect')
+def inspect_api(path: str = Query(...), id: str = '', x: float = None, y: float = None, mx: float = None, my: float = None, hint: str = ''):
+    """id = element id from /api/parts or an IFC GlobalId; x,y = sheet point (PDF pt / image px); mx,my = DXF metres (3D walk)."""
+    from .server import safe
+    safe(path)
+    from . import identify as I
+    try:
+        card = I.inspect(path, eid=id or None, pt=(x, y) if x is not None and y is not None else None,
+                         m=(mx, my) if mx is not None and my is not None else None, hint=hint or None)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return JSONResponse(dict(none=True, why=f'{type(e).__name__}: {e}'))
+    return JSONResponse(_num(card) if card else dict(none=True, why='No identifiable element here.'))
