@@ -65,6 +65,16 @@ def scoreboard():
     return JSONResponse(out)
 
 
+@app.get('/api/eval_all')
+def eval_all():
+    """Per-source / per-question-type accuracy: dev split vs unseen full-dataset drawings (python -m pinpoint.eval_all)."""
+    import json
+    f = os.path.join(ROOT, 'data/eval_all.json')
+    if not os.path.exists(f):
+        raise HTTPException(404, 'run python -m pinpoint.eval_all first')
+    return JSONResponse(json.load(open(f)))
+
+
 @app.get('/api/sheet')
 def sheet(path: str = Query(...), page: int = 0):
     full = safe(path)

@@ -27,5 +27,9 @@ for q in Q:
     acc[k][0] += v == q['answer']; acc[k][1] += 1
     conf[k][(q['answer'], v)] += 1
 print('missing ocr', miss)
+out = os.environ.get('PINPOINT_EVAL_OUT') or os.path.join(os.path.dirname(__file__), '..', '..', 'data/eval_acc')
+os.makedirs(out, exist_ok=True)
+json.dump(dict(split=which, missing_ocr=miss, by_template={k: dict(correct=a, graded=b) for k, (a, b) in acc.items()}),
+          open(os.path.join(out, f'cubicasa_rooms_{which}.json'), 'w'))
 for k, (a, b) in acc.items():
     print(f'{k:10s} {a}/{b} = {100*a/b:.0f}%   (truth,pred) top errors:', [x for x in conf[k].most_common(12) if x[0][0] != x[0][1]][:6])
