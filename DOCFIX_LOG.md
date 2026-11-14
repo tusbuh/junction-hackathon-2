@@ -16,3 +16,12 @@ All log values matched the live API. Two minor items from EVALFIX_LOG (p95, Swis
 README.md:58 "3042 → 3124 (71.2 % → 73.2 %)" was kept: it is a clearly labelled historical delta.
 SUBMISSION.md still starts with "# DRAFT - NOT SUBMITTED". Nothing was submitted or published.
 Eval: /api/scoreboard is unchanged (cubicasa5k 3124/4270, ifc_models 1049/1049, opening_design 61/64, swiss_dwellings 2358/2358).
+
+## Merge
+Merged into main as a fast-forward (origin/main had not moved): merge commit **2555b3e** (2555b3ef8bde792f334f8fa34e1ba8a49a8c042b).
+
+Final grep (excluding EVALFIX_LOG.md and this log):
+```
+README.md:58:**CubiCasa follow-up (RASTER4): 3042 → 3124 / 4270 (71.2 % → 73.2 %).** The three steps below are measured on preview, and
+```
+The one hit is the labelled historical delta (old → new), kept on purpose.
