@@ -14,7 +14,7 @@ CLASS_TOKENS = {
     'kitchen': {'K', 'KK', 'TK', 'KT', 'AK', 'KEITTIÖ', 'KEITTIO', 'KEITTOKOMERO', 'TUPAKEITTIÖ', 'AVOKEITTIÖ', 'APUK', 'APUKEITTIÖ'},
     'bathroom': {'KH', 'KPH', 'PH', 'PESUH', 'PESUHUONE', 'SH', 'KYLPYH', 'KYLPYHUONE', 'SUIHKU', 'SUIHKUH'},
     'wc': {'WC'},
-    'sauna': {'S', 'SAUNA', 'LH', 'LÖYLYH', 'LÖYLYHUONE'},
+    'sauna': {'S', 'SAUNA', 'LÖYLYH', 'LÖYLYHUONE'},      # 'LH' dropped: ambiguous in practice ("LH+K")
     'balcony': {'PARV', 'PARVEKE', 'LASPARV', 'LASITETTUPARVEKE', 'RANSKALAINENPARVEKE'},
 }
 ONE_LETTER_MIN_CONF = 70      # single-letter labels (K, S) are easy to hallucinate from symbols
@@ -68,7 +68,7 @@ def classify(word, label_h=None):
     for p in tokens(word['text']):
         c = next((c for c, toks in CLASS_TOKENS.items() if p in toks), None)
         rev = c is None and p in REVERSED
-        c = c or REVERSED.get(p) or (next((c for t, c in LONG if _ed1(p, t)), None) if len(p) >= 4 else None)
+        c = c or REVERSED.get(p) or (next((c for t, c in LONG if _ed1(p, t)), None) if len(p) >= 5 else None)
         if c is None:
             continue
         if len(p) <= 2 and word['conf'] < (85 if rev else TWO_LETTER_MIN_CONF_BY.get(c, TWO_LETTER_MIN_CONF)):
