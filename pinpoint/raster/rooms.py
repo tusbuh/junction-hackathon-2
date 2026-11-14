@@ -18,6 +18,10 @@ CLASS_TOKENS = {
     'balcony': {'PARV', 'PARVEKE', 'LASPARV', 'LASITETTUPARVEKE', 'RANSKALAINENPARVEKE'},
 }
 ONE_LETTER_MIN_CONF = 70      # single-letter labels (K, S) are easy to hallucinate from symbols
+TWO_LETTER_MIN_CONF = 75
+TWO_LETTER_MIN_CONF_BY = {'bedroom': 50}   # 'MH' is rarely hallucinated; recall matters more (dev set sweep 50/60/75)
+# a lone "K" is too often a fixture/symbol misread (dev set: 18 false vs 8 true); kitchens keep their minimum of 1
+ONE_LETTER_OK = set()   # lone 'S' (sauna) is net-neutral on the dev set and only adds false positives; the detector supplies recall
 
 
 def tokens(text):
@@ -41,7 +45,8 @@ for _c, _v in CLASS_TOKENS.items():
         for _r in (_t[::-1], _t[::-1].translate(_UPSIDE)):
             if len(_t) >= 2 and _r not in _ALL and _r != _t:
                 REVERSED.setdefault(_r, _c)
-DESCRIPTOR = re.compile(r'^\d+\s*[HM]\b|^\d+[HM]\+', re.I)     # "3H+K+S", "2h+kt": apartment type, not a room
+# "3H+K+S", "2h+kt", or the same split by OCR into "H+KK+S" / "SH+K": an apartment-type caption, not a room
+DESCRIPTOR = re.compile(r'^\d+\s*[HM]\b|^\d*\s*S?H\s*\+\s*(K|KK|KT|TK|AK|RT|S)\b|=\s*\d', re.I)
 
 
 def _ed1(a, b):
@@ -66,9 +71,11 @@ def classify(word, label_h=None):
         c = c or REVERSED.get(p) or (next((c for t, c in LONG if _ed1(p, t)), None) if len(p) >= 4 else None)
         if c is None:
             continue
-        if len(p) <= 2 and word['conf'] < (85 if rev else 75):
+        if len(p) <= 2 and word['conf'] < (85 if rev else TWO_LETTER_MIN_CONF_BY.get(c, TWO_LETTER_MIN_CONF)):
             continue
         if len(p) == 1:
+            if c not in ONE_LETTER_OK and not word.get('_combined'):
+                continue
             h = word['bbox'][3] - word['bbox'][1]
             if word['conf'] < ONE_LETTER_MIN_CONF or not label_h or not (0.7 * label_h <= h <= 1.4 * label_h):
                 continue
@@ -103,6 +110,12 @@ def count(ocr, cls):
         caps = floors(ws)
         return max(1, len(caps)), caps
     lh = label_height(ws)
+    # a lone "K" on the same line right after OH / RT is the kitchen part of a combined "OH + RT + K" label
+    for w in ws:
+        if w['text'].upper().strip('.:') == 'K' and lh:
+            cy = (w['bbox'][1] + w['bbox'][3]) / 2
+            w['_combined'] = any(v['text'].upper().strip('+.') in ('OH', 'RT', 'RK', 'TUPA') and abs((v['bbox'][1] + v['bbox'][3]) / 2 - cy) < 0.5 * lh
+                                 and 0 < w['bbox'][0] - v['bbox'][2] < 5 * lh for v in ws)
     hit = []
     for w in sorted((w for w in ws if cls in classify(w, lh)), key=lambda w: -w['conf']):
         cx, cy = (w['bbox'][0] + w['bbox'][2]) / 2, (w['bbox'][1] + w['bbox'][3]) / 2
@@ -111,3 +124,32 @@ def count(ocr, cls):
             continue   # same label read twice (two binarisations / rotations)
         hit.append(w)
     return len(hit), hit
+
+
+LABEL = {'bedroom': 'bedroom (MH)', 'kitchen': 'kitchen (K/KK/TK/KEITTIÖ)', 'bathroom': 'bathroom (KH/KPH/PH/SH)', 'wc': 'WC room',
+         'sauna': 'sauna (SAUNA/LH)', 'balcony': 'balcony (PARVEKE)', 'floors': 'storey caption (n. kerros)'}
+KINDS = {'bedrooms': 'bedroom', 'kitchens': 'kitchen', 'bathrooms': 'bathroom', 'wc_rooms': 'wc', 'saunas': 'sauna',
+         'balconies': 'balcony', 'floors': 'floors'}     # keys used by raster/qa.py routing
+
+
+def answer(path, kind):
+    """kind: bedroom|kitchen|bathroom|wc|sauna|balcony|floors (or the qa.py keys in KINDS).
+    Returns dict(value, unit, items[bbox in plan pixels], method, steps, confident)."""
+    from . import ocr
+    kind = KINDS.get(kind, kind)
+    o = ocr.words(path)
+    n, hits = count(o, kind)
+    val, confident = n, n > 0
+    steps = [f"Tesseract fin+eng OCR on the plan (x{ocr.SCALE} upscale, 2 binarisations, 4 rotations): {len(o['words'])} text fragments",
+             f"Matched {n} {LABEL[kind]} label{'s' if n != 1 else ''}" + (f" (read as: {', '.join(sorted({h['text'] for h in hits}))})" if hits else '')]
+    if kind == 'floors':
+        confident = len(hits) > 0
+        if not hits:
+            steps.append('No storey caption ("1. kerros", "krs", "kellari") found: answered 1 storey')
+    elif n < MINIMUM.get(kind, 0):
+        val = MINIMUM[kind]
+        steps.append(f"No legible {kind} label: a dwelling has at least one {kind}, so answered {val} (low confidence: check the plan)")
+    items = [dict(kind=f'label_{kind}', label=f"{h['text']} · OCR {h['conf']:.0f}", bbox=h['bbox'], value=None,
+                  check=None if h['conf'] >= 80 else dict(printed=h['text'], computed=h['conf'], ok=False, what='low OCR confidence'))
+             for h in sorted(hits, key=lambda h: (h['bbox'][1], h['bbox'][0]))]
+    return dict(value=val, unit='count', items=items, method=f'OCR room labels: {LABEL[kind]}', steps=steps, confident=confident)
