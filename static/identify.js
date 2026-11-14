@@ -121,7 +121,7 @@ function drop3d() {
   const T = window.PP?.T; const m = ID.mesh; if (!m || !T) return;
   T.root.remove(m); m.geometry.deleteAttribute('position'); m.geometry.dispose(); ID.mesh = null;
 }
-function light3d(gids, color = 0x38d6ff, op = 0.6) {
+function light3d(gids, color = 0x1db954, op = 0.6) {
   drop3d();
   const T = window.PP?.T; if (!T?.H || !T.byGid || !gids?.length) return;
   const els = gids.flatMap(g => T.byGid.get(g) || []); if (!els.length) return;
@@ -135,7 +135,7 @@ function light3d(gids, color = 0x38d6ff, op = 0.6) {
 function sync3d() {
   if (ID.parts?.kind !== 'ifc') return drop3d();
   const ids = ID.sel ? [ID.sel.id] : ID.lit?.ids;
-  light3d(ids, ID.sel ? 0xff2d55 : 0x38d6ff, ID.sel ? 0.85 : 0.55);
+  light3d(ids, ID.sel ? 0xffffff : 0x1db954, ID.sel ? 0.85 : 0.55);
 }
 
 // ------------------------------------------------------------------ parts drawer

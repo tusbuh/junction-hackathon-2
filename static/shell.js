@@ -14,6 +14,7 @@ const TAG = { swiss_dwellings: 'CH', ifc_models: 'IFC', ifc_bench: 'IFC', openin
 // dynamically injected stylesheets (wow.css, audit.css, race.css) must not override the shell theme: keep ours last
 const keepLast = () => { const me = $('#spotifyCss'); if (me && me !== document.head.lastElementChild) document.head.append(me); };
 new MutationObserver(keepLast).observe(document.head, { childList: true });
+keepLast();
 
 // ---------------------------------------------------------------- sidebar features
 $('#navAsk').onclick = () => { $('#splash').hidden = true; $('#q').focus(); };

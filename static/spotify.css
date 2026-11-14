@@ -293,7 +293,7 @@ main { grid-column: 2; grid-row: 2; gap: 8px; padding-bottom: 8px; grid-template
 .pct { color: #fff; }
 
 /* ---------------------------------------------------------------- tour captions */
-.tourCap { bottom: 96px; background: #282828; border: 0; border-radius: 8px; box-shadow: 0 16px 24px #00000080; backdrop-filter: none; font-size: 17px; font-weight: 500; }
+.tourCap { bottom: 106px; background: #282828; border: 0; border-radius: 8px; box-shadow: 0 16px 24px #00000080; backdrop-filter: none; font-size: 17px; font-weight: 500; }
 .tourCap small { color: var(--acc); font: 800 12px var(--sans); letter-spacing: .02em; }
 .tourCap em { color: #fff; font-weight: 800; }
 .tourCap .dots i { background: #4d4d4d; } .tourCap .dots i.on { background: #fff; } .tourCap .dots i.past { background: var(--acc); }
@@ -445,3 +445,6 @@ html.static .splash .stats div, html.static .player * { transition: none !import
 .splash { grid-template-columns: minmax(0, 1fr); }
 .splash .sc { min-width: 0; justify-self: stretch; margin: 0 auto; }
 .splash .spCost { white-space: normal; flex-wrap: wrap; row-gap: 2px; width: auto; max-width: 100%; border-radius: 24px; }
+.bqRow .d em.ok, .bqRow .d em.gt { color: var(--acc); background: #1DB9541f; }
+.bqRow .d em.bad { color: #f3727f; background: #f3727f1f; }
+.sbrow .pct { color: #fff !important; }

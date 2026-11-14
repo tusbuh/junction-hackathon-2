@@ -29,7 +29,7 @@ function dom() {
   <header class="wkTop">
     <div class="wkT"><span class="wkK">2D → 3D</span><b id="wkName">—</b><small id="wkSub"></small></div>
     <button class="wkTgl" id="wkLab" title="Room labels (L)">▦ rooms</button>
-    <div class="wkSeg" id="wkSeg"><button data-v="orbit" class="on">◎ Orbit</button><button data-v="walk">🚶 Walk inside</button></div>
+    <div class="wkSeg" id="wkSeg"><button data-v="orbit" class="on">Orbit</button><button data-v="walk">Walk inside</button></div>
     <button class="wkX" id="wkX" title="Close (Esc)">✕</button>
   </header>
   <aside class="wkAns" id="wkAns" hidden>
@@ -865,7 +865,7 @@ function markIdent(c) {
     g.dispose(); V.idMark = null;
   }
   if (!c || !V.open || !c.from?.walk) return;
-  const mat = new THREE.MeshBasicMaterial({ color: 0x38d6ff, transparent: true, opacity: 0.45, depthTest: false, blending: THREE.AdditiveBlending });
+  const mat = new THREE.MeshBasicMaterial({ color: 0x1db954, transparent: true, opacity: 0.45, depthTest: false, blending: THREE.AdditiveBlending });
   if (V.ifc && V.ifc.byGid.get(c.id)) {
     const els = V.ifc.byGid.get(c.id); let n = 0; els.forEach(e => n += e.ni);
     const idx = new Uint32Array(n); let o = 0; els.forEach(e => { idx.set(V.ifc.I.subarray(e.i0, e.i0 + e.ni), o); o += e.ni; });
@@ -901,7 +901,7 @@ function drawMini() {
   (V.glowData || []).forEach(d => {
     if (!d.grp.visible) return;
     const [a, b] = T(d.c[0], d.c[1]);
-    g.fillStyle = V.sel === d.it.n ? '#fff' : '#ffb020'; g.shadowColor = '#ff9a00'; g.shadowBlur = 8;
+    g.fillStyle = V.sel === d.it.n ? '#fff' : '#1DB954'; g.shadowColor = '#000'; g.shadowBlur = 8;
     g.beginPath(); g.arc(a, b, V.sel === d.it.n ? 6 : 4, 0, 7); g.fill();
   });
   g.shadowBlur = 0;
@@ -911,7 +911,7 @@ function drawMini() {
     if (V.mode === 'orbit') { const d = V.controls.target.clone().sub(V.camera.position); yaw = Math.atan2(-d.z, d.x); }
     if (V.mode === 'walk') {
       g.fillStyle = 'rgba(56,214,255,.25)'; g.beginPath(); g.moveTo(a, b); g.arc(a, b, 46, -yaw - 0.6, -yaw + 0.6); g.closePath(); g.fill();
-      g.fillStyle = '#38d6ff'; g.beginPath(); g.arc(a, b, 6, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
+      g.fillStyle = '#1DB954'; g.beginPath(); g.arc(a, b, 6, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
     }
   }
 }

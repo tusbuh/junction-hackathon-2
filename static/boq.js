@@ -25,7 +25,7 @@ function dom() {
       <div class="bqPan" id="bqPan"><img id="bqImg" alt=""><div id="bqSvgHost"></div><svg id="bqOv" class="bqOv"></svg></div>
       <div class="bqMsg" id="bqMsg" hidden></div>
       <div class="bqSel" id="bqSel" hidden></div>
-      <div class="bqTools"><button id="bqFit" title="Fit">⤢</button><button id="bq3d" class="hot">🚶 Show in 3D</button></div>
+      <div class="bqTools"><button id="bqFit" title="Fit">⤢</button><button id="bq3d" class="hot">Show in 3D</button></div>
       <div class="bqCredit" id="bqCredit"></div>
     </section>
     <section class="bqList">
