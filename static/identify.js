@@ -6,9 +6,10 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const NS = 'http://www.w3.org/2000/svg';
 const ID = { on: false, path: null, parts: null, loading: null, sel: null, lit: null, idx: null, mesh: null };
-const ICON = { door: '🚪', window: '🪟', wall: '▮', fixture: '🚽', room: '▢', unit: '⌂', IfcDoor: '🚪', IfcWindow: '🪟', IfcWall: '▮', IfcWallStandardCase: '▮',
-  IfcSlab: '▭', IfcSpace: '▢', IfcColumn: '▯', IfcBeam: '━', IfcStair: '⊟', IfcStairFlight: '⊟', IfcRailing: '⫼', IfcRoof: '⌂', text: '𝐓', pdf: '✎',
-  toilet: '🚽', sink: '◒', shower: '🚿', bathtub: '🛁', sauna_stove: '♨' };
+// drawing-style abbreviations (no pictograms)
+const ICON = { door: 'DR', window: 'WN', wall: 'WL', fixture: 'SAN', room: 'RM', unit: 'APT', IfcDoor: 'DR', IfcWindow: 'WN', IfcWall: 'WL', IfcWallStandardCase: 'WL',
+  IfcSlab: 'SL', IfcSpace: 'SP', IfcColumn: 'COL', IfcBeam: 'BM', IfcStair: 'ST', IfcStairFlight: 'ST', IfcRailing: 'RL', IfcRoof: 'RF', text: 'TXT', pdf: 'PDF',
+  toilet: 'WC', sink: 'WB', shower: 'SH', bathtub: 'BT', sauna_stove: 'SA' };
 const KIND = { door: 'DOOR', window: 'WINDOW', wall: 'WALL', fixture: 'SANITARY', room: 'SPACE', unit: 'APARTMENT', text: 'PRINTED TEXT', pdf: 'LINEWORK' };
 const kindLabel = k => KIND[k] || (k?.startsWith('Ifc') ? k.replace(/^Ifc/, '').replace(/StandardCase$/, '').replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase() : String(k || '').toUpperCase());
 const kindClass = k => ({ IfcDoor: 'door', IfcWindow: 'window', IfcWall: 'wall', IfcWallStandardCase: 'wall', IfcSpace: 'room', IfcSanitaryTerminal: 'fixture', IfcFlowTerminal: 'fixture',
@@ -22,7 +23,7 @@ function dom() {
   const tip = document.createElement('div'); tip.id = 'idTip'; tip.className = 'idTip'; tip.hidden = true; document.body.append(tip);
   const host = document.querySelector('.top') || document.body;
   const b = document.createElement('button'); b.id = 'idBtn'; b.className = 'wowBtn'; b.type = 'button';
-  b.innerHTML = '⌖ Identify'; b.title = 'Click any element to see what it is, its size, properties and source (I)';
+  b.innerHTML = 'Identify'; b.title = 'Click any element to see what it is, its size, properties and source (I)';
   b.onclick = () => toggle();
   const anchor = document.querySelector('#tourBtn'); if (anchor) anchor.before(b); else host.append(b);
 }
@@ -121,7 +122,7 @@ function drop3d() {
   const T = window.PP?.T; const m = ID.mesh; if (!m || !T) return;
   T.root.remove(m); m.geometry.deleteAttribute('position'); m.geometry.dispose(); ID.mesh = null;
 }
-function light3d(gids, color = 0x38d6ff, op = 0.6) {
+function light3d(gids, color = 0xc2410c, op = 0.6) {
   drop3d();
   const T = window.PP?.T; if (!T?.H || !T.byGid || !gids?.length) return;
   const els = gids.flatMap(g => T.byGid.get(g) || []); if (!els.length) return;
@@ -135,7 +136,7 @@ function light3d(gids, color = 0x38d6ff, op = 0.6) {
 function sync3d() {
   if (ID.parts?.kind !== 'ifc') return drop3d();
   const ids = ID.sel ? [ID.sel.id] : ID.lit?.ids;
-  light3d(ids, ID.sel ? 0xff2d55 : 0x38d6ff, ID.sel ? 0.85 : 0.55);
+  light3d(ids, ID.sel ? 0x17191c : 0xc2410c, ID.sel ? 0.85 : 0.55);
 }
 
 // ------------------------------------------------------------------ parts drawer
@@ -156,9 +157,9 @@ function renderParts() {
   P.groups.forEach((g, gi) => {
     const open = ID.openG?.has(g.key) ?? gi < 3;
     h += `<div class="idG${open ? ' open' : ''}" data-g="${gi}">
-      <button class="idGH" data-gh="${gi}"><span class="ic k-${kindClass(g.key)}">${ICON[g.key] || '◆'}</span><b>${g.count.toLocaleString('en')}</b><span class="nm">${esc(g.term)}</span>
+      <button class="idGH" data-gh="${gi}"><span class="ic k-${kindClass(g.key)}">${ICON[g.key] || 'EL'}</span><b>${g.count.toLocaleString('en')}</b><span class="nm">${esc(g.term)}</span>
         <small>${g.types.length > 1 ? g.types.length + ' types' : esc(g.layer)}</small><i class="cv">▸</i></button>
-      ${g.warn ? `<div class="idWarn">⚠ ${esc(g.warn)}</div>` : ''}
+      ${g.warn ? `<div class="idWarn">${esc(g.warn)}</div>` : ''}
       <div class="idTs">${g.types.map((t, ti) => `<button class="idT" data-t="${gi}:${ti}"><span class="c">${t.count}×</span><span class="tn">${esc(t.name)}</span></button>`).join('')}</div></div>`;
   });
   h += `</div><p class="idHint">Click a row to light it up · click any element on the drawing${P.kind === 'ifc' || P.kind === 'swiss' ? ' or in 3D' : ''} to inspect it</p>${cr}`;
@@ -224,7 +225,7 @@ function renderCard(c, from) {
   const big = (c.dims || []).slice(0, 4), rest = (c.dims || []).slice(4);
   const isNA = v => /^not in /.test(v);
   card.innerHTML = `
-    <div class="idCH"><span class="idKind k-${kc}"><i>${ICON[c.kind] || '◆'}</i>${esc(kindLabel(c.kind))}</span><span class="idId" title="element id">${esc(c.id)}</span><button class="idX" data-x title="Close (Esc)">✕</button></div>
+    <div class="idCH"><span class="idKind k-${kc}"><i>${ICON[c.kind] || 'EL'}</i>${esc(kindLabel(c.kind))}</span><span class="idId" title="element id">${esc(c.id)}</span><button class="idX" data-x title="Close (Esc)">✕</button></div>
     <h3 class="idTitle">${esc(c.title)}</h3>
     <div class="idType">${esc(c.type || '')}${t ? ` <span class="idOf">· 1 of ${t.t.count} of this type, ${t.g.count} ${esc(t.g.term.toLowerCase())} in total</span>` : ''}</div>
     ${big.length ? `<div class="idDims">${big.map(d => `<div class="d${isNA(d.v) ? ' na' : ''}" title="${esc(d.how || '')}"><label>${esc(d.k)}</label><b>${esc(d.v)}</b>${d.how ? `<small>${esc(d.how)}</small>` : ''}</div>`).join('')}</div>` : ''}
@@ -232,14 +233,14 @@ function renderCard(c, from) {
     ${(c.notes || []).map(n => `<div class="idNote${/⚠/.test(n) ? ' warn' : ''}">${esc(n)}</div>`).join('')}
     <div class="idSec">Source <span>exact citation</span></div>
     <div class="idCite">${(c.source || []).map(s => `<div><span>${esc(s.k)}</span><code>${esc(s.v)}</code></div>`).join('')}</div>
-    <div class="idAct">${t && t.t.count > 1 ? `<button data-all>Light up all ${t.t.count} × ${esc(t.t.name.length > 34 ? t.t.name.slice(0, 32) + '…' : t.t.name)}</button>` : ''}<button data-copy title="Copy the citation">⧉ Copy citation</button></div>
+    <div class="idAct">${t && t.t.count > 1 ? `<button data-all>Light up all ${t.t.count} × ${esc(t.t.name.length > 34 ? t.t.name.slice(0, 32) + '…' : t.t.name)}</button>` : ''}<button data-copy title="Copy the citation">Copy citation</button></div>
     ${c.credit ? `<div class="idCr"><b>Data:</b> ${esc(c.credit.credit)}${c.credit.licence ? ` · <i>${esc(c.credit.licence)}</i>` : ''}</div>` : ''}`;
   card.querySelector('[data-x]').onclick = closeCard;
   const all = card.querySelector('[data-all]');
   if (all) all.onclick = () => { const gi = ID.parts.groups.indexOf(t.g), ti = t.g.types.indexOf(t.t); if (!ID.on) toggle(true); ID.lit = null; lightUp({ key: `t:${gi}:${ti}`, ids: t.t.ids, label: t.t.name }); };
   card.querySelector('[data-copy]').onclick = e => {
     const txt = `${c.title} (${c.type})\n` + (c.dims || []).map(d => `${d.k}: ${d.v}`).join('\n') + '\n' + (c.source || []).map(s => `${s.k}: ${s.v}`).join('\n');
-    navigator.clipboard?.writeText(txt); e.target.textContent = '✓ copied'; setTimeout(() => e.target.textContent = '⧉ Copy citation', 1400);
+    navigator.clipboard?.writeText(txt); e.target.textContent = 'Copied'; setTimeout(() => e.target.textContent = 'Copy citation', 1400);
   };
 }
 function closeCard() {

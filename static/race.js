@@ -36,7 +36,7 @@ function dom() {
     <div class="rcLog" id="rcLog"><div class="lgh">Same two totals on a log scale, so PINPOINT's bar is visible at all</div><div class="lgAx" id="rcAx"></div></div>
     <table class="rcT" id="rcT"></table>
     <footer id="rcF"></footer>
-    <div class="rcAct"><button id="rcAgain">↻ Replay</button></div>
+    <div class="rcAct"><button id="rcAgain">Replay</button></div>
   </div>`;
   document.body.append(d); R.root = d; R.$ = s => d.querySelector(s);
   R.$('#rcX').onclick = close; R.$('#rcAgain').onclick = () => play();

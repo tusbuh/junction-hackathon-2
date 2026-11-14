@@ -34,7 +34,7 @@ export function renderAudit(a, host) {
     ${bad ? `<div class="au-sec"><h4>Discrepancies <span>${bad} · click to see the evidence</span></h4>${a.findings.map(findingCard).join('')}</div>` : ''}
     <div class="au-sec au-dbl"><h4>What a site engineer should double-check</h4><ol>${a.doublecheck.map(d => `<li>${esc(d)}</li>`).join('')}</ol></div>
     <div class="au-src">${esc(a.file)}${a.licence ? `<div>${esc(a.licence)}</div>` : ''}</div>
-    <button type="button" class="au-sc">★ Errors we found in the dataset</button>
+    <button type="button" class="au-sc">Errors we found in the dataset</button>
   </div>`;
   host.querySelectorAll('.au-f').forEach(el => { el.onclick = () => focusFinding(a, a.findings[+el.dataset.i], host); el.onkeydown = e => e.key === 'Enter' && el.click(); });
   host.querySelector('.au-sc').onclick = showcase;
@@ -112,7 +112,7 @@ async function showcase() {
 function mount() {
   const anchor = document.querySelector('#tourBtn');
   const b = document.createElement('button'); b.id = 'auBtn'; b.type = 'button'; b.className = 'wowBtn au-btn';
-  b.innerHTML = '⚠ Audit <span class="au-badge" hidden></span>'; b.title = 'Drawing audit: where this drawing disagrees with itself (A)';
+  b.innerHTML = 'Audit <span class="au-badge" hidden></span>'; b.title = 'Drawing audit: where this drawing disagrees with itself (A)';
   b.onclick = () => openAudit();
   if (anchor) anchor.before(b); else (document.querySelector('.top') || document.body).append(b);
   let last = null;

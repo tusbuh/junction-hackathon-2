@@ -14,7 +14,7 @@ const fmt = v => typeof v === 'number' ? (Number.isInteger(v) ? v.toLocaleString
 const ease = t => 1 - Math.pow(1 - t, 3);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const AMBER = new THREE.Color(1.0, 0.62, 0.12);
+const AMBER = new THREE.Color(0xc2410c);   // the one accent colour
 const V = { open: false, mode: 'orbit', keys: {}, items: [], sel: null, objs: [], pick: [], labels: [] };
 
 // ------------------------------------------------------------------ DOM
@@ -28,8 +28,8 @@ function dom() {
   <div class="wkCross" id="wkCross"><i></i></div>
   <header class="wkTop">
     <div class="wkT"><span class="wkK">2D → 3D</span><b id="wkName">—</b><small id="wkSub"></small></div>
-    <button class="wkTgl" id="wkLab" title="Room labels (L)">▦ rooms</button>
-    <div class="wkSeg" id="wkSeg"><button data-v="orbit" class="on">◎ Orbit</button><button data-v="walk">🚶 Walk inside</button></div>
+    <button class="wkTgl" id="wkLab" title="Room labels (L)">Room labels</button>
+    <div class="wkSeg" id="wkSeg"><button data-v="orbit" class="on">Orbit</button><button data-v="walk">Walk inside</button></div>
     <button class="wkX" id="wkX" title="Close (Esc)">✕</button>
   </header>
   <aside class="wkAns" id="wkAns" hidden>
@@ -38,7 +38,7 @@ function dom() {
     <div class="wkM" id="wkMeth"></div>
     <div class="wkItems" id="wkItems"></div>
     <div class="wkNav"><button id="wkPrev">‹ prev</button><span id="wkStep">all</span><button id="wkNext">next ›</button></div>
-    <button class="wkAuto" id="wkAuto" title="Visit every counted item hands-free (T)">▶ Auto tour</button>
+    <button class="wkAuto" id="wkAuto" title="Visit every counted item in turn (T)">Auto tour</button>
   </aside>
   <div class="wkMiniW"><canvas id="wkMini" width="440" height="440"></canvas><span>plan · click to teleport</span></div>
   <div class="wkHere" id="wkHere"></div>
@@ -93,24 +93,24 @@ function init() {
   R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
   V.scene = new THREE.Scene();
   V.scene.background = skyTexture();
-  V.scene.fog = new THREE.Fog(0x0b1426, 60, 260);
+  V.scene.fog = new THREE.Fog(0xe4e4e0, 60, 260);
   V.camera = new THREE.PerspectiveCamera(50, 1, 0.05, 2000);
   V.camera.position.set(0, 40, 0.01);
   V.controls = new OrbitControls(V.camera, canvas);
   V.controls.enableDamping = true; V.controls.dampingFactor = 0.08; V.controls.maxPolarAngle = Math.PI * 0.495;
-  V.scene.add(new THREE.HemisphereLight(0xe8efff, 0x2a2016, 1.05));
+  V.scene.add(new THREE.HemisphereLight(0xffffff, 0x77746e, 1.05));
   const sun = new THREE.DirectionalLight(0xfff1dc, 2.1); sun.position.set(30, 45, 18);
   sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02;
   V.scene.add(sun); V.scene.add(sun.target); V.sun = sun;
-  const fill = new THREE.DirectionalLight(0x8fb4ff, 0.55); fill.position.set(-30, 20, -25); V.scene.add(fill);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-30, 20, -25); V.scene.add(fill);
   V.eyeLight = new THREE.PointLight(0xfff3e0, 0, 9, 1.6); V.scene.add(V.eyeLight);
-  V.ground = new THREE.Mesh(new THREE.CircleGeometry(400, 64), new THREE.MeshStandardMaterial({ color: 0x141c2b, roughness: 1 }));
+  V.ground = new THREE.Mesh(new THREE.CircleGeometry(400, 64), new THREE.MeshStandardMaterial({ color: 0xd9d9d3, roughness: 1 }));
   V.ground.rotation.x = -Math.PI / 2; V.ground.position.y = -0.24; V.ground.receiveShadow = true; V.scene.add(V.ground);
-  V.grid = new THREE.GridHelper(400, 400, 0x24324d, 0x1a2539); V.grid.position.y = -0.235; V.grid.material.transparent = true; V.grid.material.opacity = .5; V.scene.add(V.grid);
+  V.grid = new THREE.GridHelper(400, 400, 0xbdbdb6, 0xcacac4); V.grid.position.y = -0.235; V.grid.material.transparent = true; V.grid.material.opacity = .5; V.scene.add(V.grid);
   V.world = new THREE.Group(); V.world.rotation.x = -Math.PI / 2; V.scene.add(V.world);   // DXF/IFC Z-up -> three Y-up
   V.composer = new EffectComposer(R);
   V.composer.addPass(new RenderPass(V.scene, V.camera));
-  V.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.85, 0.55, 0.92);
+  V.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0, 0.55, 0.92); V.bloom.enabled = false;   // no glow: flat, drawing-like rendering
   V.composer.addPass(V.bloom);
   V.composer.addPass(new OutputPass());
   V.ray = new THREE.Raycaster();
@@ -144,7 +144,7 @@ function init() {
 function skyTexture() {
   const c = document.createElement('canvas'); c.width = 4; c.height = 256;
   const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
-  gr.addColorStop(0, '#05080f'); gr.addColorStop(0.55, '#0d1a31'); gr.addColorStop(1, '#1b2c4a');
+  gr.addColorStop(0, '#f3f3f0'); gr.addColorStop(0.55, '#ebebe7'); gr.addColorStop(1, '#e1e1dc');
   g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
@@ -562,7 +562,7 @@ function ghost() {
 }
 const KIND_Z = { door: [0, 2.1], window: [0.9, 2.1], wc: [0, 0.45], basin: [0.7, 0.92], washbasin: [0.7, 0.92], bathtub: [0, 0.6], shower: [0, 2.0], wall: [0, 2.62] };
 function glowMat(op) {
-  return new THREE.MeshBasicMaterial({ color: AMBER.clone().multiplyScalar(2.2), transparent: true, opacity: op, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+  return new THREE.MeshBasicMaterial({ color: AMBER.clone(), transparent: true, opacity: op, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, blending: THREE.NormalBlending });
 }
 function buildGlow(items) {
   V.glowData = [];
@@ -613,8 +613,8 @@ function buildGlow(items) {
 }
 function glowBlend() {   // additive light in orbit; plain translucent amber up close (additive stacks into white-out)
   (V.glowData || []).forEach(g => g.grp.traverse(o => { if (o.material && !o.isLineSegments) {
-    o.material.blending = V.mode === 'walk' ? THREE.NormalBlending : THREE.AdditiveBlending;
-    o.material.color.copy(AMBER).multiplyScalar(V.mode === 'walk' ? 1.0 : 2.2); o.material.needsUpdate = true; } }));
+    o.material.blending = THREE.NormalBlending;
+    o.material.color.copy(AMBER); o.material.needsUpdate = true; } }));
 }
 const inflate = (b, d) => [b[0] - d, b[1] - d, b[2] + d, b[3] + d];
 const bounds = p => { const xs = p.map(q => q[0]), ys = p.map(q => q[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
@@ -677,7 +677,7 @@ function goTo(g) {
 }
 function autoTour(on) {
   clearInterval(V.auto); V.auto = null;
-  V.$('#wkAuto').classList.toggle('on', !!on); V.$('#wkAuto').textContent = on ? '■ Stop tour' : '▶ Auto tour';
+  V.$('#wkAuto').classList.toggle('on', !!on); V.$('#wkAuto').textContent = on ? 'Stop tour' : 'Auto tour';
   if (!on || !V.items.length) return;
   const go = () => step(1);
   go(); V.auto = setInterval(go, V.mode === 'walk' ? 3400 : 2600);
@@ -699,7 +699,7 @@ function setMode(m, quiet) {
   V.ceil?.forEach(c => c.visible = m === 'walk');
   V.eyeLight.intensity = m === 'walk' ? 0.9 : 0;
   ghost();
-  V.bloom.strength = m === 'walk' ? 0.35 : 0.85; V.bloom.threshold = m === 'walk' ? 1.05 : 0.92;
+  V.bloom.strength = 0;
   glowBlend();
   applyCut();
   if (m === 'walk' && was !== 'walk') {
@@ -865,7 +865,7 @@ function markIdent(c) {
     g.dispose(); V.idMark = null;
   }
   if (!c || !V.open || !c.from?.walk) return;
-  const mat = new THREE.MeshBasicMaterial({ color: 0x38d6ff, transparent: true, opacity: 0.45, depthTest: false, blending: THREE.AdditiveBlending });
+  const mat = new THREE.MeshBasicMaterial({ color: 0x17191c, transparent: true, opacity: 0.35, depthTest: false });
   if (V.ifc && V.ifc.byGid.get(c.id)) {
     const els = V.ifc.byGid.get(c.id); let n = 0; els.forEach(e => n += e.ni);
     const idx = new Uint32Array(n); let o = 0; els.forEach(e => { idx.set(V.ifc.I.subarray(e.i0, e.i0 + e.ni), o); o += e.ni; });
@@ -901,7 +901,7 @@ function drawMini() {
   (V.glowData || []).forEach(d => {
     if (!d.grp.visible) return;
     const [a, b] = T(d.c[0], d.c[1]);
-    g.fillStyle = V.sel === d.it.n ? '#fff' : '#ffb020'; g.shadowColor = '#ff9a00'; g.shadowBlur = 8;
+    g.fillStyle = V.sel === d.it.n ? '#17191c' : '#c2410c'; g.shadowBlur = 0;
     g.beginPath(); g.arc(a, b, V.sel === d.it.n ? 6 : 4, 0, 7); g.fill();
   });
   g.shadowBlur = 0;
@@ -910,8 +910,8 @@ function drawMini() {
     let yaw = V.P.yaw;
     if (V.mode === 'orbit') { const d = V.controls.target.clone().sub(V.camera.position); yaw = Math.atan2(-d.z, d.x); }
     if (V.mode === 'walk') {
-      g.fillStyle = 'rgba(56,214,255,.25)'; g.beginPath(); g.moveTo(a, b); g.arc(a, b, 46, -yaw - 0.6, -yaw + 0.6); g.closePath(); g.fill();
-      g.fillStyle = '#38d6ff'; g.beginPath(); g.arc(a, b, 6, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
+      g.fillStyle = 'rgba(23,25,28,.15)'; g.beginPath(); g.moveTo(a, b); g.arc(a, b, 46, -yaw - 0.6, -yaw + 0.6); g.closePath(); g.fill();
+      g.fillStyle = '#17191c'; g.beginPath(); g.arc(a, b, 6, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
     }
   }
 }

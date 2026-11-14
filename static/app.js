@@ -15,7 +15,7 @@ const SRC_TAG = { swiss_dwellings: 'DXF+PDF', ifc_models: 'IFC', ifc_bench: 'IFC
 // ?static=1 (screenshots, video) or prefers-reduced-motion: every count-up / sweep shows its final state instantly
 const STATIC = new URLSearchParams(location.search).has('static') || matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (STATIC) document.documentElement.classList.add('static');
-const S = { cat: [], src: 'swiss_dwellings', file: null, total: 0, n: 0, last: null, mode: 'sheet', blue: true, sel: null, items: [], run: 0,
+const S = { cat: [], src: 'swiss_dwellings', file: null, total: 0, n: 0, last: null, mode: 'sheet', blue: false, sel: null, items: [], run: 0,
   has: { sheet: false, model: false } };
 
 const fmtEur = v => {
@@ -246,7 +246,7 @@ function addBadges(r) {
     // Stoa's strict rule, shown on the receipt: counts exact, area / length / volume within 2%
     const u = r.unit && r.unit !== 'count' ? ' ' + r.unit : '';
     if (r.unit === 'count' || (Number.isInteger(r.value) && Number.isInteger(tv) && !u)) {
-      bd.append(el('span', 'badge tol' + (r.value === tv ? '' : ' bad'), r.value === tv ? `<b>exact</b> ${fmtVal(r.value)} = ${fmtVal(tv)} ground truth` : `<b>not exact</b> ${fmtVal(r.value)} vs ${fmtVal(tv)} ground truth`));
+      bd.append(el('span', 'badge tol' + (r.value === tv ? '' : ' bad'), r.value === tv ? `<b>exact</b> ${fmtVal(r.value)} = ${fmtVal(tv)} (ground truth)` : `<b>not exact</b> ${fmtVal(r.value)} vs ${fmtVal(tv)} ground truth`));
     } else {
       const dev = tv ? 100 * Math.abs(r.value - tv) / Math.abs(tv) : (r.value === tv ? 0 : Infinity);
       const pc = dev === 0 ? '0%' : dev < 0.01 ? '<0.01%' : dev < 10 ? dev.toFixed(2) + '%' : dev.toFixed(0) + '%';
@@ -260,15 +260,13 @@ function addBadges(r) {
     else if (r.correct === false) bd.append(el('span', 'badge bad', `✗ ground truth ${esc(fmtVal(r.truth))}`));
     else if (isText) { const b = el('span', 'badge', 'reference answer ▾'); b.title = String(r.truth); b.style.cursor = 'help'; bd.append(b); }
   }
-  const cf = r.receipt?.confidence;
-  if (cf) { const b = el('span', 'badge ' + ({ green: 'ok', amber: 'warn', red: 'bad' }[cf.colour] || ''), `● confidence ${esc(cf.level)}`); b.title = (cf.why || []).join('\n'); bd.append(b); }
+  // confidence is shown at the top of the receipt; the card keeps only tolerance and check results
   // low-confidence detections and audit evidence are not printed-vs-computed cross-checks: badge them separately
   const checks = S.items.filter(i => i.check && !['low confidence', 'audit'].includes(i.check.what));
   const bad = checks.filter(i => !i.check.ok).length;
-  if (checks.length) bd.append(el('span', 'badge ' + (bad ? 'warn' : 'ok'), bad ? `⚠ ${bad}/${checks.length} cross-checks disagree` : `✓ ${checks.length}/${checks.length} cross-checks agree`));
+  if (checks.length) bd.append(el('span', 'badge ' + (bad ? 'warn' : 'ok'), bad ? `${bad}/${checks.length} cross-checks disagree` : `✓ ${checks.length}/${checks.length} cross-checks agree`));
   const lowc = S.items.filter(i => i.check && i.check.what === 'low confidence').length;
-  if (lowc) bd.append(el('span', 'badge warn', `⚠ ${lowc} low-confidence detection${lowc > 1 ? 's' : ''}`));
-  bd.append(el('span', 'badge cy', `${S.items.length} cited · ${r.router === 'rules' || !r.router ? '0 LLM' : esc(r.router)}`));
+  if (lowc) bd.append(el('span', 'badge warn', `${lowc} low-confidence detection${lowc > 1 ? 's' : ''}`));
 }
 
 // ---- the reveal: a scan line sweeps the evidence; each item lights up as it passes and the counter ticks up
@@ -510,7 +508,7 @@ function fitEvidence(anim = true) {
   return fitBox([b[0] - m, b[1] - m, b[2] + m, b[3] + m], 30, anim);
 }
 $('#fitBtn').onclick = () => { if (S.sel) return clearSel(); if (S.mode !== 'model') fitEvidence(); if (S.mode !== 'sheet') fit3d(true); };
-// vector sheets default to blueprint; colour raster scans read better as paper
+// every sheet opens on paper (white drawing, black ink); the dock toggle switches to a blueprint rendering
 const isRaster = () => /\.(png|jpe?g)$/i.test(decodeURIComponent(SV.url || ''));
 function applyTheme() { $('#sheetv').classList.toggle('blue', isRaster() ? !!S.blueR : S.blue); SV.mini = null; drawMini(); }
 $('#tglTheme').onclick = () => { if (isRaster()) S.blueR = !S.blueR; else S.blue = !S.blue; applyTheme(); };
@@ -621,14 +619,14 @@ function drawMini() {
   if (!SV.mini) {
     const off = document.createElement('canvas'); off.width = W; off.height = H;
     const o = off.getContext('2d');
-    try { if (S.blue) o.filter = 'invert(.94) sepia(.35) hue-rotate(178deg) saturate(2.6) brightness(.95)'; o.fillStyle = '#fff'; o.fillRect(ox, oy, SV.vb[2] * sc, SV.vb[3] * sc); o.drawImage($('#sheetImg'), ox, oy, SV.vb[2] * sc, SV.vb[3] * sc); } catch (e) { }
+    try { if ($('#sheetv').classList.contains('blue')) o.filter = 'invert(.92) sepia(.25) hue-rotate(178deg) saturate(1.6) brightness(.95)'; o.fillStyle = '#fff'; o.fillRect(ox, oy, SV.vb[2] * sc, SV.vb[3] * sc); o.drawImage($('#sheetImg'), ox, oy, SV.vb[2] * sc, SV.vb[3] * sc); } catch (e) { }
     SV.mini = off;
   }
   ctx.clearRect(0, 0, W, H); ctx.drawImage(SV.mini, 0, 0);
-  ctx.fillStyle = '#ffb020';
+  ctx.fillStyle = '#c2410c';
   SV.items.forEach(it => { const x = ox + ((it.bbox[0] + it.bbox[2]) / 2 - SV.vb[0]) * sc, y = oy + ((it.bbox[1] + it.bbox[3]) / 2 - SV.vb[1]) * sc; ctx.fillRect(x - 1.5, y - 1.5, 3, 3); });
   const x0 = -SV.x / (SV.k * SV.s), y0 = -SV.y / (SV.k * SV.s);
-  ctx.strokeStyle = '#38d6ff'; ctx.lineWidth = 1.5; ctx.fillStyle = '#38d6ff22';
+  ctx.strokeStyle = '#17191c'; ctx.lineWidth = 1; ctx.fillStyle = '#17191c14';
   ctx.fillRect(ox + x0 * sc, oy + y0 * sc, vw * sc, vh * sc); ctx.strokeRect(ox + x0 * sc, oy + y0 * sc, vw * sc, vh * sc);
 }
 $('#minimap').addEventListener('pointerdown', e => {
@@ -649,14 +647,14 @@ function init3d() {
   T.renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); T.renderer.localClippingEnabled = true;
   T.renderer.toneMapping = THREE.ACESFilmicToneMapping; T.renderer.toneMappingExposure = 1.05;
   T.scene = new THREE.Scene();
-  T.scene.fog = new THREE.Fog(0x0a1222, 200, 900);
+  T.scene.fog = new THREE.Fog(0xecece8, 200, 900);
   T.camera = new THREE.PerspectiveCamera(40, 1, 0.1, 5000);
   T.controls = new OrbitControls(T.camera, canvas); T.controls.enableDamping = true; T.controls.dampingFactor = 0.08;
-  T.scene.add(new THREE.HemisphereLight(0xdfe9ff, 0x1a1408, 1.1));
+  T.scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8a84, 1.15));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(60, 120, 80); T.scene.add(sun);
-  const fill = new THREE.DirectionalLight(0x88aaff, 0.5); fill.position.set(-80, 40, -60); T.scene.add(fill);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.45); fill.position.set(-80, 40, -60); T.scene.add(fill);
   T.root = new THREE.Group(); T.root.rotation.x = -Math.PI / 2; T.scene.add(T.root);
-  T.grid = new THREE.GridHelper(400, 80, 0x2a3a5a, 0x152036); T.grid.material.transparent = true; T.grid.material.opacity = .6; T.scene.add(T.grid);
+  T.grid = new THREE.GridHelper(400, 80, 0xb9b9b2, 0xd4d4ce); T.grid.material.transparent = true; T.grid.material.opacity = .6; T.scene.add(T.grid);
   T.ray = new THREE.Raycaster();
   new ResizeObserver(() => T.resize()).observe($('#modelv'));
   let down = null;
@@ -667,9 +665,7 @@ function init3d() {
     requestAnimationFrame(loop);
     if ($('#modelv').hidden) return;
     T.controls.update();
-    const t = performance.now();
-    if (T.hlMat) T.hlMat.emissiveIntensity = 0.5 + 0.3 * Math.sin(t / 300);
-    if (T.selMat) T.selMat.opacity = 0.65 + 0.3 * Math.sin(t / 160);
+    if (T.selMat) T.selMat.opacity = 0.85;
     T.renderer.render(T.scene, T.camera); place3dLabels();
   })();
   return true;
@@ -721,7 +717,7 @@ async function loadModel(path) {
     T.base = new THREE.Mesh(geo, T.baseMat); T.root.add(T.base);
     T.edges = null;
     if (geo.index.count < 4e6) {
-      T.edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), new THREE.LineBasicMaterial({ color: 0x0b1222, transparent: true, opacity: .35, clippingPlanes: [T.clip] }));
+      T.edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), new THREE.LineBasicMaterial({ color: 0x17191c, transparent: true, opacity: .35, clippingPlanes: [T.clip] }));
       T.root.add(T.edges);
     }
     const bb = H.bbox; T.bbox = bb;
@@ -793,7 +789,7 @@ function highlight3d(items, storey) {
   for (const k of ['hlMesh', 'hlEdges', 'selMesh', 'hotMesh']) drop(k);
   T.hl = items.filter(i => i.gid).map(it => ({ it, els: [it.gid, ...(it.parts || [])].flatMap(g => T.byGid.get(g) || []) })).filter(h => h.els.length);
   const L = $('#labels3d'); L.innerHTML = ''; L.classList.remove('focus'); L.classList.toggle('sm', T.hl.length > 24);
-  if (T.edges) { T.edges.material.color.set(T.hl.length ? 0x6f8fc7 : 0x0b1222); T.edges.material.opacity = T.hl.length ? .22 : .35; }
+  if (T.edges) { T.edges.material.color.set(T.hl.length ? 0x7b8087 : 0x17191c); T.edges.material.opacity = T.hl.length ? .22 : .35; }
   if (!T.hl.length) { T.baseMat.opacity = 1; T.baseMat.depthWrite = true; T.hlMat = null; return; }
   T.baseMat.opacity = T.cutInfo ? 0.28 : 0.10; T.baseMat.depthWrite = false;
   T.hl.forEach(h => { const b = elemBox(h.els); h.c = [(b[0] + b[3]) / 2, (b[1] + b[4]) / 2, b[5]]; h.box = b; h.shown = false;
@@ -803,7 +799,7 @@ function highlight3d(items, storey) {
       L.append(d); h.lab = d;
     } });
   const allSpaces = T.hl.every(h => h.els.every(e => e.cls === 'IfcSpace'));
-  T.hlMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: .6, roughness: .5, flatShading: true, side: THREE.DoubleSide, transparent: allSpaces, opacity: allSpaces ? .6 : 1 });
+  T.hlMat = new THREE.MeshStandardMaterial({ color: 0xc2410c, emissive: 0x3a1203, emissiveIntensity: .35, roughness: .6, flatShading: true, side: THREE.DoubleSide, transparent: allSpaces, opacity: allSpaces ? .6 : 1 });
   T.hlShown = -1; revealed3d();
 }
 // rebuild the glowing mesh from the items revealed so far (called as the scan reaches each item)
@@ -821,7 +817,7 @@ function revealed3d() {
     const { geo, map } = subset(els, T.I); T.hlMap = map;
     T.hlMesh = new THREE.Mesh(geo, T.hlMat); T.hlMesh.renderOrder = 2; T.root.add(T.hlMesh);
     if (els.length < 3000) {
-      T.hlEdges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), new THREE.LineBasicMaterial({ color: 0xfff1c9, transparent: true, opacity: .9 }));
+      T.hlEdges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), new THREE.LineBasicMaterial({ color: 0x17191c, transparent: true, opacity: .6 }));
       T.root.add(T.hlEdges);
     }
   });
@@ -840,11 +836,11 @@ function overlayMesh(key, h, mat) {
 }
 function hot3d(n) {
   if (!T.H) return;
-  overlayMesh('hotMesh', n == null ? null : T.hl.find(h => h.it.n == n), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .75, depthTest: false }));
+  overlayMesh('hotMesh', n == null ? null : T.hl.find(h => h.it.n == n), new THREE.MeshBasicMaterial({ color: 0x17191c, transparent: true, opacity: .55, depthTest: false }));
 }
 function sel3d(n) {
   if (!T.H) return;
-  if (!T.selMat) T.selMat = new THREE.MeshBasicMaterial({ color: 0xff2d55, transparent: true, opacity: .9, depthTest: false });
+  if (!T.selMat) T.selMat = new THREE.MeshBasicMaterial({ color: 0x17191c, transparent: true, opacity: .9, depthTest: false });
   overlayMesh('selMesh', n == null ? null : T.hl.find(h => h.it.n == n), T.selMat);
 }
 function focus3d(n) { const h = T.hl.find(h => h.it.n === n); if (h) { fit3d(true, h.box, true); showPick(h.els[0], h.it); } }
@@ -919,7 +915,7 @@ const TOUR = [
     cap: r => `Asked in German. <em>${fmtVal(r.value)} WCs</em>, each one boxed and numbered on the real drawing. ${r.correct ? 'Matches the ground truth <em>exactly</em>, as Stoa\'s scoring demands for counts.' : ''} Step through them with ← →.` },
   { k: 'Areas, within 2%', path: SW, q: 'What is the net floor area of apartment A in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?', mode: 'sheet', steps: 2,
     cap: r => `Net floor area: <em>${fmtVal(r.value)} ${esc(r.unit)}</em> vs ground truth ${fmtVal(r.truth)}, within <em>${pcTxt(devPct(r))}</em> (limit 2%). Every room in the sum is cited, so you can check each area against the printed label.` },
-  { k: '2D ⇆ 3D in sync', path: 'data/ifc_models/bsc-esplanades_1807-ep-ar-v18_plan-04-4-korrus.pdf', q: 'Mitu ust on näidatud korruse „4.korrus“ plaanil?', mode: 'split', steps: 3,
+  { k: '2D and 3D in sync', path: 'data/ifc_models/bsc-esplanades_1807-ep-ar-v18_plan-04-4-korrus.pdf', q: 'Mitu ust on näidatud korruse „4.korrus“ plaanil?', mode: 'split', steps: 3,
     cap: r => `Estonian office floor, asked in Estonian. <em>${fmtVal(r.value)} doors</em>: click a number and the sheet and the IFC model fly to the same door, with its <em>GlobalId</em>.` },
   { k: 'Schedules', path: 'data/opening_design/Sports_Complex/Sheets - Current Set/A-801 - Door and Finish Schedules & Wall Types.pdf', q: 'On sheet A-801 of the Xcel Sports Complex drawings, how many doors in the door schedule are door type B2 (double aluminium door with glazing)?', mode: 'sheet', steps: 2,
     cap: r => `A real US drawing set. The door schedule is read row by row: <em>${fmtVal(r.value)} type B2 doors</em>, each row highlighted where it sits on sheet A-801.` },
@@ -941,10 +937,10 @@ function tourCap(i, html) {
 }
 const overlays = async () => Promise.all([import('/static/walk.js'), import('/static/boq.js'), import('/static/race.js')]);
 async function closeOverlays() { const [w, b, r] = await overlays(); w.close(); b.close(); r.close(); }
-function stopTour() { S.touring = false; $('#tourBtn').textContent = '▶ Tour'; $('#tourBtn').classList.remove('on'); tourCap(0, null); }
+function stopTour() { S.touring = false; $('#tourBtn').textContent = 'Tour'; $('#tourBtn').classList.remove('on'); tourCap(0, null); }
 async function tour() {
   if (S.touring) { stopTour(); closeOverlays(); return; }
-  S.touring = true; $('#tourBtn').textContent = '■ Stop'; $('#tourBtn').classList.add('on');
+  S.touring = true; $('#tourBtn').textContent = 'Stop tour'; $('#tourBtn').classList.add('on');
   $('#splash').hidden = true; $('#sb').hidden = true;
   const um = S.userMode;
   const [W, B, R] = await overlays();
