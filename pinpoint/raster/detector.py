@@ -16,8 +16,9 @@ import numpy as np
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-WEIGHTS = ROOT / "data/models/cubicasa_yolo.pt"
-THRESH = ROOT / "data/models/cubicasa_thresholds.json"
+# leak-free weights: trained ONLY on the 213 CubiCasa5K plans not in the Stoa set (pinpoint/raster/build_free.py)
+WEIGHTS = ROOT / "data/models/cubicasa_yolo_free.pt"
+THRESH = ROOT / "data/models/cubicasa_free_thresholds.json"
 IMGSZ = 1024
 FLOOR_CONF = 0.05
 TTA = True  # 4-rotation test-time augmentation (set per thresholds file)

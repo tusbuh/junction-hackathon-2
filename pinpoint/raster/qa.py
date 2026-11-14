@@ -31,18 +31,27 @@ def dets(path):
 
 
 ROOM_KEYS = {'bedrooms', 'kitchens', 'bathrooms', 'wc_rooms', 'saunas', 'balconies', 'floors'}
+# storeys: the leak-free detector's 'floor' boxes (one per drawn plan) beat the OCR storey captions
+# (preview dev split: 210 vs 202 of 241), so the detector answers storeys when its weights are present
+DETECTOR_FIRST = {'floors'}
 
 
 def ocr_answer(path, key, how):
     """Room types and storeys come from the printed room codes (MH, K, KH, WC, S, PARV, "1. kerros"), read by OCR.
     Fused with the detector where it helps: saunas = max(OCR, detector) because OCR never invents a sauna."""
     from . import rooms
+    if key == 'floors' and D.WEIGHTS.exists():
+        # storeys: the detector's per-storey 'floor' boxes beat caption OCR (preview dev split: 210 vs 202 of 241;
+        # every one of the 21 plans where OCR found a caption the detector was right, OCR only on 13)
+        return detector_answer(path, key, how)
     r = rooms.answer(path, key)
     r['steps'].insert(0, f"Router ({how}): question → “{key.replace('_', ' ')}” = count printed room labels")
     r['router'] = how
     for it in r['items']:
         it.setdefault('kind', 'room')
-    if D.WEIGHTS.exists() and (key == 'saunas' or not r.get('confident')):
+    # kitchens / bathrooms: with no legible label the 'every dwelling has one' prior (rooms.MINIMUM) beats the
+    # detector's room boxes (preview dev split: kitchens 143 vs 131, bathrooms 95 vs 90), so no detector fallback
+    if D.WEIGHTS.exists() and key not in ('kitchens', 'bathrooms') and (key == 'saunas' or not r.get('confident')):
         d = detector_answer(path, key, how)
         if d['value'] is not None and (key == 'saunas' and d['value'] > (r['value'] or 0) or not r.get('confident')):
             d['steps'] = r['steps'] + [f"OCR {'not confident' if not r.get('confident') else 'found fewer'} ({r['value']}): using the symbol detector instead"] + d['steps']
@@ -55,6 +64,8 @@ def answer(path, q):
     key, how = route(q)
     if key is None:
         return dict(value=None, unit=None, items=[], method='not routed', steps=['No raster template matched'])
+    if key in DETECTOR_FIRST and D.WEIGHTS.exists():
+        return detector_answer(path, key, how)
     if key in ROOM_KEYS:
         try:
             return ocr_answer(path, key, how)
@@ -81,8 +92,8 @@ def detector_answer(path, key, how):
                   check=None if d['conf'] >= 0.5 else dict(printed='', computed=d['conf'], ok=False, what='low confidence'))
              for d in sorted(keep, key=lambda d: (d['bbox'][1], d['bbox'][0]))]
     steps = [f"Router ({how}): question → “{key.replace('_', ' ')}” = detector classes {', '.join(cls)}",
-             f"YOLO detector (fine-tuned on CubiCasa5K plans, preview plans excluded) on 4 rotations, boxes fused: {len(ds)} detections",
-             f"Kept {len(keep)} {'/'.join(LABEL[c] for c in cls)} above the per-class threshold tuned on held-out training plans"]
+             f"YOLOv8n detector (fine-tuned only on the 213 CubiCasa5K plans that are not in the Stoa set, so no test plan was seen; CubiCasa5K CC BY-NC-SA 4.0) on 4 rotations, boxes fused: {len(ds)} detections",
+             f"Kept {len(keep)} {'/'.join(LABEL[c] for c in cls)} above the per-class threshold tuned on 25 held-out leak-free plans"]
     if near:
         steps.append(f"{len(near)} borderline detection(s) just below threshold not counted — check them if the count looks off")
     return dict(value=val, unit='count', items=items, method=f"detector count of {'/'.join(cls)}", steps=steps, router=how)

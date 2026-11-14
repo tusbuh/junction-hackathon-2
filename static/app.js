@@ -60,7 +60,7 @@ async function splash() {
     const ms = sc.map(x => x.median_ms).sort((a, b) => a - b);
     $('#spMs').textContent = ms.length ? `${ms[ms.length >> 1] < 1 ? '<1' : Math.round(ms[ms.length >> 1])} ms` : '–';
     const cc = by.cubicasa5k;
-    if (cc && cc.graded) $('#spWip').textContent = `Raster scans (CubiCasa): detector in progress · currently ${(100 * cc.correct / cc.graded).toFixed(1)}% on ${fmtN(cc.graded)} questions, not counted above`;
+    if (cc && cc.graded) $('#spWip').textContent = `Finnish raster scans (CubiCasa5K): ${(100 * cc.correct / cc.graded).toFixed(1)}% exact (${fmtN(cc.correct)} / ${fmtN(cc.graded)} counts) · leak-free YOLOv8n trained only on 213 non-Stoa plans + fi/en room-label OCR`;
   } catch (e) { }
 }
 function countUp(node, to, fmt, D = 1400) {

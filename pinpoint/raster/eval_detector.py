@@ -12,7 +12,7 @@ from pinpoint.raster import detector as D
 from pinpoint.raster.svg_labels import CLASSES
 
 ROOT = D.ROOT
-VAL = ROOT / "data/cubicasa_train/yolo"
+VAL = ROOT / "data/cubicasa_train/yolo_free"   # 25 held-out leak-free plans (never trained on)
 PREV = ROOT / "data/preview/junction-dataset-preview"
 CACHE = ROOT / "data/cubicasa_train/det_cache"
 
@@ -37,7 +37,7 @@ def run(paths, tag):
 def tune():
     counts = json.loads((VAL / "val_counts.json").read_text())
     paths = [str(VAL / "images/val" / f"{k}.png") for k in counts]
-    dets, dt = run(paths, "val")
+    dets, dt = run(paths, "val_free")
     grid = np.round(np.arange(0.05, 0.91, 0.025), 3)
     thr = {}
     print(f"{len(paths)} held-out plans, {dt and round(dt, 3)} s/img")
@@ -75,7 +75,7 @@ def evaluate():
     rows = [json.loads(l) for l in open(PREV / "questions.jsonl")]
     rows = [r for r in rows if "cubicasa5k" in r["path"]]
     paths = sorted({str(PREV / r["path"]) for r in rows})
-    dets, dt = run(paths, "preview")
+    dets, dt = run(paths, "preview_free")
     answers = {k: D.count_answers(v) for k, v in dets.items()}
     res = defaultdict(lambda: [0, 0, 0])  # ok, total, off-by-one
     for r in rows:
