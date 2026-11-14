@@ -1,7 +1,7 @@
-// DESIGN4: optional "pro" theme, ?theme=pro (works with ?static=1). No param = the original look, untouched.
+// DESIGN4: "pro" theme is the default (works with ?static=1). Pass ?theme=classic for the original look.
 // Pure presentation: every button keeps its id, handler, shortcut and route; secondary tools move into one Tools menu.
 (function () {
-  var t = (new URLSearchParams(location.search).get('theme') || '').toLowerCase();
+  var t = (new URLSearchParams(location.search).get('theme') || 'pro').toLowerCase();
   if (t !== 'pro') return;
   var root = document.documentElement;
   root.classList.add('themed', 'theme-pro');

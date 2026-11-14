@@ -14,7 +14,7 @@ const fmt = v => typeof v === 'number' ? (Number.isInteger(v) ? v.toLocaleString
 const ease = t => 1 - Math.pow(1 - t, 3);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-// DESIGN4: ?theme=pro gets a daylight scene and the blue accent; no param keeps the night scene and amber light
+// DESIGN4: the default "pro" theme gets a daylight scene and the blue accent; ?theme=classic keeps the night scene and amber light
 const PRO = document.documentElement.classList.contains('theme-pro');
 const AMBER = PRO ? new THREE.Color(0.10, 0.28, 0.86) : new THREE.Color(1.0, 0.62, 0.12);
 const V = { open: false, mode: 'orbit', keys: {}, items: [], sel: null, objs: [], pick: [], labels: [] };

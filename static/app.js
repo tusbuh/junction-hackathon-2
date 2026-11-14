@@ -15,7 +15,7 @@ const SRC_TAG = { swiss_dwellings: 'DXF+PDF', ifc_models: 'IFC', ifc_bench: 'IFC
 // ?static=1 (screenshots, video) or prefers-reduced-motion: every count-up / sweep shows its final state instantly
 const STATIC = new URLSearchParams(location.search).has('static') || matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (STATIC) document.documentElement.classList.add('static');
-// DESIGN4: ?theme=pro (static/theme.js) is a light theme: drawings open on white paper, highlights use its blue accent
+// DESIGN4: the default "pro" theme (static/theme.js) is a light theme: drawings open on white paper, highlights use its blue accent. ?theme=classic keeps the original look.
 const PRO = document.documentElement.classList.contains('theme-pro');
 const S = { cat: [], src: 'swiss_dwellings', file: null, total: 0, n: 0, last: null, mode: 'sheet', blue: !document.documentElement.classList.contains('themed'), sel: null, items: [], run: 0,
   has: { sheet: false, model: false } };
