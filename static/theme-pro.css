@@ -632,6 +632,10 @@ html.theme-pro {
   & .splash .spCost b { font: 600 20px var(--p-sans); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
   @media (max-height: 820px), (max-width: 1350px) { & .splash .stats b, & .splash .stats div.part b { font-size: 34px; } }
   @media (min-width: 1680px) { & .splash .stats b, & .splash .stats div.part b { font-size: 44px; } }
+  & .badge.tol { font: 500 11.5px/1.5 var(--p-sans); letter-spacing: 0; padding: 2px 8px; }
+  & .badge.tol b { font-family: var(--p-mono); font-weight: 500; }
+  & .rc-tol small { font: 400 12px/1.45 var(--p-sans); }
+  & .ov .it.room .shape { stroke-width: 1.25; fill-opacity: .13; }
   @media (min-width: 1680px) { & .top { padding: 0 24px; } & .answer { left: 24px; top: 24px; } & .vtag { right: 24px; top: 24px; } & .minimap { left: 24px; } }
 }
 
