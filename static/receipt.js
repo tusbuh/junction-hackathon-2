@@ -64,11 +64,11 @@ export function renderReceipt(r, host, hooks = {}) {
     </div>
     ${tolRow(rc.tolerance, r)}
     ${checks.length ? `<div class="rc-sec"><h4>Cross-checks <span class="${bad ? 'warn' : 'ok'}">${bad ? `${bad} disagree` : 'all agree'}</span></h4>${checks.map(checkRow).join('')}</div>` : ''}
-    <div class="rc-sec"><h4>Evidence <span>${items.length} cited</span></h4>
+    <div class="rc-sec"><h4>Itemized evidence <span>${items.length} cited · click to locate on the drawing</span></h4>
       <div class="rc-items">${items.map(it => itemRow(it, r.unit)).join('') || '<div class="rc-empty">No drawing elements cited.</div>'}</div>
       ${showSum ? `<div class="rc-sum"><span>Σ ${items.length} items</span><b>${esc(withUnit(r.value, r.unit))}</b></div>` : ''}
     </div>
-    ${exc.length ? `<details class="rc-sec rc-exc"><summary><h4>Left out <span>${exc.length}</span></h4></summary>
+    ${exc.length ? `<details class="rc-sec rc-exc"><summary><h4>Excluded from the take-off <span>${exc.length}</span></h4></summary>
       ${exc.map(e => `<div class="rc-item ex"><span class="rc-n">–</span><span class="rc-l">${esc(e.label)}<small>${esc(e.reason)}</small><small>${esc(e.cite || '')}</small></span><span class="rc-r"><span class="rc-v">${esc(withUnit(e.value, r.unit))}</span></span></div>`).join('')}
     </details>` : ''}
     <details class="rc-sec rc-steps" ${items.length ? '' : 'open'}><summary><h4>How it was derived <span>${(r.steps || []).length} steps</span></h4></summary>

@@ -50,6 +50,39 @@ Verification is built in, not bolted on:
 - **Honest misses**: "not available in the model" is answered only after searching every property set; borderline
   detections are listed as such.
 
+### Receipts: every answer can be checked in seconds
+
+The right-hand panel is a receipt for every answer: the value and the method; the official **tolerance** with the
+deviation from the dataset's reference answer when there is one (counts must be exact, area/length/volume within ±2 %,
+e.g. `80.33 vs 80.34 m², within tolerance (off by 0.01 %)`); a **confidence colour** with its reasons (exact CAD
+geometry, model data, PDF text layer, or a detector on pixels; cross-checks agree or disagree); the **cross-checks**;
+an **itemized list** where each line cites its source (`file p.1 at (x, y) pt · DXF ROOM_OUTLINE polygon`,
+`model.ifc · IfcDoor GlobalId …`, `scan.png at pixel (x, y)`, `sheet p.1 · schedule row`) and lights up on the drawing
+when clicked; items excluded from the take-off with the reason (balconies, loggias, shafts); and the source file's
+licence and credit.
+
+### Drawing audit: where a drawing disagrees with itself (`⚠ Audit`, key `A`, `/api/audit?path=…`)
+
+Each check reads the same fact twice, independently, and turns amber when the two readings differ:
+printed m² room labels vs the ROOM_OUTLINE polygon (Swiss CAD); door marks in the **door schedule** vs **door tags**
+on the floor-plan pages; door swings (arc + leaf, recognised from the vector linework) with no door tag near them;
+a schedule-only sheet vs the door tags of the project's earlier plan issue (revision check); IFC elements with
+identical geometry (double-counted in every quantity take-off), near-complete overlaps, and IfcSpace `Qto` floor
+area vs the footprint of the space's own 3D body. Every drawing also gets a short **"what a site engineer should
+double-check"** list (raise an RFI, confirm a door mark before ordering the frame, delete a duplicate before the
+take-off). `★ Errors we found in the dataset` (`/?audit=showcase`) shows the real ones, each one click from its evidence:
+
+| Drawing | Finding (measured from the files) |
+|---|---|
+| Sports_Complex `20150720 - XSC - floor plan and door schedule.pdf` | The door schedule (p.3) lists **41** doors, the plan sheets A-101.A/B tag **39**: 118.C and 129.A have no tag. A door leaf is drawn in the Fitness Center (118) south wall next to the Elec. Room with **no door tag**; it is the only one of the 23 recognised swings without a tag (a later A-801 lists 118.C). |
+| Sports_Complex `A-801 - Door and Finish Schedules` (current set) | Against the 2015-07-20 plans: 6 doors dropped (114.A, 120.A, 120.B, 121.C, 123.A, 126.A), 5 added (118.C, 119.B, 122.B, 122.C, 124.B): the door supplier's order must follow the current revision. |
+| ifc_bench `fantasy_office_building_3_arc.ifc` | 4 round RC columns (STB d=30) on OG1 exist **twice** with identical geometry (same box to 2 cm, same 0.24 m³), so column counts and concrete volumes over-count; 4 RC wall pairs overlap ~93 %. |
+| ifc_models `bsc-molio_molio-with-uris.ifc` | Space "Rum nr. 603 Elevortor teknik": Qto floor area 8.70 m², but its 3D body's footprint is 10.08 m². |
+
+Also audited with nothing to flag: all 550 printed room-area labels on the 65 Swiss plans match their outlines
+(±2 %); 16,484 IFC elements and 263 spaces in 9 models fingerprinted. IFC findings are precomputed by
+`python -m pinpoint.audit` (it meshes every element) into `static/findings.json`; the rest run on request.
+
 Notable accuracy rules found in the data: a washbasin is a bowl with a drain circle, a WC is a bowl without one
 (130/130); a shower is a free 4.5 cm floor drain (hob burners are 8 cm); assembled stairs count once.
 

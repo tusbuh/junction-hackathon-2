@@ -979,5 +979,5 @@ document.addEventListener('keydown', e => {
 });
 if (new URLSearchParams(location.search).get('race')) openRace();
 
-window.PP = { S, SV, T, select, setMode, ask, hot, clearSel, selectFile, show, tour, openRace };
+window.PP = { S, SV, T, select, setMode, ask, hot, clearSel, selectFile, show, tour, openRace, fitBox };
 boot();

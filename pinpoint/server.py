@@ -111,6 +111,8 @@ from .wow import router as _wow_router  # WOW track: 3D walkthrough + bill of qu
 app.include_router(_wow_router)
 from .race import router as _race_router  # UI: cost race (eval files vs VLM list-price estimate)
 app.include_router(_race_router)
+from .drawaudit import router as _audit_router  # CITE track: drawing audit
+app.include_router(_audit_router)
 
 app.mount('/static', StaticFiles(directory=STATIC), name='static')
 

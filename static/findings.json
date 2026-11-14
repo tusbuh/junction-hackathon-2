@@ -1,0 +1,278 @@
+{
+ "generated": "2026-11-14 01:52",
+ "checked": {
+  "swiss_rooms": 550,
+  "elements": 16484,
+  "spaces": 263,
+  "models": 9
+ },
+ "findings": [
+  {
+   "kind": "duplicate",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/duplex_arc.ifc",
+   "cls": "IfcCovering",
+   "title": "2× Compound Ceiling:Gypsum Board:187462 with identical geometry on Level 1",
+   "gids": [
+    "3bXiCStxP6Fgxdej$yc503",
+    "3bXiCStxP6Fgxdej$yc50B"
+   ],
+   "storeys": [
+    "Level 1",
+    "Level 1"
+   ],
+   "volume": 6.34,
+   "detail": "Same world bounding box (to 2 cm) and same volume 6.34 m³: any count, area or volume over IfcCovering includes it 2 times."
+  },
+  {
+   "kind": "duplicate",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/fantasy_office_building_3_arc.ifc",
+   "cls": "IfcColumn",
+   "title": "2× STB Stütze - rund:STB d=30:662415 with identical geometry on OG1",
+   "gids": [
+    "31Jmzg6N54ZQqCBfl7HARl",
+    "2rKnuImKDBFhDP_XTXuXUh"
+   ],
+   "storeys": [
+    "OG1",
+    "OG1"
+   ],
+   "volume": 0.24,
+   "detail": "Same world bounding box (to 2 cm) and same volume 0.24 m³: any count, area or volume over IfcColumn includes it 2 times."
+  },
+  {
+   "kind": "duplicate",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/fantasy_office_building_3_arc.ifc",
+   "cls": "IfcColumn",
+   "title": "2× STB Stütze - rund:STB d=30:662416 with identical geometry on OG1",
+   "gids": [
+    "31Jmzg6N54ZQqCBfl7HARm",
+    "2rKnuImKDBFhDP_XTXuXUe"
+   ],
+   "storeys": [
+    "OG1",
+    "OG1"
+   ],
+   "volume": 0.24,
+   "detail": "Same world bounding box (to 2 cm) and same volume 0.24 m³: any count, area or volume over IfcColumn includes it 2 times."
+  },
+  {
+   "kind": "duplicate",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/fantasy_office_building_3_arc.ifc",
+   "cls": "IfcColumn",
+   "title": "2× STB Stütze - rund:STB d=30:662417 with identical geometry on OG1",
+   "gids": [
+    "31Jmzg6N54ZQqCBfl7HARn",
+    "2rKnuImKDBFhDP_XTXuXUf"
+   ],
+   "storeys": [
+    "OG1",
+    "OG1"
+   ],
+   "volume": 0.24,
+   "detail": "Same world bounding box (to 2 cm) and same volume 0.24 m³: any count, area or volume over IfcColumn includes it 2 times."
+  },
+  {
+   "kind": "duplicate",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/fantasy_office_building_3_arc.ifc",
+   "cls": "IfcColumn",
+   "title": "2× STB Stütze - rund:STB d=30:662469 with identical geometry on OG1",
+   "gids": [
+    "31Jmzg6N54ZQqCBfl7HAQb",
+    "2rKnuImKDBFhDP_XTXuXUc"
+   ],
+   "storeys": [
+    "OG1",
+    "OG1"
+   ],
+   "volume": 0.24,
+   "detail": "Same world bounding box (to 2 cm) and same volume 0.24 m³: any count, area or volume over IfcColumn includes it 2 times."
+  },
+  {
+   "kind": "overlap",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/fantasy_office_building_3_arc.ifc",
+   "cls": "IfcWall",
+   "title": "Two Basiswand:STB 20.0:662487 overlap almost completely (93% of their boxes)",
+   "gids": [
+    "31Jmzg6N54ZQqCBfl7HAQt",
+    "31Jmzg6N54ZQqCBfl7HAQv"
+   ],
+   "storeys": [
+    "OG1",
+    "OG1"
+   ],
+   "volume": [
+    1.96,
+    1.83
+   ],
+   "detail": "Volumes 1.96 m³ and 1.83 m³ occupy the same place: likely a copy left behind."
+  },
+  {
+   "kind": "overlap",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/fantasy_office_building_3_arc.ifc",
+   "cls": "IfcWall",
+   "title": "Two Basiswand:STB 20.0:667554 overlap almost completely (93% of their boxes)",
+   "gids": [
+    "2rKnuImKDBFhDP_XTXuWhi",
+    "2rKnuImKDBFhDP_XTXuWhg"
+   ],
+   "storeys": [
+    "OK OG2",
+    "OK OG2"
+   ],
+   "volume": [
+    1.99,
+    1.86
+   ],
+   "detail": "Volumes 1.99 m³ and 1.86 m³ occupy the same place: likely a copy left behind."
+  },
+  {
+   "kind": "overlap",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/fantasy_office_building_3_arc.ifc",
+   "cls": "IfcWall",
+   "title": "Two Basiswand:STB 20.0:667848 overlap almost completely (93% of their boxes)",
+   "gids": [
+    "2rKnuImKDBFhDP_XTXuXM6",
+    "2rKnuImKDBFhDP_XTXuXM4"
+   ],
+   "storeys": [
+    "OK OG3",
+    "OK OG3"
+   ],
+   "volume": [
+    1.99,
+    1.86
+   ],
+   "detail": "Volumes 1.99 m³ and 1.86 m³ occupy the same place: likely a copy left behind."
+  },
+  {
+   "kind": "overlap",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/fantasy_office_building_3_arc.ifc",
+   "cls": "IfcWall",
+   "title": "Two Basiswand:STB 20.0:668142 overlap almost completely (93% of their boxes)",
+   "gids": [
+    "2rKnuImKDBFhDP_XTXuXIW",
+    "2rKnuImKDBFhDP_XTXuXI_"
+   ],
+   "storeys": [
+    "OK OG4",
+    "OK OG4"
+   ],
+   "volume": [
+    2.14,
+    1.99
+   ],
+   "detail": "Volumes 2.14 m³ and 1.99 m³ occupy the same place: likely a copy left behind."
+  },
+  {
+   "kind": "duplicate",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/hitos_arc.ifc",
+   "cls": "IfcSlab",
+   "title": "2× Gulv på grunn with identical geometry on fundamentetasje",
+   "gids": [
+    "0PMjCqAyTFoecIci5JPVp6",
+    "14wkscqJX8LP9Q5PdpuhVF"
+   ],
+   "storeys": [
+    "fundamentetasje",
+    "fundamentetasje"
+   ],
+   "volume": 26.15,
+   "detail": "Same world bounding box (to 2 cm) and same volume 26.15 m³: any count, area or volume over IfcSlab includes it 2 times."
+  },
+  {
+   "kind": "duplicate",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/hitos_arc.ifc",
+   "cls": "IfcSlab",
+   "title": "2× Dekke-01 with identical geometry on 1.etg and 2.etg",
+   "gids": [
+    "0WKWm6v4T2lP1lkRa88zca",
+    "3Dmukj$5vDjvIYzwQPxZvW"
+   ],
+   "storeys": [
+    "1.etg",
+    "2.etg"
+   ],
+   "volume": 0.82,
+   "detail": "Same world bounding box (to 2 cm) and same volume 0.82 m³: any count, area or volume over IfcSlab includes it 2 times."
+  },
+  {
+   "kind": "overlap",
+   "severity": "amber",
+   "source": "ifc_bench",
+   "path": "data/ifc_bench/hitos_arc.ifc",
+   "cls": "IfcSlab",
+   "title": "Two Gulv på grunn overlap almost completely (96% of their boxes)",
+   "gids": [
+    "3_hAdSwM94ohS3Hkn$6AjM",
+    "0FZdey0IbDmOVZlHrWACfT"
+   ],
+   "storeys": [
+    "fundamentetasje",
+    "fundamentetasje"
+   ],
+   "volume": [
+    49.94,
+    49.65
+   ],
+   "detail": "Volumes 49.94 m³ and 49.65 m³ occupy the same place: likely a copy left behind."
+  },
+  {
+   "kind": "duplicate",
+   "severity": "amber",
+   "source": "ifc_models",
+   "path": "data/ifc_models/bsc-clinic_clinic-plumbing.ifc",
+   "cls": "IfcFlowFitting",
+   "title": "2× M_Elbow - Generic:Elbow - Generic:Elbow - Generic:1079189 with identical geometry on Level 1",
+   "gids": [
+    "0K_m_cKWX9qx67j2AQJOZs",
+    "1bX4H7Xj906v1hOMpAVQsy"
+   ],
+   "storeys": [
+    "Level 1",
+    "Level 1"
+   ],
+   "volume": 0.0,
+   "detail": "Same world bounding box (to 2 cm) and same volume 0.0 m³: any count, area or volume over IfcFlowFitting includes it 2 times."
+  },
+  {
+   "kind": "space_body",
+   "severity": "amber",
+   "source": "ifc_models",
+   "path": "data/ifc_models/bsc-molio_molio-with-uris.ifc",
+   "cls": "IfcSpace",
+   "title": "Space Rum nr. 603 Elevortor teknik: floor quantity 8.70 m², 3D body footprint 10.08 m²",
+   "gids": [
+    "0ddTz66CXFouB0609D4VIM"
+   ],
+   "storeys": [
+    "6. sal"
+   ],
+   "printed": 8.7,
+   "computed": 10.08,
+   "unit": "m²",
+   "detail": "The space's 3D solid is larger or smaller than the floor area it reports, so anyone measuring the model in 3D gets a different number."
+  }
+ ]
+}
