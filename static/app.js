@@ -15,7 +15,9 @@ const SRC_TAG = { swiss_dwellings: 'DXF+PDF', ifc_models: 'IFC', ifc_bench: 'IFC
 // ?static=1 (screenshots, video) or prefers-reduced-motion: every count-up / sweep shows its final state instantly
 const STATIC = new URLSearchParams(location.search).has('static') || matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (STATIC) document.documentElement.classList.add('static');
-const S = { cat: [], src: 'swiss_dwellings', file: null, total: 0, n: 0, last: null, mode: 'sheet', blue: true, sel: null, items: [], run: 0,
+// DESIGN4: the default "pro" theme (static/theme.js) is a light theme: drawings open on white paper, highlights use its blue accent. ?theme=classic keeps the original look.
+const PRO = document.documentElement.classList.contains('theme-pro');
+const S = { cat: [], src: 'swiss_dwellings', file: null, total: 0, n: 0, last: null, mode: 'sheet', blue: !document.documentElement.classList.contains('themed'), sel: null, items: [], run: 0,
   has: { sheet: false, model: false } };
 
 const fmtEur = v => {
@@ -625,10 +627,10 @@ function drawMini() {
     SV.mini = off;
   }
   ctx.clearRect(0, 0, W, H); ctx.drawImage(SV.mini, 0, 0);
-  ctx.fillStyle = '#ffb020';
+  ctx.fillStyle = PRO ? '#1f4fd6' : '#ffb020';
   SV.items.forEach(it => { const x = ox + ((it.bbox[0] + it.bbox[2]) / 2 - SV.vb[0]) * sc, y = oy + ((it.bbox[1] + it.bbox[3]) / 2 - SV.vb[1]) * sc; ctx.fillRect(x - 1.5, y - 1.5, 3, 3); });
   const x0 = -SV.x / (SV.k * SV.s), y0 = -SV.y / (SV.k * SV.s);
-  ctx.strokeStyle = '#38d6ff'; ctx.lineWidth = 1.5; ctx.fillStyle = '#38d6ff22';
+  ctx.strokeStyle = PRO ? '#0b0d12' : '#38d6ff'; ctx.lineWidth = 1.5; ctx.fillStyle = PRO ? '#0b0d1214' : '#38d6ff22';
   ctx.fillRect(ox + x0 * sc, oy + y0 * sc, vw * sc, vh * sc); ctx.strokeRect(ox + x0 * sc, oy + y0 * sc, vw * sc, vh * sc);
 }
 $('#minimap').addEventListener('pointerdown', e => {
@@ -649,14 +651,14 @@ function init3d() {
   T.renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); T.renderer.localClippingEnabled = true;
   T.renderer.toneMapping = THREE.ACESFilmicToneMapping; T.renderer.toneMappingExposure = 1.05;
   T.scene = new THREE.Scene();
-  T.scene.fog = new THREE.Fog(0x0a1222, 200, 900);
+  T.scene.fog = new THREE.Fog(PRO ? 0xf6f7f9 : 0x0a1222, 200, 900);
   T.camera = new THREE.PerspectiveCamera(40, 1, 0.1, 5000);
   T.controls = new OrbitControls(T.camera, canvas); T.controls.enableDamping = true; T.controls.dampingFactor = 0.08;
   T.scene.add(new THREE.HemisphereLight(0xdfe9ff, 0x1a1408, 1.1));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(60, 120, 80); T.scene.add(sun);
   const fill = new THREE.DirectionalLight(0x88aaff, 0.5); fill.position.set(-80, 40, -60); T.scene.add(fill);
   T.root = new THREE.Group(); T.root.rotation.x = -Math.PI / 2; T.scene.add(T.root);
-  T.grid = new THREE.GridHelper(400, 80, 0x2a3a5a, 0x152036); T.grid.material.transparent = true; T.grid.material.opacity = .6; T.scene.add(T.grid);
+  T.grid = new THREE.GridHelper(400, 80, PRO ? 0xc9ced6 : 0x2a3a5a, PRO ? 0xe3e6eb : 0x152036); T.grid.material.transparent = true; T.grid.material.opacity = .6; T.scene.add(T.grid);
   T.ray = new THREE.Raycaster();
   new ResizeObserver(() => T.resize()).observe($('#modelv'));
   let down = null;
@@ -803,7 +805,7 @@ function highlight3d(items, storey) {
       L.append(d); h.lab = d;
     } });
   const allSpaces = T.hl.every(h => h.els.every(e => e.cls === 'IfcSpace'));
-  T.hlMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: .6, roughness: .5, flatShading: true, side: THREE.DoubleSide, transparent: allSpaces, opacity: allSpaces ? .6 : 1 });
+  T.hlMat = new THREE.MeshStandardMaterial({ color: PRO ? 0x2f62f0 : 0xffb020, emissive: PRO ? 0x1238b8 : 0xff8a00, emissiveIntensity: .6, roughness: .5, flatShading: true, side: THREE.DoubleSide, transparent: allSpaces, opacity: allSpaces ? .6 : 1 });
   T.hlShown = -1; revealed3d();
 }
 // rebuild the glowing mesh from the items revealed so far (called as the scan reaches each item)
@@ -821,7 +823,7 @@ function revealed3d() {
     const { geo, map } = subset(els, T.I); T.hlMap = map;
     T.hlMesh = new THREE.Mesh(geo, T.hlMat); T.hlMesh.renderOrder = 2; T.root.add(T.hlMesh);
     if (els.length < 3000) {
-      T.hlEdges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), new THREE.LineBasicMaterial({ color: 0xfff1c9, transparent: true, opacity: .9 }));
+      T.hlEdges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), new THREE.LineBasicMaterial({ color: PRO ? 0x0b1f66 : 0xfff1c9, transparent: true, opacity: .9 }));
       T.root.add(T.hlEdges);
     }
   });
@@ -844,7 +846,7 @@ function hot3d(n) {
 }
 function sel3d(n) {
   if (!T.H) return;
-  if (!T.selMat) T.selMat = new THREE.MeshBasicMaterial({ color: 0xff2d55, transparent: true, opacity: .9, depthTest: false });
+  if (!T.selMat) T.selMat = new THREE.MeshBasicMaterial({ color: PRO ? 0x0b0d12 : 0xff2d55, transparent: true, opacity: .9, depthTest: false });
   overlayMesh('selMesh', n == null ? null : T.hl.find(h => h.it.n == n), T.selMat);
 }
 function focus3d(n) { const h = T.hl.find(h => h.it.n === n); if (h) { fit3d(true, h.box, true); showPick(h.els[0], h.it); } }
