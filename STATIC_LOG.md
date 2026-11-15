@@ -97,3 +97,18 @@ Relative paths make it work under `https://<user>.github.io/<repo>/`. The URL wo
 attribution terms still apply.
 
 STATIC_READY
+
+
+## DESIGN4 static rebuild (Sunday 15 Nov 2026, about 03:00 Helsinki / UTC+2)
+
+Nothing was published. No deploy, no Netlify, no visibility change. `site/` and `shots_tmp/submission/site.zip` were left untouched.
+
+- Merged main `456b6ab` into branch `static` in `~/jh2-static` (pro theme is the default; `?theme=classic` keeps the old look).
+- Rebuilt only the front end into a new folder `~/jh2-static/site_design4/` with `tools/build_static.py --front --out site_design4`, after copying `site/` so the recorded `pp-data/` stayed the same (`diff -q` reported the two `pp-data` folders identical). The drawing and licence filter is unchanged (13 drawings). Credit under every drawing, `LICENSES.md` / `LICENSES.html`, `netlify.toml` and `.nojekyll` are included. Geist and Geist Mono are self-hosted from `static/fonts/` (OFL 1.1 texts included); `fonts.css` paths were rewritten so they work offline.
+- Served with `python3 -m http.server 8769 --bind 127.0.0.1` from `site_design4/`. Headless Chrome at 1440×900 confirmed the pro look (`html.theme-pro`), the splash scoreboard (2,358 / 2,358 Swiss, 1,049 / 1,049 IFC, 61 / 64 US, 3,124 / 4,270 CubiCasa, €0.0024 vs an estimated €170, about 72,135× cheaper), and the German WC question on `site1000_bldg2082_floor9385` (4 found = 4 ground truth) with the Swiss Dwellings CC-BY-4.0 credit line visible. Then only the :8769 server was stopped. The demo on :8737 was not touched.
+- Zip: `~/junction-hackathon-2/shots_tmp/submission/site_design4.zip` (33,298,113 bytes; 188 files, contents at the zip root). Screenshots: `shots_tmp/submission/static4_splash.png` and `static4_main.png`. Copies also at `/workspace/stoa/submission/` on the box. Old `site.zip` left as it was (33,226,514 bytes, 14 Nov 16:54).
+- Folder on disk: `site_design4/` is 38 MB, 188 files (the previous `site/` had 181 files; the 7 added files are the Geist fonts, their OFL texts, `fonts.css`, `theme.js` and `theme-pro.css`).
+
+Limits are the same as the first static build (precomputed questions only; Inter/JetBrains Mono still load from Google Fonts if someone switches to `?theme=classic` without internet; Geist is local). The header cost meter on the main screenshot showed a very small per-question figure that did not match the splash totals; the splash totals match the recorded scoreboard / race values. This rebuild did not change any recorded answers.
+
+Free disk at the end of this rebuild: 6.7 GiB.

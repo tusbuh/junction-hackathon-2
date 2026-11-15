@@ -1,6 +1,10 @@
 """Build the static (backend-free) PINPOINT demo in site/.
 
     .venv/bin/python tools/build_static.py
+    .venv/bin/python tools/build_static.py --front --out site_design4
+
+--front re-copies only the front end and licences (keeps recorded pp-data/).
+--out DIR writes to DIR instead of site/ (relative to the repo root, or absolute).
 
 Every number in site/ is a recorded response of the real app (pinpoint.server, called in-process with
 FastAPI's TestClient): nothing is computed or typed in here. The front end is a copy of static/ with
@@ -244,17 +248,25 @@ def copy_front_end(ndraw):
     shutil.copytree(src, dst, ignore=shutil.ignore_patterns('findings.json', '*.map'))
     for dp, _, fs in os.walk(dst):
         for fn in fs:
-            if not fn.endswith('.js'):
+            if not fn.endswith(('.js', '.css')):
                 continue
             fp = os.path.join(dp, fn)
             t = open(fp, encoding='utf-8').read()
             o = t
-            rel = os.path.relpath(dst, dp)
-            pre = './' if rel == '.' else rel + '/'
-            t = re.sub(r"""(from\s+|import\()(['"])/static/""", lambda m: m.group(1) + m.group(2) + pre, t)
-            t = re.sub(r"""(\.href\s*=\s*)(['"])/static/""", r"\1\2static/", t)
-            # the static site always shows final values (the ?static=1 mode); ?anim=1 brings the count-ups back
-            t = t.replace("new URLSearchParams(location.search).has('static')", "!new URLSearchParams(location.search).has('anim')")
+            if fn.endswith('.css'):
+                # url(/static/...) is resolved against the CSS file, so make it relative to this folder
+                def rel_url(m, dp=dp, dst=dst):
+                    quote, rest = m.group(1), m.group(2)
+                    relp = os.path.relpath(os.path.join(dst, rest), dp).replace('\\', '/')
+                    return f'url({quote}{relp}{quote})'
+                t = re.sub(r"""url\(\s*(['"]?)/static/([^)'"]+)\1\s*\)""", rel_url, t)
+            else:
+                rel = os.path.relpath(dst, dp)
+                pre = './' if rel == '.' else rel + '/'
+                t = re.sub(r"""(from\s+|import\()(['"])/static/""", lambda m: m.group(1) + m.group(2) + pre, t)
+                t = re.sub(r"""(\.href\s*=\s*)(['"])/static/""", r"\1\2static/", t)
+                # the static site always shows final values (the ?static=1 mode); ?anim=1 brings the count-ups back
+                t = t.replace("new URLSearchParams(location.search).has('static')", "!new URLSearchParams(location.search).has('anim')")
             if t != o:
                 open(fp, 'w', encoding='utf-8').write(t)
     shutil.copy(os.path.join(ROOT, 'tools', 'offline.js'), os.path.join(dst, 'offline.js'))
@@ -263,9 +275,14 @@ def copy_front_end(ndraw):
     h = h.replace('"three":"/static/vendor/three.module.js"', '"three":"./static/vendor/three.module.js"')
     h = h.replace('<script type="importmap">',
                   f'<script src="{DATA_DIR}/manifest.js"></script>\n<script src="static/offline.js"></script>\n<script type="importmap">', 1)
-    badge = (f'<a class="ppStatic" style="position:fixed;left:17px;top:47px;z-index:30;font:600 9.5px/1 Inter,system-ui,sans-serif;'
-             f'color:#9fb3c8;background:rgba(10,16,24,.82);border:1px solid rgba(159,179,200,.3);border-radius:4px;padding:2px 6px;text-decoration:none" href="LICENSES.html" title="Static build: answers for {ndraw} drawings were recorded from the real app. '
-             f'Data licences and credits">static demo · {ndraw} drawings · data licences</a>\n')
+    badge = (
+        '<style>.ppStatic{position:fixed;left:20px;top:52px;z-index:30;font:600 10px/1 Geist,ui-sans-serif,system-ui,sans-serif;'
+        'color:#475467;background:#fff;border:1px solid #e4e7ec;border-radius:6px;padding:4px 8px;text-decoration:none;'
+        'box-shadow:0 1px 2px rgba(16,24,40,.05)}'
+        'html:not(.theme-pro) .ppStatic{font-family:Inter,system-ui,sans-serif;color:#9fb3c8;background:rgba(10,16,24,.82);'
+        'border-color:rgba(159,179,200,.3);box-shadow:none}</style>\n'
+        f'<a class="ppStatic" href="LICENSES.html" title="Static build: answers for {ndraw} drawings were recorded from the real app. '
+        f'Data licences and credits">static demo · {ndraw} drawings · data licences</a>\n')
     h = h.replace('</body>', badge + '</body>', 1)
     assert not re.search(r'''["'(]/static/''', h), 'absolute /static/ path left in index.html'
     open(os.path.join(SITE, 'index.html'), 'w', encoding='utf-8').write(h)
@@ -314,7 +331,9 @@ def write_licenses():
            '- KIT IFC examples: "for unrestricted use", source to cite: Institute for Automation and Applied Informatics (IAI) /',
            '  Karlsruhe Institute of Technology (KIT), https://www.ifcwiki.org/index.php?title=KIT_IFC_Examples',
            '- MIT (Fantasy office building 3, Copyright (c) 2025 TUM Students, BIM Fundamentals SS2025):', '', '```', MIT_TEXT, '```', '',
-           '## Third-party code', '', '- three.js (static/vendor), Copyright 2010-2024 Three.js Authors, MIT licence.', '']
+           '## Third-party code', '',
+           '- three.js (static/vendor), Copyright 2010-2024 Three.js Authors, MIT licence.',
+           '- Geist and Geist Mono (static/fonts), SIL Open Font License 1.1. Licence texts: static/fonts/OFL-Geist.txt and static/fonts/OFL-GeistMono.txt.', '']
     txt = '\n'.join(md)
     open(os.path.join(SITE, 'LICENSES.md'), 'w', encoding='utf-8').write(txt)
     import html
@@ -344,7 +363,15 @@ NETLIFY = '''# Netlify: publish this folder as-is (no build step)
 
 
 if __name__ == '__main__':
+    if '--out' in sys.argv:
+        i = sys.argv.index('--out')
+        if i + 1 >= len(sys.argv) or sys.argv[i + 1].startswith('--'):
+            sys.exit('usage: build_static.py [--front] [--out DIR]')
+        out = sys.argv[i + 1]
+        SITE = out if os.path.isabs(out) else os.path.join(ROOT, out)
     if '--front' in sys.argv:   # front end + licences only (keeps the recorded pp-data/)
+        if not os.path.isdir(os.path.join(SITE, DATA_DIR)):
+            sys.exit(f'--front needs an existing {DATA_DIR}/ in {SITE}')
         shutil.rmtree(os.path.join(SITE, 'static'), ignore_errors=True)
         copy_front_end(len(INCLUDE))
     else:

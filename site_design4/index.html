@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PINPOINT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2213%22 fill=%22none%22 stroke=%22%23ffb020%22 stroke-width=%223%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%224%22 fill=%22%23ffb020%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="static/style.css">
+<link rel="stylesheet" href="static/receipt.css">
+<script src="static/theme.js"></script>
+<script src="pp-data/manifest.js"></script>
+<script src="static/offline.js"></script>
+<script type="importmap">{"imports":{"three":"./static/vendor/three.module.js"}}</script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="2" fill="currentColor"/><path d="M16 0v7M16 25v7M0 16h7M25 16h7" stroke="currentColor" stroke-width="2"/></svg>
+    <div><b>PINPOINT</b><span>every answer comes with a receipt</span></div>
+  </div>
+
+  <button class="docBtn" id="docBtn" title="Choose a drawing (⌘K)">
+    <span class="srcTag" id="srcTag">—</span>
+    <span class="docName" id="docName">pick a drawing</span>
+    <span class="caret">▾</span>
+  </button>
+
+  <form class="ask" id="askForm" autocomplete="off">
+    <svg class="qi" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="q" placeholder="Ask anything about this drawing, in any language…" spellcheck="false">
+    <button type="submit" id="go"><span>Ask</span><kbd>↵</kbd></button>
+    <div class="sugg" id="sugg" hidden>
+      <div class="sh">Questions from the dataset for this drawing <span id="suggN"></span></div>
+      <div class="sl" id="chips"></div>
+    </div>
+  </form>
+
+  <div class="meter" id="meter" role="button" tabindex="0" title="Measured CPU time × €0.04/vCPU-h + LLM tokens (0 by default). Click for the cost race (R)">
+    <div class="m"><label>cost</label><b id="mLast">€0</b></div>
+    <div class="m"><label>time</label><b id="mLat">–</b></div>
+    <div class="m"><label>LLM</label><b id="mLlm">0</b></div>
+    <div class="m vs"><label>frontier VLM</label><b id="mVlm">–</b></div>
+    <div class="m save"><label>cheaper <u>race ▸</u></label><b id="mSave">–</b></div>
+  </div>
+  <button class="tbtn" id="tourBtn" title="Guided tour: count, area, 2D ⇆ 3D, door schedule, walk, BoQ, cost race">▶ Tour</button>
+  <button class="tbtn" id="sbBtn" title="Scoreboard: every dataset question auto-graded against ground truth">▦ Scores</button>
+</header>
+
+<main id="main">
+  <section class="stage" id="stage" data-mode="sheet">
+    <div class="views" id="views">
+      <div class="view sheetv blue" id="sheetv">
+        <div class="pan" id="pan">
+          <img id="sheetImg" alt="">
+          <svg id="ov" class="ov"><defs>
+            <linearGradient id="scanG" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#38d6ff" stop-opacity="0"/><stop offset=".85" stop-color="#38d6ff" stop-opacity=".18"/><stop offset="1" stop-color="#bff3ff" stop-opacity=".9"/></linearGradient>
+          </defs><g id="ovItems"></g><g id="ovFx"></g></svg>
+        </div>
+        <div id="labels2d" class="labels"></div>
+        <div class="empty" id="sheetEmpty"><div class="ring"></div><span>Pick a drawing and ask a question.</span></div>
+        <canvas class="minimap" id="minimap" width="200" height="140" hidden></canvas>
+        <div class="vtag">2D · drawing</div>
+        <div class="credit" id="credit2d"></div>
+      </div>
+      <div class="view modelv" id="modelv" hidden>
+        <canvas id="three"></canvas>
+        <div id="labels3d" class="labels"></div>
+        <div class="empty" id="modelEmpty"><span>The 3D model appears for IFC questions.</span></div>
+        <div class="pick" id="pick" hidden></div>
+        <div class="load" id="load3d" hidden><div class="spin"></div><span>tessellating IFC…</span></div>
+        <div class="vtag">3D · IFC model <span id="cutTag"></span></div>
+        <div class="credit" id="credit3d"></div>
+      </div>
+    </div>
+
+    <div class="answer" id="answer" hidden>
+      <div class="aq" id="aQ"></div>
+      <div class="val"><b id="aVal"></b><span id="aUnit"></span></div>
+      <div class="am" id="aMethod"></div>
+      <div class="badges" id="aBadges"></div>
+      <div class="stepper" id="stepper" hidden>
+        <button id="prevBtn" title="Previous item (←)">‹</button>
+        <span id="stepTxt">all</span>
+        <button id="nextBtn" title="Next item (→)">›</button>
+        <button id="allBtn" class="all" title="Show all (Esc)">⤢ all</button>
+      </div>
+    </div>
+
+    <div class="splash" id="splash" hidden><div class="sc">
+      <h1>Ask a blueprint anything.<br>Check the answer in seconds.</h1>
+      <p class="lead">PINPOINT reads the geometry already inside CAD, PDF and IFC files, so every count, area and schedule row is boxed and numbered on the real drawing and lit up in the 3D model. No vision model ever guesses.</p>
+      <div class="stats" id="splashStats">
+        <div><b id="spSwiss">–</b><label>Swiss CAD floor plans</label><small id="spSwissN"></small></div>
+        <div><b id="spIfc">–</b><label>IFC building models</label><small id="spIfcN"></small></div>
+        <div><b id="spUs">–</b><label>US drawing sets</label><small id="spUsN"></small></div>
+        <div><b id="spFi">–</b><label>Finnish raster scans</label><small id="spFiN"></small></div>
+      </div>
+      <div class="spCost" id="spCostRow" hidden><b id="spCost">–</b><span id="spCostN"></span></div>
+      <div class="wip" id="spWip">counts exact, areas / lengths / volumes within 2 % (Stoa's scoring) · per source, never blended</div>
+      <div class="langs">Ask in <span>English</span><span>Deutsch</span><span>Suomi</span><span>Eesti</span><span>Dansk</span><span>Français</span><span>Italiano</span></div>
+      <div class="cta"><button class="go" id="spTour">▶ Watch the guided tour</button><button id="spRace">€ Cost race</button><button id="spTry">Try it yourself</button></div>
+      <div class="how"><b>/</b> ask · <b>← →</b> step through counted items · <b>1 2 3</b> 2D / split / 3D · <b>⌘K</b> pick a drawing · <b>R</b> cost race</div>
+    </div></div>
+
+    <div class="dock" id="dock">
+      <div class="seg" id="modes">
+        <button data-m="sheet" class="on">2D</button>
+        <button data-m="split">2D ⇆ 3D</button>
+        <button data-m="model">3D</button>
+      </div>
+      <button id="tglTheme" title="Blueprint / paper">◐</button>
+      <button id="fitBtn" title="Fit evidence">⤢</button>
+      <span class="hint" id="hint">scroll to zoom · drag to pan · ← → step through items</span>
+    </div>
+  </section>
+
+  <aside class="receipt" id="side">
+    <div id="receipt">
+    <div class="rh"><h3>Receipt</h3><span class="rsub" id="rSub">how the answer was derived</span></div>
+    <ol class="steps" id="steps"><li class="muted">Every step of the derivation appears here.</li></ol>
+    <div class="rh"><h3>Evidence <span id="evN" class="pill"></span></h3><span class="rsub">hover to locate · click to zoom</span></div>
+    <div class="ev" id="ev"></div>
+    </div>
+    <div class="audit">
+      <button type="button" id="auditBtn">▶ Grade every dataset question on this drawing</button>
+      <div class="auditSum" id="auditSum"></div>
+      <div class="auditList" id="auditList" hidden></div>
+    </div>
+  </aside>
+</main>
+
+<div class="drawer" id="lib" hidden>
+  <div class="dcard">
+    <div class="dh"><b>Drawings</b><span class="muted">preview set · grouped by source</span><button id="libX">✕</button></div>
+    <div class="srcs" id="srcs"></div>
+    <input id="filter" class="filter" placeholder="Filter drawings…">
+    <div class="files" id="files"></div>
+  </div>
+</div>
+
+<div class="modal" id="sb" hidden><div class="card">
+  <div class="mh"><h2>Scoreboard <small>preview set · every question auto-graded against ground truth</small></h2><button id="sbX">✕</button></div>
+  <div id="sbBody"></div>
+</div></div>
+<footer class="credits">Drawings: Stoa Junction 2026 dataset · Swiss Dwellings CC BY 4.0 · CubiCasa5K CC BY-NC-SA 4.0 · opening_design CC BY-SA 4.0 · three.js MIT</footer>
+<script type="module" src="static/app.js"></script>
+<script type="module" src="static/wow.js"></script>
+<script type="module" src="static/audit.js"></script>
+<style>.ppStatic{position:fixed;left:20px;top:52px;z-index:30;font:600 10px/1 Geist,ui-sans-serif,system-ui,sans-serif;color:#475467;background:#fff;border:1px solid #e4e7ec;border-radius:6px;padding:4px 8px;text-decoration:none;box-shadow:0 1px 2px rgba(16,24,40,.05)}html:not(.theme-pro) .ppStatic{font-family:Inter,system-ui,sans-serif;color:#9fb3c8;background:rgba(10,16,24,.82);border-color:rgba(159,179,200,.3);box-shadow:none}</style>
+<a class="ppStatic" href="LICENSES.html" title="Static build: answers for 13 drawings were recorded from the real app. Data licences and credits">static demo · 13 drawings · data licences</a>
+</body>
+</html>
